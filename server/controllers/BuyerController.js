@@ -12,9 +12,9 @@ class BuyerProducts {
   }
 
   static async create(data) {
-    const { product_name, product_price, pieces_price, pieces, stock, date } = data;
-    const query = 'INSERT INTO buyer_products (product_name, product_price, pieces_price, pieces, stock, date) VALUES (?, ?, ?, ?, ?, ?)';
-    const [result] = await db.query(query, [product_name, product_price, pieces_price, pieces, stock, date]);
+    const { product_name, product_price, pieces_price, pieces, stock, expire_date, date } = data;
+    const query = 'INSERT INTO buyer_products (product_name, product_price, pieces_price, pieces, stock, expire_date, date) VALUES (?, ?, ?, ?, ?, ?, ?)';
+    const [result] = await db.query(query, [product_name, product_price, pieces_price, pieces, stock, expire_date, date]);
     return { insertId: result.insertId, ...data }; // Return the inserted record
   }
 

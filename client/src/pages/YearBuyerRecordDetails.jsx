@@ -5,39 +5,42 @@ import Swal from 'sweetalert2/dist/sweetalert2';
 
 const YearBuyerRecordDetails = () => {
     const location = useLocation();
-    const { records } = location.state || { records: [] }; // Retrieve data passed via state
+    const { records } = location.state || { records: [] }; // Get records passed from previous page
 
     const [searchProductName, setSearchProductName] = useState('');
     const [searchDate, setSearchDate] = useState('');
-    const [deleteBuyerProduct] = useDeleteBuyerProductMutation(); // Hook for delete mutation
+    const [searchExpireDate, setSearchExpireDate] = useState('');
+
+    const [deleteBuyerProduct] = useDeleteBuyerProductMutation();
     const { refetch } = useBuyerProductQuery();
 
-    // Function to format the date as YYYY-MM-DD
+    // ✅ Safely format any date string as YYYY-MM-DD
     const formatDate = (dateString) => {
-        const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
-        return new Intl.DateTimeFormat('en-CA', options).format(new Date(dateString)); // 'en-CA' gives YYYY-MM-DD
+        if (!dateString) return '-';
+        const date = new Date(dateString);
+        if (isNaN(date)) return '-';
+        return date.toISOString().split('T')[0];
     };
 
-    // Filtered records based on search inputs
+    // ✅ Filter records by name, date, and expire date
     const filteredRecords = records.filter((record) => {
         const matchesProductName = record.product_name.toLowerCase().includes(searchProductName.toLowerCase());
         const matchesDate = searchDate ? formatDate(record.date) === searchDate : true;
-        return matchesProductName && matchesDate;
+        const matchesExpireDate = searchExpireDate ? formatDate(record.expire_date) === searchExpireDate : true;
+        return matchesProductName && matchesDate && matchesExpireDate;
     });
 
-    // Handle Delete Record
+    // ✅ Handle record deletion
     const handleDelete = async (id) => {
         try {
-            await deleteBuyerProduct(id).unwrap(); // Call the delete mutation
+            await deleteBuyerProduct(id).unwrap();
             Swal.fire({
                 title: 'Success',
                 text: 'Record deleted successfully.',
                 icon: 'success',
                 confirmButtonText: 'Ok',
                 buttonsStyling: false,
-                customClass: {
-                    confirmButton: 'sweetalert_btn_success',
-                },
+                customClass: { confirmButton: 'sweetalert_btn_success' },
             });
             refetch();
         } catch (error) {
@@ -47,17 +50,18 @@ const YearBuyerRecordDetails = () => {
                 icon: 'error',
                 confirmButtonText: 'Ok',
                 buttonsStyling: false,
-                customClass: {
-                    confirmButton: 'sweetalert_btn_error',
-                },
+                customClass: { confirmButton: 'sweetalert_btn_error' },
             });
         }
     };
 
     return (
         <>
-            <h1 className='year_record_table d-flex justify-content-center my-4 gradient_text'>Buyer Year Record Details</h1>
-            {/* Search Inputs */}
+            <h1 className='year_record_table d-flex justify-content-center my-4 gradient_text'>
+                Buyer Year Record Details
+            </h1>
+
+            {/* 🔍 Search Filters */}
             <div className="search-container px-3 d-flex justify-content-start align-items-center">
                 <div className="form-group mt-2">
                     <label htmlFor="productSearch">Search by Product Name:</label>
@@ -71,7 +75,7 @@ const YearBuyerRecordDetails = () => {
                     />
                 </div>
                 <div className="form-group mt-2 ms-2">
-                    <label htmlFor="dateSearch">Search by Date (YYYY-MM-DD):</label>
+                    <label htmlFor="dateSearch">Search by Date:</label>
                     <input
                         id="dateSearch"
                         type="date"
@@ -80,13 +84,21 @@ const YearBuyerRecordDetails = () => {
                         onChange={(e) => setSearchDate(e.target.value)}
                     />
                 </div>
+                <div className="form-group mt-2 ms-2">
+                    <label htmlFor="expireSearch">Search by Expire Date:</label>
+                    <input
+                        id="expireSearch"
+                        type="date"
+                        className="form-control"
+                        value={searchExpireDate}
+                        onChange={(e) => setSearchExpireDate(e.target.value)}
+                    />
+                </div>
             </div>
 
+            {/* 🧾 Table */}
             <div className='table-responsive p-3'>
-                <table
-                    className='table table-bordered form_div'
-                    style={{ borderRadius: '10px', overflow: 'hidden' }} // Apply border radius
-                >
+                <table className='table table-bordered form_div' style={{ borderRadius: '10px', overflow: 'hidden' }}>
                     <thead style={{ position: 'sticky', top: '0', zIndex: '1000' }}>
                         <tr>
                             <th style={{ backgroundColor: '#f44336', color: 'white' }}>#</th>
@@ -95,25 +107,24 @@ const YearBuyerRecordDetails = () => {
                             <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Pieces Price</th>
                             <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Pieces</th>
                             <th style={{ backgroundColor: '#f44336', color: 'white' }}>Remains Stock</th>
+                            <th style={{ backgroundColor: '#f44336', color: 'white' }}>Expire Date</th>
                             <th style={{ backgroundColor: '#f44336', color: 'white' }}>Date</th>
                             <th style={{ backgroundColor: '#f44336', color: 'white' }}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {filteredRecords.map((record, index) => (
-                            <tr key={index}>
+                            <tr key={record.id || index}>
                                 <td>{index + 1}</td>
                                 <td>{record.product_name}</td>
                                 <td>{record.product_price}</td>
                                 <td>{record.pieces_price}</td>
                                 <td>{record.pieces}</td>
                                 <td>{record.stock}</td>
+                                <td>{formatDate(record.expire_date)}</td>
                                 <td>{formatDate(record.date)}</td>
                                 <td>
-                                    <button
-                                        className="delete_btn"
-                                        onClick={() => handleDelete(record.id)} // Assuming record has an "id"
-                                    >
+                                    <button className="delete_btn" onClick={() => handleDelete(record.id)}>
                                         Delete
                                     </button>
                                 </td>
@@ -121,7 +132,7 @@ const YearBuyerRecordDetails = () => {
                         ))}
                         {filteredRecords.length === 0 && (
                             <tr>
-                                <td colSpan="5" className="text-center">No records found</td>
+                                <td colSpan="9" className="text-center">No records found</td>
                             </tr>
                         )}
                     </tbody>
