@@ -78,7 +78,7 @@ const DailyBuyerProductTotalPriceCard = ({ totalPrice = 0, title }) => {
   };
 
   return (
-    <div className="card form_div mb-5 p-3 pb-0 rounded-2 w-100 ms-3">
+    <div className="card form_div mb-5 p-3 pb-0 rounded-2 w-100">
       <form
         className="d-flex justify-content-between flex-wrap"
         onSubmit={handleSubmit}

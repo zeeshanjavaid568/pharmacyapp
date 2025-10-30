@@ -17,7 +17,12 @@ const Sidebar = () => {
     return (
         <>
             <div className='sidebar_heading d-flex justify-content-center mb-4'>
-                <h1 className='gradient_text'> Dashboard </h1>
+                <div>
+                    <h2> <span className='gradient_text'>Bani Hashim</span></h2>
+                    <div className='d-flex justify-content-center'>
+                        <h4 style={{ fontWeight: 'bolder' }} className='gradient_text'>Pharmacy</h4>
+                    </div>
+                </div>
             </div>
             <div className='sidebar_link_wrapper' data-bs-dismiss="offcanvas">
                 {sidebarLinks.map((curData) => (

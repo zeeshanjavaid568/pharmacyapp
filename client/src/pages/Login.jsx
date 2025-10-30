@@ -64,10 +64,10 @@ const Login = () => {
           confirmButtonText: 'Ok',
           buttonsStyling: false, // Disable default SweetAlert2 button styles
           customClass: {
-              confirmButton: 'sweetalert_btn_success', // Custom CSS class for the confirm button
+            confirmButton: 'sweetalert_btn_success', // Custom CSS class for the confirm button
           },
-      });
-      
+        });
+
         navigate('/');
       } catch (error) {
         console.error("Login failed:", error);
@@ -78,10 +78,10 @@ const Login = () => {
           confirmButtonText: 'Ok',
           buttonsStyling: false,
           customClass: {
-              confirmButton: 'sweetalert_btn_error', // Custom CSS class for the error button
+            confirmButton: 'sweetalert_btn_error', // Custom CSS class for the error button
           },
-      });
-      
+        });
+
       }
     }
   };
@@ -138,7 +138,7 @@ const Login = () => {
             </button>
             <div>
               <span>Before login go to </span>
-              <Link to={'/register'} className='text-decoration-none gradient_text'> Sign up </Link>
+              <Link to={'*'} className='text-decoration-none gradient_text'> Sign up </Link>
               <span>page</span>
             </div>
           </form>

@@ -16,6 +16,8 @@ import DailyProfitRecord from './pages/DailyProfitRecord';
 import DailyProfitRecordDetails from './pages/DailyProfitRecordDetails';
 import MonthlyProfitRecord from './pages/MonthlyProfitRecord';
 import MonthProfitRecordDetails from './pages/MonthProfitRecordDetails';
+import DailyYearBuyerProductTotalPriceRecordDetails from './pages/DailyYearBuyerProductTotalPriceRecordDetails';
+import DailyBuyerProductTotalPriceRecord from './pages/DailyBuyerProductTotalPriceRecord';
 
 function App() {
     return (
@@ -47,6 +49,19 @@ function App() {
                         <Route path='/year-buyer-record-detail/:id' element={<PrivateRoute>
                             <YearBuyerRecordDetails />
                         </PrivateRoute>} />
+
+                        <Route
+                            path="/buyer-daily-total-price-record"
+                            element={
+                                <PrivateRoute>
+                                    <DailyBuyerProductTotalPriceRecord />
+                                </PrivateRoute>
+                            }
+                        />
+                        <Route path='/year-buyer-daily-total-price-record-detail/:id' element={<PrivateRoute>
+                            <DailyYearBuyerProductTotalPriceRecordDetails />
+                        </PrivateRoute>} />
+
                         <Route
                             path="/saler-record"
                             element={

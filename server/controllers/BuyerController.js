@@ -18,13 +18,6 @@ class BuyerProducts {
     return { insertId: result.insertId, ...data }; // Return the inserted record
   }
 
-  static async createTotalPrice(data) {
-    const {  daily_buyer_product_total_price, date } = data;
-    const query = 'INSERT INTO daily_buyer_product_total_price ( daily_buyer_product_total_price, date) VALUES ( ?, ?)';
-    const [result] = await db.query(query, [ daily_buyer_product_total_price, date]);
-    return { insertId: result.insertId, ...data }; // Return the inserted record
-  }
-
   static async update(id, data) {
     const { stock } = data;
     const query = `
@@ -41,6 +34,24 @@ class BuyerProducts {
     const [result] = await db.query(query, [id]);
     return result.affectedRows > 0; // Return true if rows were deleted
   }
+
+  static async getAllDailyProductsTotalPice() {
+    const [rows] = await db.query('SELECT * FROM daily_buyer_product_total_price');
+    return rows;
+  }
+  static async createTotalPrice(data) {
+    const {  daily_buyer_product_total_price, date } = data;
+    const query = 'INSERT INTO daily_buyer_product_total_price ( daily_buyer_product_total_price, date) VALUES ( ?, ?)';
+    const [result] = await db.query(query, [ daily_buyer_product_total_price, date]);
+    return { insertId: result.insertId, ...data }; // Return the inserted record
+  }
+
+  static async deleteTotalPrice(id) {
+    const query = 'DELETE FROM daily_buyer_product_total_price WHERE id = ?';
+    const [result] = await db.query(query, [id]);
+    return result.affectedRows > 0; // Return true if rows were deleted
+  }
+
 }
 
 module.exports = BuyerProducts;

@@ -16,6 +16,18 @@ export const BuyerProdcutApi = createApi({
         },
       }),
     }),
+    buyerDailyProductTotalPrice: builder.query({
+      query: () => ({
+        url: `/buyer/products/totalprice`,
+        method: "GET",
+      }),
+    }),
+    deleteBuyerProductTotalPrice: builder.mutation({
+      query: (id) => ({
+        url: `/buyer/product/totalprice/${id}`,
+        method: "DELETE",
+      }),
+    }),
     createBuyerProduct: builder.mutation({
       query: (userData) => ({
         url: "/buyer/product",
@@ -50,6 +62,8 @@ export const BuyerProdcutApi = createApi({
 
 export const {
   useCreateDailyBuyerProductTotalPriceMutation,
+  useBuyerDailyProductTotalPriceQuery,
+  useDeleteBuyerProductTotalPriceMutation,
   useCreateBuyerProductMutation,
   useBuyerProductQuery,
   useUpdateBuyerProductMutation,

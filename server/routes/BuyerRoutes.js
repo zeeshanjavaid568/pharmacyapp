@@ -40,20 +40,6 @@ router.post('/product', async (req, res) => {
   }
 });
 
-// Create a new Buyer Product
-router.post('/totalpriceproduct', async (req, res) => {
-  try {
-    const result = await BuyerProducts.createTotalPrice(req.body);
-    res.status(201).json({
-      message: 'Buyer Product created successfully',
-      product: result,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Failed to create Buyer Product', error });
-  }
-});
-
 // Update a Buyer Product
 router.put('/product/:id', async (req, res) => {
   try {
@@ -75,6 +61,43 @@ router.delete('/product/:id', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Failed to delete Buyer Product', error });
+  }
+});
+
+// Get all Buyer Products Total Price
+router.get('/products/totalprice', async (req, res) => {
+  try {
+    const products = await BuyerProducts.getAllDailyProductsTotalPice();
+    res.json(products);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to fetch Buyer Products Total Price', error });
+  }
+});
+
+// Create a new Buyer Product Total Price
+router.post('/totalpriceproduct', async (req, res) => {
+  try {
+    const result = await BuyerProducts.createTotalPrice(req.body);
+    res.status(201).json({
+      message: 'Buyer Product Total Price created successfully',
+      product: result,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to create Buyer Product Total Price', error });
+  }
+});
+
+// Delete a Buyer Product Total Price
+router.delete('/product/totalprice/:id', async (req, res) => {
+  try {
+    const deleted = await BuyerProducts.deleteTotalPrice(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Buyer Product Total Price not found' });
+    res.json({ message: 'Buyer Product Total Price deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to delete Buyer Product Total Price', error });
   }
 });
 
