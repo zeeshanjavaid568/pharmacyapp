@@ -6,6 +6,16 @@ export const BuyerProdcutApi = createApi({
     baseUrl: "http://localhost:7000", 
   }),
   endpoints: (builder) => ({
+    createDailyBuyerProductTotalPrice: builder.mutation({
+      query: (userData) => ({
+        url: "/buyer/totalpriceproduct",
+        method: "POST",
+        body: userData,
+        headers: {
+          Accept: "application/json",
+        },
+      }),
+    }),
     createBuyerProduct: builder.mutation({
       query: (userData) => ({
         url: "/buyer/product",
@@ -39,6 +49,7 @@ export const BuyerProdcutApi = createApi({
 });
 
 export const {
+  useCreateDailyBuyerProductTotalPriceMutation,
   useCreateBuyerProductMutation,
   useBuyerProductQuery,
   useUpdateBuyerProductMutation,

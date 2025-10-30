@@ -11,6 +11,8 @@ import DailyProfitAddCard from '../components/Cards/DailyProfitAddCard';
 import MonthlyProfitAddCard from '../components/Cards/MonthlyProfitAddCard';
 import { useDailyProfitQuery } from '../redux/features/DailyProfitApi/dailyProfitApi';
 import Swal from 'sweetalert2/dist/sweetalert2';
+import DailyBuyerProductTotalPriceCard from '../components/Cards/DailyBuyerProductTotalPriceCard';
+import DailySalerProductTotalCard from '../components/Cards/DailySalerProductTotalPriceCard';
 
 const Home = () => {
   const { data: buyerProduct, refetch: refetchBuyerProducts, isError: isErrorBuyer, error: errorBuyer } = useBuyerProductQuery();
@@ -181,12 +183,24 @@ const Home = () => {
         />
       </div>
 
-
+      <div className='row'>
+        <div className='d-flex justify-content-between mt-5'>
+          <DailyBuyerProductTotalPriceCard
+            title={'Daily Buyer Products'}
+            totalPrice={`Rs: ${totalBuyerProductsPrice}`}
+          />
+          <DailySalerProductTotalCard 
+           title={'Daily Seler Products'}
+           totalPrice={`Rs: ${totalSalerProductsPrice}`}
+          />
+        
+        </div>
+      </div>
 
       {/* Display daily profit data in a Bootstrap Collapse */}
       <div className="row">
         <div className="col-12">
-          <div className="accordion form_div mt-5 rounded-2" id="dailyProfitAccordion">
+          <div className="accordion form_div mt-3 rounded-2" id="dailyProfitAccordion">
             <div className="accordion-item">
               <h2 className="accordion-header" id="dailyProfitHeading">
                 <button className="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#dailyProfitCollapse" aria-expanded="false" aria-controls="dailyProfitCollapse" style={{ backgroundColor: 'white' }}>

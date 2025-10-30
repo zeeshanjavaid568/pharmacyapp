@@ -18,6 +18,13 @@ class SalerProducts {
     return { insertId: result.insertId, ...data }; // Return the inserted record
   }
 
+  static async createSalerTotalPrice(data) {
+    const {  daily_seler_product_total_price, date } = data;
+    const query = 'INSERT INTO daily_seler_product_total_price ( daily_seler_product_total_price, date) VALUES ( ?, ?)';
+    const [result] = await db.query(query, [ daily_seler_product_total_price, date]);
+    return { insertId: result.insertId, ...data }; // Return the inserted record
+  }
+
   static async update(id, data) {
     const { product_name, product_price, stock, date } = data;
     const query = `

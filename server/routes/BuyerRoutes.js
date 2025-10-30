@@ -40,6 +40,20 @@ router.post('/product', async (req, res) => {
   }
 });
 
+// Create a new Buyer Product
+router.post('/totalpriceproduct', async (req, res) => {
+  try {
+    const result = await BuyerProducts.createTotalPrice(req.body);
+    res.status(201).json({
+      message: 'Buyer Product created successfully',
+      product: result,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to create Buyer Product', error });
+  }
+});
+
 // Update a Buyer Product
 router.put('/product/:id', async (req, res) => {
   try {

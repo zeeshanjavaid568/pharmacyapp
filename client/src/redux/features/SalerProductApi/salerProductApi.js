@@ -17,6 +17,16 @@ export const SalerProdcutApi = createApi({
   }),
   endpoints: (builder) => ({
 
+    createDailyTotalSalerProductPrice: builder.mutation({
+      query: (userData) => ({
+        url: "/saler/totalsalerproduct",
+        method: "POST",
+        body: userData,
+        headers: {
+          Accept: "application/json",
+        },
+      }),
+    }),
     createSalerProduct: builder.mutation({
       query: (userData) => ({
         url: "/saler/product",
@@ -43,6 +53,7 @@ export const SalerProdcutApi = createApi({
 });
 
 export const {
+  useCreateDailyTotalSalerProductPriceMutation,
   useCreateSalerProductMutation,
   useSalerProductQuery,
   useDeleteSalerProductMutation

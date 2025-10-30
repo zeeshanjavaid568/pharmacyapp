@@ -40,6 +40,20 @@ router.post('/product', async (req, res) => {
   }
 });
 
+// Create a new Saler Product
+router.post('/totalsalerproduct', async (req, res) => {
+  try {
+    const result = await SalerProducts.createSalerTotalPrice(req.body);
+    res.status(201).json({
+      message: 'Saler Product created successfully',
+      product: result,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to create Saler Product', error });
+  }
+});
+
 // Update a Saler Product
 router.put('/product/:id', async (req, res) => {
   try {
