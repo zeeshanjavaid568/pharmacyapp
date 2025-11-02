@@ -14,13 +14,17 @@ const YearBuyerRecordDetails = () => {
     const [deleteBuyerProduct] = useDeleteBuyerProductMutation();
     const { refetch } = useBuyerProductQuery();
 
-    // ✅ Safely format any date string as YYYY-MM-DD
+    // ✅ Helper to format date safely and accurately
     const formatDate = (dateString) => {
         if (!dateString) return '-';
         const date = new Date(dateString);
         if (isNaN(date)) return '-';
-        return date.toISOString().split('T')[0];
+
+        // Fix UTC → Local conversion
+        const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+        return localDate.toISOString().split('T')[0]; // accurate local date
     };
+
 
     // ✅ Filter records by name, date, and expire date
     const filteredRecords = records.filter((record) => {

@@ -3,6 +3,7 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const buyerRoutes = require('./routes/BuyerRoutes'); // Renamed to BuyerRoutes
 const salerRoutes = require('./routes/SalerRoutes');
+const duesRoutes = require('./routes/DuesRoutes');
 const dailyProfitRoutes = require('./routes/DailyProfitRoutes');
 const monthlyProfitRoutes = require('./routes/MonthlyProfitRoutes');
 const cookieParser = require('cookie-parser');
@@ -24,6 +25,7 @@ app.use('/uploads', express.static(path.join(__dirname, './uploadFiles')));
 app.use('/auth', authRoutes);
 app.use('/buyer', buyerRoutes);
 app.use('/saler', salerRoutes);
+app.use('/dues', duesRoutes);
 app.use('/daily-profit', dailyProfitRoutes);
 app.use('/monthly-profit', monthlyProfitRoutes);
 

@@ -1,17 +1,17 @@
 
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-export const DailyProfitApi = createApi({
-  reducerPath: "dailyprofit",
+export const DuesApi = createApi({
+  reducerPath: "givedues",
   baseQuery: fetchBaseQuery({
     baseUrl: "http://localhost:7000",
 
   }),
   endpoints: (builder) => ({
 
-    createDailyProfit: builder.mutation({
+    createGivenDues: builder.mutation({
       query: (userData) => ({
-        url: "/daily-profit/product",
+        url: "/dues/givedues",
         method: "POST",
         body: userData,
         headers: {
@@ -19,15 +19,15 @@ export const DailyProfitApi = createApi({
         },
       }),
     }),
-    dailyProfit: builder.query({
+    getAllDues: builder.query({
       query: () => ({
-        url: `/daily-profit/products`,
+        url: `/dues/givedues`,
         method: "GET",
       }),
     }),
-    deleteDailyProfit: builder.mutation({
+    deleteGivenDues: builder.mutation({
       query: (id) => ({
-        url: `/daily-profit/product/${id}`,
+        url: `/dues/givedues/${id}`,
         method: "DELETE",
       }),
     }),
@@ -35,7 +35,7 @@ export const DailyProfitApi = createApi({
 });
 
 export const {
-  useCreateDailyProfitMutation,
-  useDailyProfitQuery,
-  useDeleteDailyProfitMutation
-} = DailyProfitApi;
+  useCreateGivenDuesMutation,
+  useGetAllDuesQuery,
+  useDeleteGivenDuesMutation
+} = DuesApi;

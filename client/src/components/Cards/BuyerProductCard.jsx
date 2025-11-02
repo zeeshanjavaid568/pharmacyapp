@@ -31,7 +31,6 @@ const BuyerProductCard = ({ onProductAdded }) => {
                 updatedFormData.pieces = stock;
             }
 
-            console.log("Updated formData:", updatedFormData); // ✅ logs new data including dates
             return updatedFormData;
         });
     };

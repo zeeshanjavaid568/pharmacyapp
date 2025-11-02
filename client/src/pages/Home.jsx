@@ -189,16 +189,16 @@ const Home = () => {
             title={'Daily Buyer Products'}
             totalPrice={`Rs: ${totalBuyerProductsPrice}`}
           />
-          <DailySalerProductTotalCard 
-           title={'Daily Seler Products'}
-           totalPrice={`Rs: ${totalSalerProductsPrice}`}
+          <DailySalerProductTotalCard
+            title={'Daily Seler Products'}
+            totalPrice={`Rs: ${totalSalerProductsPrice}`}
           />
-        
+
         </div>
       </div>
 
       {/* Display daily profit data in a Bootstrap Collapse */}
-      <div className="row">
+      {/* <div className="row">
         <div className="col-12">
           <div className="accordion form_div mt-3 rounded-2" id="dailyProfitAccordion">
             <div className="accordion-item">
@@ -220,10 +220,10 @@ const Home = () => {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       <div className="Form_wrapper ms-1 mt-5">
-        <div className='row'>
+        {/* <div className='row'>
           <div className='col-12'>
             <DailyProfitAddCard
               totalBuyerItems={`${totalBuyerProductsCount}`}
@@ -232,14 +232,14 @@ const Home = () => {
               onProductAdded={handleProductAdded}
             />
           </div>
-        </div>
-        <div className='row'>
+        </div> */}
+        {/* <div className='row'>
           <div className='col-12'>
             <MonthlyProfitAddCard
               monthlyProfits={`${monthlyProfit}`} // Displaying calculated monthly profit
             />
           </div>
-        </div>
+        </div> */}
 
         {productErrors.length > 0 && (
           <div className="error_list mt-3 mb-5 card form_div p-3">

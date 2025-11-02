@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import swal from 'sweetalert2/dist/sweetalert2';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
-import { useCreateDailyBuyerProductTotalPriceMutation } from '../../redux/features/BuyerProductApi/buyerProductApi';
+import { useBuyerDailyProductTotalPriceQuery, useCreateDailyBuyerProductTotalPriceMutation } from '../../redux/features/BuyerProductApi/buyerProductApi';
 
 const DailyBuyerProductTotalPriceCard = ({ totalPrice = 0, title }) => {
   const [dailyForm, setDailyForm] = useState({
     daily_buyer_product_total_price: '',
     date: '',
   });
+
+  const { refetch } = useBuyerDailyProductTotalPriceQuery()
 
   const [showProfit, setShowProfit] = useState(false);
   const [errors, setErrors] = useState({ dailytotalprice: '', date: '' });
@@ -55,7 +57,7 @@ const DailyBuyerProductTotalPriceCard = ({ totalPrice = 0, title }) => {
 
         // ✅ Clear input after success
         setDailyForm({ daily_buyer_product_total_price: '', date: '' });
-
+        refetch();
         swal.fire({
           title: 'Success',
           text: 'Daily Buyer Total Price Added Successfully.',

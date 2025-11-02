@@ -102,7 +102,7 @@ const Login = () => {
             className='d-flex flex-column justify-content-center align-items-center'
             style={{ height: '50vh' }}
           >
-            <h1 className='heading mb-5 gradient_text'> Login </h1>
+            <h1 className='heading mb-2 gradient_text'> Login </h1>
             <div
               className='input_div d-flex flex-column'
               style={{ width: '30vh' }}
@@ -136,11 +136,11 @@ const Login = () => {
             <button type="submit" className='btn btn-danger my-3'>
               Submit
             </button>
-            <div>
+            {/* <div>
               <span>Before login go to </span>
               <Link to={'*'} className='text-decoration-none gradient_text'> Sign up </Link>
               <span>page</span>
-            </div>
+            </div> */}
           </form>
         </div>
       </div>

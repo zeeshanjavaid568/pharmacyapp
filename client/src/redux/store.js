@@ -6,6 +6,9 @@ import authSlice from "./features/auth/authSlice";
 import { SalerProdcutApi } from "./features/SalerProductApi/salerProductApi";
 import { DailyProfitApi } from "./features/DailyProfitApi/dailyProfitApi";
 import { MonthlyProfitApi } from "./features/MonthlyProfitApi/monthlyProfitApi";
+import { DuesApi } from "./features/DuesApi/giveDuesApi";
+import { TakenDuesApi } from "./features/DuesApi/takenDuesApi";
+
  
 export const store = configureStore({
   reducer: {
@@ -13,6 +16,8 @@ export const store = configureStore({
     [AuthApi.reducerPath]: AuthApi.reducer,
     [BuyerProdcutApi.reducerPath]: BuyerProdcutApi.reducer,
     [SalerProdcutApi.reducerPath]: SalerProdcutApi.reducer,
+    [DuesApi.reducerPath]: DuesApi.reducer,
+    [TakenDuesApi.reducerPath]: TakenDuesApi.reducer,
     [DailyProfitApi.reducerPath]: DailyProfitApi.reducer,
     [MonthlyProfitApi.reducerPath]: MonthlyProfitApi.reducer,
 
@@ -23,6 +28,8 @@ export const store = configureStore({
       .concat(AuthApi.middleware)
       .concat(BuyerProdcutApi.middleware)
       .concat(SalerProdcutApi.middleware)
+      .concat(DuesApi.middleware)
+      .concat(TakenDuesApi.middleware)
       .concat(DailyProfitApi.middleware)
       .concat(MonthlyProfitApi.middleware)
 
