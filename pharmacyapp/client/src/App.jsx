@@ -10,13 +10,18 @@ import Layout from './layout/Layout';
 import './App.css'
 import BuyerRecord from './pages/BuyerRecord';
 import SalerRecord from './pages/SalerRecord';
+import YearSalerRecordDetails from './pages/YearSalerRecordDetails';
+import YearBuyerRecordDetails from './pages/YearBuyerRecordDetails';
 import DailyProfitRecord from './pages/DailyProfitRecord';
 import DailyProfitRecordDetails from './pages/DailyProfitRecordDetails';
 import MonthlyProfitRecord from './pages/MonthlyProfitRecord';
 import MonthProfitRecordDetails from './pages/MonthProfitRecordDetails';
+import DailyYearBuyerProductTotalPriceRecordDetails from './pages/DailyYearBuyerProductTotalPriceRecordDetails';
 import DailyBuyerProductTotalPriceRecord from './pages/DailyBuyerProductTotalPriceRecord';
 import GiveDuesRecord from './pages/GiveDuesRecord';
+import GiveDuesDetails from './pages/GiveDuesDetails';
 import TakenDuesRecord from './pages/TakenDuesRecord';
+import TakenDuesDetails from './pages/TakenDuesDetails';
 
 
 function App() {
@@ -46,6 +51,9 @@ function App() {
                                 </PrivateRoute>
                             }
                         />
+                        <Route path='/year-buyer-record-detail/:id' element={<PrivateRoute>
+                            <YearBuyerRecordDetails />
+                        </PrivateRoute>} />
 
                         <Route
                             path="/buyer-daily-total-price-record"
@@ -55,6 +63,9 @@ function App() {
                                 </PrivateRoute>
                             }
                         />
+                        <Route path='/year-buyer-daily-total-price-record-detail/:id' element={<PrivateRoute>
+                            <DailyYearBuyerProductTotalPriceRecordDetails />
+                        </PrivateRoute>} />
 
                         <Route
                             path="/saler-record"
@@ -64,7 +75,9 @@ function App() {
                                 </PrivateRoute>
                             }
                         />
-
+                        <Route path='/year-saler-record-detail/:id' element={<PrivateRoute>
+                            <YearSalerRecordDetails />
+                        </PrivateRoute>} />
                         <Route
                             path="/givedues"
                             element={
@@ -73,6 +86,9 @@ function App() {
                                 </PrivateRoute>
                             }
                         />
+                        <Route path='/givedues-details/:id' element={<PrivateRoute>
+                            <GiveDuesDetails />
+                        </PrivateRoute>} />
 
                         <Route
                             path="/Takendues"
@@ -82,6 +98,9 @@ function App() {
                                 </PrivateRoute>
                             }
                         />
+                        <Route path='/takendues-details/:id' element={<PrivateRoute>
+                            <TakenDuesDetails />
+                        </PrivateRoute>} />
 
                         <Route
                             path="/daily-profit"
