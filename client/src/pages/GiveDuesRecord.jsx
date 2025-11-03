@@ -107,7 +107,11 @@ const GiveDuesRecord = () => {
               <tr>
                 <th style={{ backgroundColor: '#f44336', color: 'white' }}>#</th>
                 <th style={{ backgroundColor: '#f44336', color: 'white' }}>Name</th>
-                <th style={{ backgroundColor: '#f44336', color: 'white' }}>Price</th>
+                <th style={{ backgroundColor: '#f44336', color: 'white' }}>Single Piece Price</th>
+                <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Piece</th>
+                <th style={{ backgroundColor: '#f44336', color: 'white' }}>Given Dues</th>
+                <th style={{ backgroundColor: '#f44336', color: 'white' }}>Taken Dues</th>
+                <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Price</th>
                 <th style={{ backgroundColor: '#f44336', color: 'white' }}>Date</th>
                 <th style={{ backgroundColor: '#f44336', color: 'white' }}>Actions</th>
               </tr>
@@ -118,6 +122,10 @@ const GiveDuesRecord = () => {
                   <tr key={record.id || index}>
                     <td>{index + 1}</td>
                     <td>{record.name}</td>
+                    <td>{record.single_piece_price}</td>
+                    <td>{record.total_piece}</td>
+                    <td>{record.given_dues}</td>
+                    <td>{record.taken_dues}</td>
                     <td>{record.price}</td>
                     <td>{formatDate(record.date)}</td>
                     <td>

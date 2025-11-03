@@ -47,22 +47,10 @@ export const sidebarLinks = [
     },
     {
         id: 3,
-        link: '#',
+        link: '/givedues',
         text: 'Dues',
         icon: <FontAwesomeIcon icon="fa-solid fa-address-card" />,
-        children: [
-            {
-                icon: <FontAwesomeIcon icon="fa-solid fa-address-card" />,
-                selectedIcon: "/assets/images/dashboard/camera.png",
-                link: '/givedues',
-                text: 'Given Dues',
-            },
-            {
-                icon: <FontAwesomeIcon icon="fa-solid fa-address-card" />,
-                selectedIcon: "/assets/images/dashboard/camera.png",
-                link: '/takendues',
-                text: 'Taken Dues',
-            },]
+
     }
 
 ]

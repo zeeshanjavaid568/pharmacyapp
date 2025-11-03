@@ -3,59 +3,55 @@ import swal from 'sweetalert2/dist/sweetalert2';
 import { useCreateGivenDuesMutation, useGetAllDuesQuery } from '../../redux/features/DuesApi/giveDuesApi';
 
 const GiveDuesCard = () => {
-  const [dailyForm, setDailyForm] = useState({
+  // ✅ All input fields in a single state
+  const [formData, setFormData] = useState({
     name: '',
+    single_piece_price: '',
+    total_piece: '',
+    given_dues: '',
+    taken_dues: '',
     price: '',
     date: '',
   });
 
   const [errors, setErrors] = useState({});
-  const [createDailyBuyerProductTotalPrice, { isLoading }] =
-    useCreateGivenDuesMutation();
+  const [createGivenDues, { isLoading }] = useCreateGivenDuesMutation();
   const { refetch } = useGetAllDuesQuery();
-
 
   // ✅ Handle input changes dynamically
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setDailyForm((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Validation logic
+  // ✅ Validate only required fields
   const validate = () => {
     const newErrors = {};
-
-    if (!dailyForm.name.trim()) {
+    if (!formData.name.trim()) {
       newErrors.name = 'Name is required.';
-    } else if (dailyForm.name.trim().length < 2) {
-      newErrors.name = 'Name must be at least 2 characters.';
     }
-
-    if (!dailyForm.price) {
-      newErrors.price = 'Price is required.';
-    } else if (isNaN(dailyForm.price) || Number(dailyForm.price) <= 0) {
-      newErrors.price = 'Price must be a valid positive number.';
-    }
-
-    if (!dailyForm.date) {
+    if (!formData.date) {
       newErrors.date = 'Date is required.';
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-
-  // ✅ Handle form submit
+  // ✅ Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
 
     try {
-      await createDailyBuyerProductTotalPrice({
-        name: dailyForm.name,
-        price: Number(dailyForm.price),
-        date: dailyForm.date,
+      // ✅ Send all fields to database
+      await createGivenDues({
+        name: formData.name,
+        single_piece_price: Number(formData.single_piece_price) || 0,
+        total_piece: Number(formData.total_piece) || 0,
+        given_dues: Number(formData.given_dues) || 0,
+        taken_dues: Number(formData.taken_dues) || 0,
+        price: Number(formData.price) || 0,
+        date: formData.date,
       }).unwrap();
 
       swal.fire({
@@ -67,8 +63,16 @@ const GiveDuesCard = () => {
         customClass: { confirmButton: 'sweetalert_btn_success' },
       });
 
-      // ✅ Reset form
-      setDailyForm({ name: '', price: '', date: '' });
+      // ✅ Reset form and refresh data
+      setFormData({
+        name: '',
+        single_piece_price: '',
+        total_piece: '',
+        given_dues: '',
+        taken_dues: '',
+        price: '',
+        date: '',
+      });
       refetch();
       setErrors({});
     } catch (err) {
@@ -97,53 +101,92 @@ const GiveDuesCard = () => {
             name="name"
             className={`form-control p-1 my-2 ${errors.name ? 'is-invalid' : ''}`}
             placeholder="Enter name"
-            value={dailyForm.name}
+            value={formData.name}
             onChange={handleChange}
           />
-          {errors.name && (
-            <div className="text-danger mb-1" style={{ fontSize: '0.875rem' }}>
-              {errors.name}
-            </div>
-          )}
+          {errors.name && <div className="text-danger mb-1">{errors.name}</div>}
         </div>
 
-        {/* ✅ Price Field */}
+        {/* ✅ Single Piece Price */}
         <div className="col-auto">
-          <label className="me-2">Price</label>
+          <label className="me-2">Single Piece Price</label>
+          <input
+            type="number"
+            name="single_piece_price"
+            className="form-control p-1 my-2"
+            placeholder="Enter single piece price"
+            value={formData.single_piece_price}
+            onChange={handleChange}
+          />
+        </div>
+
+        {/* ✅ Total Piece */}
+        <div className="col-auto">
+          <label className="me-2">Total Piece</label>
+          <input
+            type="number"
+            name="total_piece"
+            className="form-control p-1 my-2"
+            placeholder="Enter total pieces"
+            value={formData.total_piece}
+            onChange={handleChange}
+          />
+        </div>
+
+        {/* ✅ Given Dues */}
+        <div className="col-auto">
+          <label className="me-2">Given Dues</label>
+          <input
+            type="number"
+            name="given_dues"
+            className="form-control p-1 my-2"
+            placeholder="Enter given dues"
+            value={formData.given_dues}
+            onChange={handleChange}
+          />
+        </div>
+
+        {/* ✅ Taken Dues */}
+        <div className="col-auto">
+          <label className="me-2">Taken Dues</label>
+          <input
+            type="number"
+            name="taken_dues"
+            className="form-control p-1 my-2"
+            placeholder="Enter taken dues"
+            value={formData.taken_dues}
+            onChange={handleChange}
+          />
+        </div>
+
+        {/* ✅ Total Price */}
+        <div className="col-auto">
+          <label className="me-2">Total Price</label>
           <input
             type="number"
             name="price"
-            className={`form-control p-1 my-2 ${errors.price ? 'is-invalid' : ''}`}
-            placeholder="Enter price"
-            value={dailyForm.price}
+            className="form-control p-1 my-2"
+            placeholder="Enter total price"
+            value={formData.price}
             onChange={handleChange}
           />
-          {errors.price && (
-            <div className="text-danger mb-1" style={{ fontSize: '0.875rem' }}>
-              {errors.price}
-            </div>
-          )}
         </div>
 
-        {/* ✅ Date Field */}
+        {/* ✅ Date */}
         <div className="col-auto">
           <label className="me-2">Date</label>
           <input
             type="date"
             name="date"
             className={`form-control p-1 my-2 ${errors.date ? 'is-invalid' : ''}`}
-            value={dailyForm.date}
+            value={formData.date}
             onChange={handleChange}
           />
-          {errors.date && (
-            <div className="text-danger mb-1" style={{ fontSize: '0.875rem' }}>
-              {errors.date}
-            </div>
-          )}
+          {errors.date && <div className="text-danger mb-1">{errors.date}</div>}
         </div>
 
         {/* ✅ Submit Button */}
-        <div className="col-aut mb-2">
+        <div className="col-auto mb-2">
           <button
             type="submit"
             className="btn btn-danger my-2"
