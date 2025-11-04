@@ -91,13 +91,6 @@ const GiveDuesRecord = () => {
             onChange={(e) => setSearchDate(e.target.value)}
           />
         </div>
-        <div className="form-group mt-2">
-          <label>Last Entry Price</label>
-          <div className="form-control text-center fw-bold">
-            {filteredRecords.length > 0 ? filteredRecords[filteredRecords.length - 1].price : 0}
-          </div>
-        </div>
-
       </div>
 
       {/* 📋 Table Display */}
@@ -118,7 +111,7 @@ const GiveDuesRecord = () => {
                 <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Piece</th>
                 <th style={{ backgroundColor: '#f44336', color: 'white' }}>Given Dues</th>
                 <th style={{ backgroundColor: '#f44336', color: 'white' }}>Taken Dues</th>
-                <th style={{ backgroundColor: '#f44336', color: 'white' }}>Remains Total Price</th>
+                <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Price</th>
                 <th style={{ backgroundColor: '#f44336', color: 'white' }}>Date</th>
                 <th style={{ backgroundColor: '#f44336', color: 'white' }}>Actions</th>
               </tr>

@@ -1,20 +1,23 @@
 import React, { useState } from 'react';
 import Swal from 'sweetalert2/dist/sweetalert2';
-import GiveDuesCard from '../components/Cards/GiveDuesCard';
-import { useGetAllDuesQuery, useDeleteGivenDuesMutation } from '../redux/features/DuesApi/giveDuesApi';
+import TakenDuesCard from '../components/Cards/TakenDuesCard';
+import {
+  useGetAllTakenDuesQuery,
+  useDeleteTakenDuesMutation,
+} from '../redux/features/DuesApi/takenDuesApi';
 
-const GiveDuesRecord = () => {
-  // Fetch all dues from API
-  const { data = [], isLoading, isError, refetch } = useGetAllDuesQuery();
+const TakenDuesRecord = () => {
+  // Fetch all Taken Dues
+  const { data = [], isLoading, isError, refetch } = useGetAllTakenDuesQuery();
 
-  // Delete mutation
-  const [deleteGivenDues] = useDeleteGivenDuesMutation();
+  // Mutation for delete
+  const [deleteTakenDues] = useDeleteTakenDuesMutation();
 
   // Local states for filters
   const [searchDate, setSearchDate] = useState('');
   const [searchName, setSearchName] = useState('');
 
-  // ✅ Format date safely and correctly
+  // ✅ Safely format date to yyyy-mm-dd
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
@@ -23,7 +26,7 @@ const GiveDuesRecord = () => {
     return localDate.toISOString().split('T')[0];
   };
 
-  // ✅ Filter records by date and name
+  // ✅ Filter records by name and date
   const filteredRecords = data.filter((record) => {
     const recordDate = formatDate(record.date);
     const matchesDate = searchDate ? recordDate === searchDate : true;
@@ -33,13 +36,13 @@ const GiveDuesRecord = () => {
     return matchesDate && matchesName;
   });
 
-  // ✅ Handle delete
+  // ✅ Handle delete record
   const handleDelete = async (id) => {
     try {
-      await deleteGivenDues(id).unwrap();
+      await deleteTakenDues(id).unwrap();
       Swal.fire({
-        title: 'Deleted!',
-        text: 'Given Dues deleted successfully.',
+        title: 'Success!',
+        text: 'Taken Dues deleted successfully.',
         icon: 'success',
         confirmButtonText: 'Ok',
         buttonsStyling: false,
@@ -49,7 +52,7 @@ const GiveDuesRecord = () => {
     } catch (error) {
       Swal.fire({
         title: 'Error!',
-        text: 'Failed to delete Given Dues. Please try again.',
+        text: 'Failed to delete Taken Dues. Please try again.',
         icon: 'error',
         confirmButtonText: 'Ok',
         buttonsStyling: false,
@@ -61,11 +64,11 @@ const GiveDuesRecord = () => {
   return (
     <>
       <h1 className="d-flex justify-content-center my-4 gradient_text">
-        Given Dues Record
+        Taken Dues Record
       </h1>
 
-      {/* 🧾 Add New Dues Section */}
-      <GiveDuesCard />
+      {/* Add New Dues Section */}
+      <TakenDuesCard />
 
       {/* 🔍 Search Filters */}
       <div className="search-container px-3 d-flex gap-3 flex-wrap">
@@ -91,16 +94,9 @@ const GiveDuesRecord = () => {
             onChange={(e) => setSearchDate(e.target.value)}
           />
         </div>
-        <div className="form-group mt-2">
-          <label>Last Entry Price</label>
-          <div className="form-control text-center fw-bold">
-            {filteredRecords.length > 0 ? filteredRecords[filteredRecords.length - 1].price : 0}
-          </div>
-        </div>
-
       </div>
 
-      {/* 📋 Table Display */}
+      {/* 🧾 Table of Records */}
       <div className="table-responsive p-3">
         {isLoading && <p>Loading...</p>}
         {isError && <p>Error loading data.</p>}
@@ -114,11 +110,7 @@ const GiveDuesRecord = () => {
               <tr>
                 <th style={{ backgroundColor: '#f44336', color: 'white' }}>#</th>
                 <th style={{ backgroundColor: '#f44336', color: 'white' }}>Name</th>
-                <th style={{ backgroundColor: '#f44336', color: 'white' }}>Single Piece Price</th>
-                <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Piece</th>
-                <th style={{ backgroundColor: '#f44336', color: 'white' }}>Given Dues</th>
-                <th style={{ backgroundColor: '#f44336', color: 'white' }}>Taken Dues</th>
-                <th style={{ backgroundColor: '#f44336', color: 'white' }}>Remains Total Price</th>
+                <th style={{ backgroundColor: '#f44336', color: 'white' }}>Price</th>
                 <th style={{ backgroundColor: '#f44336', color: 'white' }}>Date</th>
                 <th style={{ backgroundColor: '#f44336', color: 'white' }}>Actions</th>
               </tr>
@@ -129,10 +121,6 @@ const GiveDuesRecord = () => {
                   <tr key={record.id || index}>
                     <td>{index + 1}</td>
                     <td>{record.name}</td>
-                    <td>{record.single_piece_price}</td>
-                    <td>{record.total_piece}</td>
-                    <td>{record.given_dues}</td>
-                    <td>{record.taken_dues}</td>
                     <td>{record.price}</td>
                     <td>{formatDate(record.date)}</td>
                     <td>
@@ -160,4 +148,4 @@ const GiveDuesRecord = () => {
   );
 };
 
-export default GiveDuesRecord;
+export default TakenDuesRecord;
