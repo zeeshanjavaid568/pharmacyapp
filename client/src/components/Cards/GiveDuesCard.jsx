@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import swal from 'sweetalert2/dist/sweetalert2';
-import { useCreateGivenDuesMutation, useGetAllDuesQuery } from '../../redux/features/DuesApi/giveDuesApi';
+import { useCreateGivenDuesMutation } from '../../redux/features/DuesApi/giveDuesApi';
 
-const GiveDuesCard = () => {
+const GiveDuesCard = ({ lastPrice, refetchData }) => {
   const [formData, setFormData] = useState({
     name: '',
     single_piece_price: '',
@@ -16,31 +16,22 @@ const GiveDuesCard = () => {
 
   const [difference, setDifference] = useState(0);
   const [errors, setErrors] = useState({});
-
-  // ✅ RTK Query Hooks
   const [createGivenDues, { isLoading }] = useCreateGivenDuesMutation();
-  const { data: allDues = [], refetch } = useGetAllDuesQuery();
 
-  // ✅ Automatically set last entry price into taken_dues_2
+  // ✅ Auto-update taken_dues_2 & price whenever lastPrice changes (after delete or add)
   useEffect(() => {
-    if (allDues.length > 0) {
-      const lastRecord = allDues[allDues.length - 1];
-      const lastPrice = Number(lastRecord.price) || 0;
+    setFormData((prev) => ({
+      ...prev,
+      taken_dues_2: lastPrice || 0,
+      price: (Number(prev.taken_dues) || 0) + (Number(lastPrice) || 0),
+    }));
+  }, [lastPrice]);
 
-      setFormData((prev) => ({
-        ...prev,
-        taken_dues_2: lastPrice,
-      }));
-    }
-  }, [allDues]);
-
-  // ✅ Handle input change
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // ✅ Auto calculate total piece price (single_piece_price × total_piece)
   const calculatedTotal = useMemo(() => {
     const price = Number(formData.single_piece_price) || 0;
     const pieces = Number(formData.total_piece) || 0;
@@ -52,17 +43,12 @@ const GiveDuesCard = () => {
     const given = Number(formData.given_dues) || 0;
     const taken = Number(formData.taken_dues) || 0;
     const taken2 = Number(formData.taken_dues_2) || 0;
-
-    // (Taken Dues 2 - Given Dues)
     const diff = taken2 - given;
     setDifference(diff);
-
-    // (Taken Dues 2 - Given Dues) + Taken Dues
     const totalRemains = diff + taken;
     setFormData((prev) => ({ ...prev, price: totalRemains }));
   }, [formData.given_dues, formData.taken_dues, formData.taken_dues_2]);
 
-  // ✅ Validation
   const validate = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = 'Name is required.';
@@ -71,7 +57,6 @@ const GiveDuesCard = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // ✅ Handle submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
@@ -96,20 +81,19 @@ const GiveDuesCard = () => {
         customClass: { confirmButton: 'sweetalert_btn_success' },
       });
 
-      // ✅ Reset form
       setFormData({
         name: '',
         single_piece_price: '',
         total_piece: '',
         given_dues: '',
         taken_dues: '',
-        taken_dues_2: '',
-        price: '',
+        taken_dues_2: lastPrice || 0,
+        price: lastPrice || 0,
         date: '',
       });
       setDifference(0);
       setErrors({});
-      refetch(); // refresh data for next auto-fill
+      refetchData(); // refresh data for updated last price
     } catch (err) {
       swal.fire({
         title: 'Error!',
@@ -196,30 +180,6 @@ const GiveDuesCard = () => {
             onChange={handleChange}
           />
         </div>
-
-        {/* ✅ Taken Dues 2 */}
-        {/* <div className="col-auto">
-          <label className="me-2">Taken Dues 2 (Last Entry Price)</label>
-          <input
-            type="number"
-            name="taken_dues_2"
-            className="form-control p-1 my-2"
-            placeholder="Auto filled from last record"
-            value={formData.taken_dues_2}
-            onChange={handleChange}
-          />
-        </div> */}
-
-        {/* ✅ Difference */}
-        {/* <div className="col-auto">
-          <label className="me-2">Taken Dues 2 - Given Dues</label>
-          <input
-            type="number"
-            className="form-control p-1 my-2 bg-light"
-            value={difference}
-            readOnly
-          />
-        </div> */}
 
         {/* ✅ Remains Total Price */}
         <div className="col-auto">
