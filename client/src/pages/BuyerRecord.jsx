@@ -144,7 +144,7 @@ const BuyerRecord = () => {
 
           {/* 🧾 Table */}
           <div className='table-responsive p-3'>
-            <table className='table table-bordered form_div' style={{ borderRadius: '10px', overflow: 'hidden' }}>
+            <table className='table table-bordered table-hover form_div' style={{ borderRadius: '10px', overflow: 'hidden' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 1000 }}>
                 <tr>
                   <th style={{ backgroundColor: '#f44336', color: 'white' }}>#</th>
@@ -171,7 +171,7 @@ const BuyerRecord = () => {
                     <td>{formatDate(record.date)}</td>
                     <td>
                       <button className="delete_btn" onClick={() => handleDelete(record.id)}>
-                        Delete
+                      🗑️ Delete
                       </button>
                     </td>
                   </tr>
