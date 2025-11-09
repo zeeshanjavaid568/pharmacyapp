@@ -150,6 +150,7 @@ const BuyerRecord = () => {
                   <th style={{ backgroundColor: '#f44336', color: 'white' }}>#</th>
                   <th style={{ backgroundColor: '#f44336', color: 'white' }}>Product Name</th>
                   <th style={{ backgroundColor: '#f44336', color: 'white' }}>Product Price</th>
+                  <th style={{ backgroundColor: '#f44336', color: 'white' }}>Product Saling Price</th>
                   <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Pieces Price</th>
                   <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Pieces</th>
                   <th style={{ backgroundColor: '#f44336', color: 'white' }}>Remains Stock</th>
@@ -164,6 +165,7 @@ const BuyerRecord = () => {
                     <td>{index + 1}</td>
                     <td>{record.product_name}</td>
                     <td>{record.product_price}</td>
+                    <td>{record.saling_price}</td>
                     <td>{record.pieces_price}</td>
                     <td>{record.pieces}</td>
                     <td>{record.stock}</td>

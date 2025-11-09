@@ -5,6 +5,7 @@ import Swal from 'sweetalert2/dist/sweetalert2';
 const BuyerProductCard = ({ onProductAdded }) => {
     const [formData, setFormData] = useState({
         product_name: '',
+        saling_price: '',
         product_price: '',
         pieces_price: '',
         pieces: '',
@@ -42,6 +43,9 @@ const BuyerProductCard = ({ onProductAdded }) => {
         // Validate fields
         if (formData.product_name.trim().length < 3)
             validationErrors.product_name = 'Product name must be at least 3 characters long.';
+
+        if (!formData.saling_price || Number(formData.saling_price) <= 0)
+            validationErrors.saling_price = 'Product Saling price must be greater than zero.';
 
         if (!formData.product_price || Number(formData.product_price) <= 0)
             validationErrors.product_price = 'Product price must be greater than zero.';
@@ -138,6 +142,7 @@ const BuyerProductCard = ({ onProductAdded }) => {
                 </div>
             </div>
 
+
             <div className="input_div d-flex flex-column input_width">
                 <label>Pieces</label>
                 <input type="number" name="stock" value={formData.stock} onChange={handleInputs} />
@@ -145,15 +150,23 @@ const BuyerProductCard = ({ onProductAdded }) => {
             </div>
 
             <div className="input_div d-flex flex-column input_width">
-                <label>Expire Date</label>
-                <input type="date" name="expire_date" value={formData.expire_date} onChange={handleInputs} />
-                {errors.expire_date && <span style={{ color: 'red', fontSize: '0.8rem' }}>{errors.expire_date}</span>}
+                <label>Product Saling Price</label>
+                <input type="number" name="saling_price" value={formData.saling_price} onChange={handleInputs} />
+                {errors.saling_price && <span style={{ color: 'red', fontSize: '0.8rem' }}>{errors.saling_price}</span>}
             </div>
 
-            <div className="input_div d-flex flex-column input_width">
-                <label>Product Date</label>
-                <input type="date" name="date" value={formData.date} onChange={handleInputs} />
-                {errors.date && <span style={{ color: 'red', fontSize: '0.8rem' }}>{errors.date}</span>}
+            <div className='d-flex justify-content-between input_width'>
+                <div className="input_div d-flex flex-column input_width">
+                    <label>Expire Date</label>
+                    <input type="date" name="expire_date" value={formData.expire_date} onChange={handleInputs} style={{ width: '157px' }} />
+                    {errors.expire_date && <span style={{ color: 'red', fontSize: '0.8rem' }}>{errors.expire_date}</span>}
+                </div>
+
+                <div className="input_div d-flex flex-column input_width">
+                    <label>Product Date</label>
+                    <input type="date" name="date" value={formData.date} onChange={handleInputs} style={{ width: '157px' }} />
+                    {errors.date && <span style={{ color: 'red', fontSize: '0.8rem' }}>{errors.date}</span>}
+                </div>
             </div>
 
             <div className="btn_wrapper mt-2 mb-5">

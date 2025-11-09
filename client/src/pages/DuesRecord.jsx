@@ -88,18 +88,17 @@ const DuesRecord = () => {
       const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
 
       doc.setFontSize(18);
-      doc.text(`Given Dues Record Report ${selectedKhata ? `(${selectedKhata})` : ''}`, 40, 40);
+      doc.text(`Dues Record Report ${selectedKhata ? `(${selectedKhata})` : ''}`, 40, 40);
       doc.setFontSize(10);
       doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 40, 65);
 
       const tableColumn = [
-        'Sr.#', 'Khata Name', 'Name', 'Single Piece Price', 'Total Piece',
+        'Sr.#', 'Name', 'Single Piece Price', 'Total Piece',
         'Given Dues', 'Taken Dues', 'Remains Total Price', 'Date'
       ];
 
       const tableRows = filteredRecords.map((record, index) => [
         index + 1,
-        record.khata_name || '-',
         record.name || '-',
         record.single_piece_price || '0',
         record.total_piece || '0',
@@ -229,7 +228,7 @@ const DuesRecord = () => {
             <thead>
               <tr>
                 <th style={TableHeadingStyle}>#</th>
-                <th style={TableHeadingStyle}>Khata Name</th>
+                {/* <th style={TableHeadingStyle}>Khata Name</th> */}
                 <th style={TableHeadingStyle}>Name</th>
                 <th style={TableHeadingStyle}>Single Piece Price</th>
                 <th style={TableHeadingStyle}>Total Piece</th>
@@ -245,7 +244,7 @@ const DuesRecord = () => {
                 filteredRecords.map((record, index) => (
                   <tr key={record.id || index}>
                     <td style={TableCellStyle}>{index + 1}</td>
-                    <td style={TableCellStyle}>{record.khata_name}</td>
+                    {/* <td style={TableCellStyle}>{record.khata_name}</td> */}
                     <td style={TableCellStyle}>{record.name}</td>
                     <td style={TableCellStyle}>{record.single_piece_price}</td>
                     <td style={TableCellStyle}>{record.total_piece}</td>
