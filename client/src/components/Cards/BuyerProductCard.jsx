@@ -44,9 +44,6 @@ const BuyerProductCard = ({ onProductAdded }) => {
         if (formData.product_name.trim().length < 3)
             validationErrors.product_name = 'Product name must be at least 3 characters long.';
 
-        if (!formData.saling_price || Number(formData.saling_price) <= 0)
-            validationErrors.saling_price = 'Product Saling price must be greater than zero.';
-
         if (!formData.product_price || Number(formData.product_price) <= 0)
             validationErrors.product_price = 'Product price must be greater than zero.';
 
@@ -97,6 +94,7 @@ const BuyerProductCard = ({ onProductAdded }) => {
             // ✅ Reset form including dates
             setFormData({
                 product_name: '',
+                saling_price: '',
                 product_price: '',
                 pieces_price: '',
                 pieces: '',
@@ -152,7 +150,6 @@ const BuyerProductCard = ({ onProductAdded }) => {
             <div className="input_div d-flex flex-column input_width">
                 <label>Product Saling Price</label>
                 <input type="number" name="saling_price" value={formData.saling_price} onChange={handleInputs} />
-                {errors.saling_price && <span style={{ color: 'red', fontSize: '0.8rem' }}>{errors.saling_price}</span>}
             </div>
 
             <div className='d-flex justify-content-between input_width'>

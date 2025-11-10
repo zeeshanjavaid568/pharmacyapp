@@ -16,6 +16,8 @@
   --dark_green_color: #45a049;
   --light_green_color: #4caf50;
   --dark_red_color: #e53935;
+  --light_purple_color: #F1EAFF;
+  --dark_purple_color: #DCBFFF;
   --light_red_color: #f44336;
   --lighter_red_color: #FAB3AE;
 
@@ -116,6 +118,24 @@ input:focus {
 
 .delete_btn:hover {
   box-shadow: 3px 3px 15px var(--dark_red_color);
+
+}
+
+.update_btn {
+  background-color: var(--light_purple_color);
+  padding: 5px 25px;
+  border: none;
+  text-decoration: none;
+  color: #000000;
+  border-radius: 9px;
+  -webkit-border-radius: 9px;
+  -moz-border-radius: 9px;
+  -ms-border-radius: 9px;
+  -o-border-radius: 9px;
+}
+
+.update_btn:hover {
+  box-shadow: 3px 3px 15px var(--dark_purple_color);
 
 }
 
@@ -222,9 +242,11 @@ input:focus {
 }
 
 .table-container {
-  max-height: 500px; /* adjust height as needed */
+  max-height: 500px;
+  /* adjust height as needed */
   overflow-y: auto;
-  overflow-x: auto; /* allows horizontal scroll if needed */
+  overflow-x: auto;
+  /* allows horizontal scroll if needed */
   border: 2px solid #ddd;
   border-radius: 8px;
 }
@@ -233,7 +255,8 @@ input:focus {
 .table-container thead th {
   position: sticky;
   top: 0;
-  background-color: #f44336; /* matches your TableHeadingStyle */
+  background-color: #f44336;
+  /* matches your TableHeadingStyle */
   color: white;
   z-index: 2;
 }

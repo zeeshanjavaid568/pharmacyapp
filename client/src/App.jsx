@@ -9,6 +9,7 @@ import { AuthProvider } from './redux/features/protectroutes/AuthProvider';
 import Layout from './layout/Layout';
 import './App.css'
 import BuyerRecord from './pages/BuyerRecord';
+import UpdateBuyerRecord from './pages/UpdateBuyerRecord';
 import SalerRecord from './pages/SalerRecord';
 import DailyProfitRecord from './pages/DailyProfitRecord';
 import DailyProfitRecordDetails from './pages/DailyProfitRecordDetails';
@@ -46,6 +47,10 @@ function App() {
                                 </PrivateRoute>
                             }
                         />
+
+                        <Route path='/updatebuyerproduct/:id' element={<PrivateRoute>
+                            <UpdateBuyerRecord />
+                        </PrivateRoute>} />
 
                         <Route
                             path="/buyer-daily-total-price-record"

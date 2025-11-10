@@ -220,7 +220,7 @@ const DuesRecord = () => {
       </div>
 
       {/* 📋 Table */}
-      <div className="table-container p-3">
+      <div className="table-container p-3 mb-5">
         {isLoading && <p className="text-center py-4">Loading...</p>}
         {isError && <p className="text-center text-danger">Error loading data.</p>}
         {!isLoading && !isError && (

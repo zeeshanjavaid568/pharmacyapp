@@ -5,6 +5,7 @@ export const BuyerProdcutApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: "http://localhost:7000", 
   }),
+  tagTypes: ['BuyerProduct'],
   endpoints: (builder) => ({
     createDailyBuyerProductTotalPrice: builder.mutation({
       query: (userData) => ({
@@ -37,12 +38,28 @@ export const BuyerProdcutApi = createApi({
           Accept: "application/json",
         },
       }),
+      invalidatesTags: ['BuyerProduct']
     }),
     buyerProduct: builder.query({
       query: () => ({
         url: `/buyer/products`,
         method: "GET",
       }),
+      providesTags: ['BuyerProduct']
+    }),
+    singleBuyerProduct: builder.query({
+      query: (id) => ({
+        url: `/buyer/product/${id}`,
+        method: "GET",
+      }),
+    }),
+    updateAllBuyerProduct: builder.mutation({
+      query: ({ id, userData }) => ({
+        url: `/buyer/allproduct/${id}`,
+        method: "PUT",
+        body: userData,
+      }),
+      invalidatesTags: ['BuyerProduct']
     }),
     updateBuyerProduct: builder.mutation({
       query: ({ id, userData }) => ({
@@ -50,12 +67,14 @@ export const BuyerProdcutApi = createApi({
         method: "PUT",
         body: userData,
       }),
+      invalidatesTags: ['BuyerProduct']
     }),
     deleteBuyerProduct: builder.mutation({
       query: (id) => ({
         url: `/buyer/product/${id}`,
         method: "DELETE",
       }),
+      invalidatesTags: ['BuyerProduct']
     }),
   }),
 });
@@ -66,6 +85,8 @@ export const {
   useDeleteBuyerProductTotalPriceMutation,
   useCreateBuyerProductMutation,
   useBuyerProductQuery,
+  useSingleBuyerProductQuery,
+  useUpdateAllBuyerProductMutation,
   useUpdateBuyerProductMutation,
   useDeleteBuyerProductMutation
 } = BuyerProdcutApi;
