@@ -6,10 +6,10 @@ import Swal from 'sweetalert2';
 const UpdateBuyerRecord = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    
+
     // Fetch single product data
     const { data: product, isLoading: isLoadingProduct, isError } = useSingleBuyerProductQuery(id);
-    
+
     // Update mutation
     const [updateAllBuyerProduct, { isLoading: isUpdating }] = useUpdateAllBuyerProductMutation();
 
@@ -64,18 +64,19 @@ const UpdateBuyerRecord = () => {
     // Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         try {
-            await updateAllBuyerProduct({ 
-                id, 
-                userData: formData 
+            await updateAllBuyerProduct({
+                id,
+                userData: formData
             }).unwrap();
 
             Swal.fire({
                 title: 'Success!',
                 text: 'Product updated successfully!',
                 icon: 'success',
-                confirmButtonText: 'OK'
+                confirmButtonText: 'OK',
+                customClass: { confirmButton: 'sweetalert_btn_success' },
             });
 
             navigate('/buyer-record');
@@ -85,7 +86,9 @@ const UpdateBuyerRecord = () => {
                 title: 'Error!',
                 text: 'Failed to update product. Please try again.',
                 icon: 'error',
-                confirmButtonText: 'OK'
+                confirmButtonText: 'OK',
+                customClass: { confirmButton: 'sweetalert_btn_error' },
+
             });
         }
     };
@@ -111,101 +114,101 @@ const UpdateBuyerRecord = () => {
     }
 
     return (
-        <div>
-            <form className="product_form form_div mb-4" onSubmit={handleSubmit}>
+        <div className='d-flex justify-content-center'>
+            <form className="product_form form_div mb-4" style={{ width: '500px' }} onSubmit={handleSubmit}>
                 <h2 className="mt-5 mb-5 card-title gradient_text">Update Buyer Product</h2>
 
                 <div className="input_div d-flex flex-column input_width">
                     <label>Product Name</label>
-                    <input 
-                        type="text" 
-                        name="product_name" 
-                        value={formData.product_name} 
-                        onChange={handleInputs} 
+                    <input
+                        type="text"
+                        name="product_name"
+                        value={formData.product_name}
+                        onChange={handleInputs}
                     />
                 </div>
 
                 <div className='d-flex justify-content-between input_width'>
                     <div className="input_div d-flex flex-column">
                         <label>Product Price</label>
-                        <input 
-                            type="number" 
-                            name="product_price" 
-                            value={formData.product_price} 
-                            onChange={handleInputs} 
-                            style={{ width: '157px' }} 
+                        <input
+                            type="number"
+                            name="product_price"
+                            value={formData.product_price}
+                            onChange={handleInputs}
+                            style={{ width: '157px' }}
                         />
                     </div>
                     <div className="input_div d-flex flex-column ms-2">
                         <label>Total Pieces Price</label>
-                        <input 
-                            type="number" 
-                            name="pieces_price" 
-                            value={formData.pieces_price} 
-                            style={{ width: '157px' }} 
-                            disabled 
+                        <input
+                            type="number"
+                            name="pieces_price"
+                            value={formData.pieces_price}
+                            style={{ width: '157px' }}
+                            disabled
                         />
                     </div>
                 </div>
 
                 <div className="input_div d-flex flex-column input_width">
                     <label>Pieces</label>
-                    <input 
-                        type="number" 
-                        name="pieces" 
-                        value={formData.pieces} 
-                        onChange={handleInputs} 
+                    <input
+                        type="number"
+                        name="pieces"
+                        value={formData.pieces}
+                        onChange={handleInputs}
                     />
                 </div>
 
                 <div className="input_div d-flex flex-column input_width">
                     <label>Product Saling Price</label>
-                    <input 
-                        type="number" 
-                        name="saling_price" 
-                        value={formData.saling_price} 
-                        onChange={handleInputs} 
+                    <input
+                        type="number"
+                        name="saling_price"
+                        value={formData.saling_price}
+                        onChange={handleInputs}
                     />
                 </div>
 
                 <div className="input_div d-flex flex-column input_width">
                     <label>Remaining Stock</label>
-                    <input 
-                        type="number" 
-                        name="stock" 
-                        value={formData.stock} 
-                        onChange={handleInputs} 
+                    <input
+                        type="number"
+                        name="stock"
+                        value={formData.stock}
+                        onChange={handleInputs}
                     />
                 </div>
 
                 <div className='d-flex justify-content-between input_width'>
                     <div className="input_div d-flex flex-column input_width">
                         <label>Expire Date</label>
-                        <input 
-                            type="date" 
-                            name="expire_date" 
-                            value={formData.expire_date} 
-                            onChange={handleInputs} 
-                            style={{ width: '157px' }} 
+                        <input
+                            type="date"
+                            name="expire_date"
+                            value={formData.expire_date}
+                            onChange={handleInputs}
+                            style={{ width: '157px' }}
                         />
                     </div>
 
                     <div className="input_div d-flex flex-column input_width">
                         <label>Product Date</label>
-                        <input 
-                            type="date" 
-                            name="date" 
-                            value={formData.date} 
-                            onChange={handleInputs} 
-                            style={{ width: '157px' }} 
+                        <input
+                            type="date"
+                            name="date"
+                            value={formData.date}
+                            onChange={handleInputs}
+                            style={{ width: '157px' }}
                         />
                     </div>
                 </div>
 
                 <div className="btn_wrapper mt-2 mb-5">
-                    <button 
-                        type="submit" 
-                        className="btn btn-danger input_width" 
+                    <button
+                        type="submit"
+                        className="btn btn-danger input_width"
                         disabled={isUpdating}
                     >
                         {isUpdating ? 'Updating...' : 'Update Product'}

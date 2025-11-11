@@ -118,7 +118,7 @@ const BuyerProductCard = ({ onProductAdded }) => {
     };
 
     return (
-        <form className="product_form form_div mb-4" onSubmit={handleSubmit}>
+        <form className="product_form form_div mb-4" style={{ width: '500px' }} onSubmit={handleSubmit}>
             <h2 className="mt-5 mb-5 card-title gradient_text">Add Buyer Product</h2>
 
             <div className="input_div d-flex flex-column input_width">

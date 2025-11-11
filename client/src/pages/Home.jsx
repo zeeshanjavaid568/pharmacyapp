@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import Widgits from '../components/Widgits/Widgits';
-import BuyerProductCard from '../components/Cards/BuyerProductCard';
 import SalerProductCard from '../components/Cards/SalerProductCard';
 import { useBuyerProductQuery } from '../redux/features/BuyerProductApi/buyerProductApi';
 import { useSalerProductQuery } from '../redux/features/SalerProductApi/salerProductApi';
@@ -274,10 +273,9 @@ const Home = () => {
 
         <div className="row">
           <div className="col-md-6 mb-3 pe-xxl-4 pe-xl-4">
-            <BuyerProductCard onProductAdded={handleProductAdded} />
+            <SalerProductCard onProductAdded={handleProductAdded} />
           </div>
           <div className="col-md-6 ps-xxl-4 ps-xl-4">
-            <SalerProductCard onProductAdded={handleProductAdded} />
           </div>
         </div>
       </div>

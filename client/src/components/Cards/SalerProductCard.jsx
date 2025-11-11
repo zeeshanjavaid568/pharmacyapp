@@ -169,7 +169,7 @@ const SalerProductCard = ({ onProductAdded }) => {
     };
 
     return (
-        <form className="product_form form_div" style={{height: '618px'}} onSubmit={handleSubmit}>
+        <form className="product_form form_div" onSubmit={handleSubmit}>
             <h2 className="mt-5 mb-5 card-title gradient_text">Add Saler Product</h2>
 
             <div className="input_div d-flex flex-column input_width">

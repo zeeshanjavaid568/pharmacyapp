@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useBuyerProductQuery, useDeleteBuyerProductMutation } from '../redux/features/BuyerProductApi/buyerProductApi';
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
+import BuyerProductCard from '../components/Cards/BuyerProductCard';
 
 const BuyerRecord = () => {
   const { data, isLoading, isError, refetch } = useBuyerProductQuery();
@@ -72,12 +73,17 @@ const BuyerRecord = () => {
     return matchesProductName && matchesDate && matchesExpireDate;
   });
 
+  const tableHeadingStyle = { backgroundColor: '#f44336', color: 'white' }
+
   // ✅ Show loading / error
   if (isLoading) return <p>Loading...</p>;
   if (isError) return <p>Error loading data.</p>;
 
   return (
     <>
+      <div className='d-flex justify-content-center'>
+        <BuyerProductCard />
+      </div>
       {!selectedYear ? (
         <>
           <h1 className='d-flex justify-content-center my-4 gradient_text'>
@@ -152,16 +158,16 @@ const BuyerRecord = () => {
                 <table className='table table-bordered table-hover form_div' style={{ borderRadius: '10px', overflow: 'hidden' }}>
                   <thead style={{ position: 'sticky', top: 0, zIndex: 1000 }}>
                     <tr>
-                      <th style={{ backgroundColor: '#f44336', color: 'white' }}>#</th>
-                      <th style={{ backgroundColor: '#f44336', color: 'white' }}>Product Name</th>
-                      <th style={{ backgroundColor: '#f44336', color: 'white' }}>Product Price</th>
-                      <th style={{ backgroundColor: '#f44336', color: 'white' }}>Product Saling Price</th>
-                      <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Pieces Price</th>
-                      <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Pieces</th>
-                      <th style={{ backgroundColor: '#f44336', color: 'white' }}>Remains Stock</th>
-                      <th style={{ backgroundColor: '#f44336', color: 'white' }}>Expire Date</th>
-                      <th style={{ backgroundColor: '#f44336', color: 'white' }}>Date</th>
-                      <th style={{ backgroundColor: '#f44336', color: 'white' }}>Actions</th>
+                      <th style={tableHeadingStyle}>#</th>
+                      <th style={tableHeadingStyle}>Product Name</th>
+                      <th style={tableHeadingStyle}>Product Price</th>
+                      <th style={tableHeadingStyle}>Product Saling Price</th>
+                      <th style={tableHeadingStyle}>Total Pieces Price</th>
+                      <th style={tableHeadingStyle}>Total Pieces</th>
+                      <th style={tableHeadingStyle}>Remains Stock</th>
+                      <th style={tableHeadingStyle}>Expire Date</th>
+                      <th style={tableHeadingStyle}>Date</th>
+                      <th style={tableHeadingStyle}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>

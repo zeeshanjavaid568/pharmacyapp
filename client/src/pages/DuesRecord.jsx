@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import Swal from 'sweetalert2';
 import GiveDuesCard from '../components/Cards/GiveDuesCard';
 import { useGetAllDuesQuery, useDeleteGivenDuesMutation } from '../redux/features/DuesApi/giveDuesApi';
+import { Link } from 'react-router-dom';
 
 const DuesRecord = () => {
   const { data = [], isLoading, isError, refetch } = useGetAllDuesQuery();
@@ -54,19 +55,59 @@ const DuesRecord = () => {
     return Number(khataRecords[khataRecords.length - 1].price) || 0;
   }, [selectedKhata, data]);
 
+  // ✅ Get the last record ID for the selected khata to enable delete button only for last entry
+  const lastRecordId = useMemo(() => {
+    if (!selectedKhata) {
+      // If no khata selected, find the last record from all data
+      if (data.length === 0) return null;
+      return data[data.length - 1]?.id || null;
+    }
+
+    const khataRecords = data.filter((r) => r.khata_name === selectedKhata);
+    if (khataRecords.length === 0) return null;
+
+    return khataRecords[khataRecords.length - 1]?.id || null;
+  }, [selectedKhata, data]);
+
   // ✅ Delete record
   const handleDelete = async (id) => {
-    try {
-      await deleteGivenDues(id).unwrap();
+    // Prevent deletion if not the last record
+    if (id !== lastRecordId) {
       Swal.fire({
-        title: 'Deleted!',
-        text: 'Given Dues deleted successfully.',
-        icon: 'success',
+        title: 'Not Allowed!',
+        text: 'You can only delete the last entry. Previous entries are locked.',
+        icon: 'warning',
         confirmButtonText: 'Ok',
         buttonsStyling: false,
-        customClass: { confirmButton: 'sweetalert_btn_success' },
+        customClass: { confirmButton: 'sweetalert_btn_warning' },
       });
-      await refetch();
+      return;
+    }
+
+    try {
+      const result = await Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel'
+      });
+
+      if (result.isConfirmed) {
+        await deleteGivenDues(id).unwrap();
+        Swal.fire({
+          title: 'Deleted!',
+          text: 'Given Dues deleted successfully.',
+          icon: 'success',
+          confirmButtonText: 'Ok',
+          buttonsStyling: false,
+          customClass: { confirmButton: 'sweetalert_btn_success' },
+        });
+        await refetch();
+      }
     } catch {
       Swal.fire({
         title: 'Error!',
@@ -148,6 +189,14 @@ const DuesRecord = () => {
   const TableCellStyle = {
     textAlign: 'center',
     verticalAlign: 'middle',
+  };
+
+  // ✅ Style for disabled delete button
+  const disabledDeleteButtonStyle = {
+    opacity: 0.5,
+    cursor: 'not-allowed',
+    borderColor: '#6c757d',
+    color: '#000000'
   };
 
   return (
@@ -241,22 +290,35 @@ const DuesRecord = () => {
             </thead>
             <tbody>
               {filteredRecords.length > 0 ? (
-                filteredRecords.map((record, index) => (
-                  <tr key={record.id || index}>
-                    <td style={TableCellStyle}>{index + 1}</td>
-                    {/* <td style={TableCellStyle}>{record.khata_name}</td> */}
-                    <td style={TableCellStyle}>{record.name}</td>
-                    <td style={TableCellStyle}>{record.single_piece_price}</td>
-                    <td style={TableCellStyle}>{record.total_piece}</td>
-                    <td style={TableCellStyle}>{record.given_dues}</td>
-                    <td style={TableCellStyle}>{record.taken_dues}</td>
-                    <td style={TableCellStyle}>{record.price}</td>
-                    <td style={TableCellStyle}>{formatDate(record.date)}</td>
-                    <td style={TableCellStyle}>
-                      <button className="delete_btn" onClick={() => handleDelete(record.id)}>🗑️ Delete</button>
-                    </td>
-                  </tr>
-                ))
+                filteredRecords.map((record, index) => {
+                  const isLastEntry = record.id === lastRecordId;
+                  return (
+                    <tr key={record.id || index}>
+                      <td style={TableCellStyle}>{index + 1}</td>
+                      {/* <td style={TableCellStyle}>{record.khata_name}</td> */}
+                      <td style={TableCellStyle}>{record.name}</td>
+                      <td style={TableCellStyle}>{record.single_piece_price}</td>
+                      <td style={TableCellStyle}>{record.total_piece}</td>
+                      <td style={TableCellStyle}>{record.given_dues}</td>
+                      <td style={TableCellStyle}>{record.taken_dues}</td>
+                      <td style={TableCellStyle}>{record.price}</td>
+                      <td style={TableCellStyle}>{formatDate(record.date)}</td>
+                      <td style={TableCellStyle}>
+                        <Link to={`#`} className="update_btn me-3">
+                          Update
+                        </Link>
+                        <button
+                          className="delete_btn"
+                          onClick={() => handleDelete(record.id)}
+                          style={isLastEntry ? {} : disabledDeleteButtonStyle}
+                          disabled={!isLastEntry}
+                        >
+                          {isLastEntry ? '🗑️ Delete' : '🔒 Locked'}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr><td colSpan="10" className="text-center py-4">No records found</td></tr>
               )}

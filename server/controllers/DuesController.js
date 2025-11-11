@@ -21,14 +21,14 @@ class Dues {
     return { insertId: result.insertId, ...data }; // Return the inserted record
   }
 
-  static async updateGiveDues(id, data) {
-    const { name, price, date } = data;
+  static async updateDues(id, data) {
+    const { name, date } = data;
     const query = `
       UPDATE dues 
-      SET name = ?, price = ?, date = ? 
+      SET name = ?, date = ? 
       WHERE id = ?
     `;
-    const [result] = await db.query(query, [name, price, date, id]);
+    const [result] = await db.query(query, [name, date, id]);
     return result.affectedRows > 0; // Return true if rows were updated
   }
 

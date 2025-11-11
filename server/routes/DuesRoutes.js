@@ -55,19 +55,19 @@ router.post('/givedues', async (req, res) => {
 });
 
 /**
- * @route   PUT /dues/givedues/:id
- * @desc    Update a Give Dues record
+ * @route   PUT /dues/updatedues/:id
+ * @desc    Update a Dues record
  */
-router.put('/givedues/:id', async (req, res) => {
+router.put('/updatedues/:id', async (req, res) => {
   try {
-    const updatedGiveDue = await DuesController.update(req.params.id, req.body);
-    if (!updatedGiveDue) {
-      return res.status(404).json({ message: 'Give Due not found' });
+    const updatedDues = await DuesController.updateDues(req.params.id, req.body);
+    if (!updatedDues) {
+      return res.status(404).json({ message: 'Due not found' });
     }
-    res.status(200).json({ message: 'Give Due updated successfully', giveDue: updatedGiveDue });
+    res.status(200).json({ message: 'Due updated successfully', Dues: updatedDues });
   } catch (error) {
-    console.error('Error updating Give Due:', error);
-    res.status(500).json({ message: 'Failed to update Give Due', error: error.message });
+    console.error('Error updating Due:', error);
+    res.status(500).json({ message: 'Failed to update Due', error: error.message });
   }
 });
 
