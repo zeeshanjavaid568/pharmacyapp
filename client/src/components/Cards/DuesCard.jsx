@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import swal from 'sweetalert2/dist/sweetalert2';
 import { useCreateGivenDuesMutation } from '../../redux/features/DuesApi/giveDuesApi';
 
-const GiveDuesCard = ({ lastPrice, refetchData }) => {
+const DuesCard = ({ lastPrice, refetchData }) => {
   const [formData, setFormData] = useState({
     khata_name: '',
     name: '',
@@ -226,7 +226,7 @@ const GiveDuesCard = ({ lastPrice, refetchData }) => {
         {/* ✅ Submit */}
         <div className="col-auto mb-2">
           <button type="submit" className="btn btn-danger my-2" disabled={isLoading}>
-            {isLoading ? 'Submitting...' : 'Add Given Dues'}
+            {isLoading ? 'Submitting...' : 'Add Dues'}
           </button>
         </div>
       </form>
@@ -234,4 +234,4 @@ const GiveDuesCard = ({ lastPrice, refetchData }) => {
   );
 };
 
-export default GiveDuesCard;
+export default DuesCard;

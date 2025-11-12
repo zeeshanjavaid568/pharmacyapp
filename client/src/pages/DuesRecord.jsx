@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import Swal from 'sweetalert2';
-import GiveDuesCard from '../components/Cards/GiveDuesCard';
+import DuesCard from '../components/Cards/DuesCard';
 import { useGetAllDuesQuery, useDeleteGivenDuesMutation } from '../redux/features/DuesApi/giveDuesApi';
 import { Link } from 'react-router-dom';
 
@@ -206,7 +206,7 @@ const DuesRecord = () => {
       </h1>
 
       {/* 🧾 Add Dues Form */}
-      <GiveDuesCard
+      <DuesCard
         lastPrice={lastPrice}
         refetchData={refetch}
         selectedKhata={selectedKhata}
@@ -232,7 +232,7 @@ const DuesRecord = () => {
       </div>
 
       <h1 className="d-flex justify-content-center my-4 gradient_text">
-        Dues Record {selectedKhata ? `(${selectedKhata})` : ''}
+        {selectedKhata ? `(${selectedKhata})` : ''} Dues Record
       </h1>
 
       {/* 🔍 Filters */}
@@ -304,7 +304,7 @@ const DuesRecord = () => {
                       <td style={TableCellStyle}>{record.price}</td>
                       <td style={TableCellStyle}>{formatDate(record.date)}</td>
                       <td style={TableCellStyle}>
-                        <Link to={`#`} className="update_btn me-3">
+                        <Link to={`/updatedues/${record.id}`} className="update_btn me-3">
                           Update
                         </Link>
                         <button

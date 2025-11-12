@@ -17,6 +17,7 @@ import MonthlyProfitRecord from './pages/MonthlyProfitRecord';
 import MonthProfitRecordDetails from './pages/MonthProfitRecordDetails';
 import DailyBuyerProductTotalPriceRecord from './pages/DailyBuyerProductTotalPriceRecord';
 import DuesRecord from './pages/DuesRecord';
+import UpdateDuesRecord from './pages/UpdateDuesRecord';
 import TakenDuesRecord from './pages/TakenDuesRecord';
 
 
@@ -71,13 +72,17 @@ function App() {
                         />
 
                         <Route
-                            path="/givedues"
+                            path="/duesrecord"
                             element={
                                 <PrivateRoute>
                                     <DuesRecord />
                                 </PrivateRoute>
                             }
                         />
+
+                        <Route path='/updatedues/:id' element={<PrivateRoute>
+                            <UpdateDuesRecord />
+                        </PrivateRoute>} />
 
                         <Route
                             path="/Takendues"

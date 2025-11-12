@@ -36,7 +36,8 @@ const Widgits = ({ title, totalPrice, totalItems }) => {
                             <span className="text-muted">
                                 {showProfit ? totalPrice : '******'}
                             </span>
-                        </p>                        <p className="card-text"><strong>Total Items:</strong> <span className='text-muted'>{totalItems}</span></p>
+                        </p>
+                        <p className="card-text"><strong>Total Items:</strong> <span className='text-muted'>{totalItems}</span></p>
                     </div>
                 </div>
             </div>

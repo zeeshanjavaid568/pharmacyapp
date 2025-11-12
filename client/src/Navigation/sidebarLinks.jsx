@@ -17,13 +17,13 @@ export const sidebarLinks = [
                 icon: <FontAwesomeIcon icon="fa-solid fa-address-card" />,
                 selectedIcon: "/assets/images/dashboard/camera.png",
                 link: '/buyer-record',
-                text: 'Buyer Product',
+                text: 'Purchase Product',
             },
             {
                 icon: <FontAwesomeIcon icon="fa-solid fa-address-card" />,
                 selectedIcon: "/assets/images/dashboard/camera.png",
                 link: '/buyer-daily-total-price-record',
-                text: 'Buyer Daily Product Total Price',
+                text: 'Purchase Daily Product Total Price',
             },
             {
                 icon: <FontAwesomeIcon icon="fa-solid fa-address-card" />,
@@ -47,7 +47,7 @@ export const sidebarLinks = [
     },
     {
         id: 3,
-        link: '/givedues',
+        link: '/duesrecord',
         text: 'Dues',
         icon: <FontAwesomeIcon icon="fa-solid fa-address-card" />,
 

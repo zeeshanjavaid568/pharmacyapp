@@ -134,7 +134,7 @@ const DailyBuyerProductTotalPriceCard = ({ totalPrice = 0, title }) => {
             className="btn btn-danger my-2"
             disabled={isLoading}
           >
-            {isLoading ? 'Submitting...' : 'Add Daily Buyer Total Price'}
+            {isLoading ? 'Submitting...' : 'Add Daily Purchase Total Price'}
           </button>
         </div>
       </form>

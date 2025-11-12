@@ -71,7 +71,7 @@ const BuyerDailyTotalPriceRecord = () => {
     return (
       <>
         <h1 className="year_record_table d-flex justify-content-center my-4 gradient_text">
-          Buyer One Day Total Price — {selectedYear} Record Details
+          Purchase One Day Total Price — {selectedYear} Record Details
         </h1>
 
         {/* 🔙 Back Button */}
@@ -137,7 +137,7 @@ const BuyerDailyTotalPriceRecord = () => {
   return (
     <>
       <h1 className="d-flex justify-content-center my-4 gradient_text">
-        Buyer One Day Total Price — All Years Record
+        Purchase One Day Total Price — All Years Record
       </h1>
       <div className="responsive_card">
         {Object.keys(yearlyData).map((year) => (

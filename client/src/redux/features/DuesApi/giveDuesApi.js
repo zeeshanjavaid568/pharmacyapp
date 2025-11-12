@@ -31,11 +31,26 @@ export const DuesApi = createApi({
         method: "DELETE",
       }),
     }),
+    singleGetDues: builder.query({
+      query: (id) => ({
+        url: `/dues/givedues/${id}`,
+        method: "GET",
+      }),
+    }),
+    updateDues: builder.mutation({
+      query: ({ id, userData }) => ({
+        url: `/dues/updatedues/${id}`,
+        method: "PUT",
+        body: userData,
+      }),
+    }),
   }),
 });
 
 export const {
   useCreateGivenDuesMutation,
   useGetAllDuesQuery,
-  useDeleteGivenDuesMutation
+  useDeleteGivenDuesMutation,
+  useSingleGetDuesQuery,
+  useUpdateDuesMutation
 } = DuesApi;

@@ -162,7 +162,7 @@ const Home = () => {
     <div className=''>
       <div className="Widgits_main_wrapper d-flex justify-content-between flex-grow-1 flex-wrap">
         <Widgits
-          title={'Daily Buyer Products'}
+          title={'Daily Purchase Products'}
           totalPrice={`Rs: ${totalBuyerProductsPrice}`}
           totalItems={`${totalBuyerProductsCount}`}
         />

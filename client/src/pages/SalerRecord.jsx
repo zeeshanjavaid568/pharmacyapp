@@ -100,7 +100,7 @@ const SalerRecord = () => {
       ) : (
         <>
           <h1 className='year_record_table d-flex justify-content-center my-4 gradient_text'>
-            Saler Record Details Year ({selectedYear})
+            Saler Record Details ({selectedYear})
           </h1>
 
           {/* 🔙 Back Button */}

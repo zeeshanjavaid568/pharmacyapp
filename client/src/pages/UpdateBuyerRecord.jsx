@@ -116,7 +116,7 @@ const UpdateBuyerRecord = () => {
     return (
         <div className='d-flex justify-content-center'>
             <form className="product_form form_div mb-4" style={{ width: '500px' }} onSubmit={handleSubmit}>
-                <h2 className="mt-5 mb-5 card-title gradient_text">Update Buyer Product</h2>
+                <h4 className="mt-5 mb-5 card-title gradient_text">Update Purchase Product</h4>
 
                 <div className="input_div d-flex flex-column input_width">
                     <label>Product Name</label>
@@ -205,13 +205,22 @@ const UpdateBuyerRecord = () => {
                     </div>
                 </div>
 
-                <div className="btn_wrapper mt-2 mb-5">
+                <div className="btn_wrapper mt-2 mb-5 d-flex flex-column">
+                   
                     <button
                         type="submit"
                         className="btn btn-danger input_width"
                         disabled={isUpdating}
                     >
                         {isUpdating ? 'Updating...' : 'Update Product'}
+                    </button>
+                    <button
+                        type="button"
+                        className="btn btn-success px-4 mt-2"
+                        onClick={() => navigate('/buyer-record')}
+                        disabled={isUpdating}
+                    >
+                        Cancel
                     </button>
                 </div>
             </form>
