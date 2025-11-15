@@ -154,9 +154,8 @@ const BuyerRecord = () => {
             {isLoading && <p className="text-center py-4">Loading...</p>}
             {isError && <p className="text-center text-danger">Error loading data.</p>}
             {!isLoading && !isError && (
-              <div className='table-responsive'>
-                <table className='table table-bordered table-hover form_div' style={{ borderRadius: '10px', overflow: 'hidden' }}>
-                  <thead style={{ position: 'sticky', top: 0, zIndex: 1000 }}>
+                <table className='table table-bordered table-hover form_div'>
+                  <thead>
                     <tr>
                       <th style={tableHeadingStyle}>#</th>
                       <th style={tableHeadingStyle}>Product Name</th>
@@ -199,7 +198,6 @@ const BuyerRecord = () => {
                     )}
                   </tbody>
                 </table>
-              </div>
             )}
           </div>
         </>
