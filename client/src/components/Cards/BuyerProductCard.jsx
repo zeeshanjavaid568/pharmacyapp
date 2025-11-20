@@ -13,21 +13,23 @@ const BuyerProductCard = ({ onProductAdded }) => {
         expire_date: '',
         date: ''
     });
+
     const [errors, setErrors] = useState({});
-    const { data: buyerProducts } = useBuyerProductQuery();
+    const { data: buyerProducts, refetch } = useBuyerProductQuery();
     const [createBuyerProduct, { isLoading }] = useCreateBuyerProductMutation();
 
-    // ✅ Handles all input changes including dates
+    // Handle input changes
     const handleInputs = (e) => {
         const { name, value } = e.target;
 
         setFormData((prevData) => {
             const updatedFormData = { ...prevData, [name]: value };
 
-            // Auto-calculate total pieces price
+            // Auto-calc total pieces price
             if (name === 'product_price' || name === 'stock') {
                 const productPrice = Number(updatedFormData.product_price || 0);
                 const stock = Number(updatedFormData.stock || 0);
+
                 updatedFormData.pieces_price = productPrice * stock;
                 updatedFormData.pieces = stock;
             }
@@ -40,18 +42,9 @@ const BuyerProductCard = ({ onProductAdded }) => {
         e.preventDefault();
         const validationErrors = {};
 
-        // Validate fields
+        // Only validate fields we KEEP
         if (formData.product_name.trim().length < 3)
             validationErrors.product_name = 'Product name must be at least 3 characters long.';
-
-        if (!formData.product_price || Number(formData.product_price) <= 0)
-            validationErrors.product_price = 'Product price must be greater than zero.';
-
-        if (!formData.pieces_price || Number(formData.pieces_price) <= 0)
-            validationErrors.pieces_price = 'Product pieces price must be greater than zero.';
-
-        if (!formData.stock || Number(formData.stock) <= 0)
-            validationErrors.stock = 'Stock must be greater than zero.';
 
         if (!formData.expire_date)
             validationErrors.expire_date = 'Please select a valid product expire date.';
@@ -72,6 +65,7 @@ const BuyerProductCard = ({ onProductAdded }) => {
             );
 
             let newStock = Number(formData.stock);
+
             if (existingProducts && existingProducts.length > 0) {
                 const lastProduct = existingProducts[existingProducts.length - 1];
                 if (lastProduct.stock > 0) {
@@ -80,6 +74,7 @@ const BuyerProductCard = ({ onProductAdded }) => {
             }
 
             await createBuyerProduct({ ...formData, stock: newStock }).unwrap();
+
             localStorage.setItem('buyer_pieces', formData.pieces);
 
             Swal.fire({
@@ -91,7 +86,7 @@ const BuyerProductCard = ({ onProductAdded }) => {
                 customClass: { confirmButton: 'sweetalert_btn_success' },
             });
 
-            // ✅ Reset form including dates
+            // Reset form
             setFormData({
                 product_name: '',
                 saling_price: '',
@@ -102,6 +97,8 @@ const BuyerProductCard = ({ onProductAdded }) => {
                 expire_date: '',
                 date: ''
             });
+
+            refetch();
 
             if (onProductAdded) onProductAdded();
         } catch (error) {
@@ -121,38 +118,40 @@ const BuyerProductCard = ({ onProductAdded }) => {
         <form className="product_form form_div mb-4" style={{ width: '500px' }} onSubmit={handleSubmit}>
             <h3 className="mt-5 mb-5 card-title gradient_text">Add Purchase Product</h3>
 
+            {/* Product Name */}
             <div className="input_div d-flex flex-column input_width">
                 <label>Product Name</label>
                 <input type="text" name="product_name" value={formData.product_name} onChange={handleInputs} />
                 {errors.product_name && <span style={{ color: 'red', fontSize: '0.8rem' }}>{errors.product_name}</span>}
             </div>
 
-            <div className='d-flex justify-content-between input_width'>
+            {/* Product Price & Total Pieces Price */}
+            <div className="d-flex justify-content-between input_width">
                 <div className="input_div d-flex flex-column">
                     <label>Product Price</label>
                     <input type="number" name="product_price" value={formData.product_price} onChange={handleInputs} style={{ width: '157px' }} />
-                    {errors.product_price && <span style={{ color: 'red', fontSize: '0.8rem' }}>{errors.product_price}</span>}
                 </div>
+
                 <div className="input_div d-flex flex-column ms-2">
                     <label>Total Pieces Price</label>
                     <input type="number" name="pieces_price" value={formData.pieces_price} style={{ width: '157px' }} disabled />
-                    {errors.pieces_price && <span style={{ color: 'red', fontSize: '0.8rem' }}>{errors.pieces_price}</span>}
                 </div>
             </div>
 
-
+            {/* Pieces */}
             <div className="input_div d-flex flex-column input_width">
                 <label>Pieces</label>
                 <input type="number" name="stock" value={formData.stock} onChange={handleInputs} />
-                {errors.stock && <span style={{ color: 'red', fontSize: '0.8rem' }}>{errors.stock}</span>}
             </div>
 
+            {/* Selling Price */}
             <div className="input_div d-flex flex-column input_width">
-                <label>Product Saling Price</label>
+                <label>Product Selling Price</label>
                 <input type="number" name="saling_price" value={formData.saling_price} onChange={handleInputs} />
             </div>
 
-            <div className='d-flex justify-content-between input_width'>
+            {/* Dates */}
+            <div className="d-flex justify-content-between input_width">
                 <div className="input_div d-flex flex-column input_width">
                     <label>Expire Date</label>
                     <input type="date" name="expire_date" value={formData.expire_date} onChange={handleInputs} style={{ width: '157px' }} />

@@ -33,12 +33,12 @@ router.post('/product', async (req, res) => {
     const requiredFields = ['product_name', 'saling_price', 'product_price', 'pieces_price', 'pieces', 'stock', 'expire_date', 'date'];
     const missingFields = requiredFields.filter(field => !req.body[field]);
     
-    if (missingFields.length > 0) {
-      return res.status(400).json({ 
-        message: 'Missing required fields', 
-        missingFields 
-      });
-    }
+    // if (missingFields.length > 0) {
+    //   return res.status(400).json({ 
+    //     message: 'Missing required fields', 
+    //     missingFields 
+    //   });
+    // }
 
     const result = await BuyerProducts.create(req.body);
     res.status(201).json({
