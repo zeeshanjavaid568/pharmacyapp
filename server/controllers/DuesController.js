@@ -15,9 +15,9 @@ class Dues {
   }
 
   static async createGiveDues(data) {
-    const {  khata_name, name, single_piece_price, total_piece, given_dues, taken_dues, price, date } = data;
-    const query = 'INSERT INTO dues ( khata_name, name, single_piece_price, total_piece, given_dues, taken_dues, price, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
-    const [result] = await db.query(query, [ khata_name, name, single_piece_price, total_piece, given_dues, taken_dues, price, date]);
+    const {  khata_name, name, single_piece_price, total_piece, given_dues, taken_dues, date } = data;
+    const query = 'INSERT INTO dues ( khata_name, name, single_piece_price, total_piece, given_dues, taken_dues, date) VALUES ( ?, ?, ?, ?, ?, ?, ?)';
+    const [result] = await db.query(query, [ khata_name, name, single_piece_price, total_piece, given_dues, taken_dues, date]);
     return { insertId: result.insertId, ...data }; // Return the inserted record
   }
 

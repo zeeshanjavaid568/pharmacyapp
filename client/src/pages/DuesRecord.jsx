@@ -47,43 +47,68 @@ const DuesRecord = () => {
     return matchesKhata && matchesName && matchesDate && matchesMonth && matchesYear;
   });
 
-  // ✅ Find last record price for selected khata
-  const lastPrice = useMemo(() => {
-    if (!selectedKhata) return 0; // if no khata selected, start from 0
-    const khataRecords = data.filter((r) => r.khata_name === selectedKhata);
-    if (khataRecords.length === 0) return 0;
-    return Number(khataRecords[khataRecords.length - 1].price) || 0;
-  }, [selectedKhata, data]);
+  // ✅ Calculate running totals for both dues and pieces with CORRECT calculation
+  const recordsWithRunningTotals = useMemo(() => {
+    if (!filteredRecords.length) return [];
 
-  // ✅ Get the last record ID for the selected khata to enable delete button only for last entry
-  const lastRecordId = useMemo(() => {
+    // Sort records by date to ensure proper sequencing
+    const sortedRecords = [...filteredRecords].sort((a, b) => {
+      return new Date(a.date) - new Date(b.date);
+    });
+
+    let runningTotalDues = 0;
+    let runningTotalPieces = 0;
+
+    return sortedRecords.map((record, index) => {
+      const givenDues = Number(record.given_dues) || 0;
+      const takenDues = Number(record.taken_dues) || 0;
+      const totalPiece = Number(record.total_piece) || 0;
+
+      // ✅ CORRECTED CALCULATION: Subtract given_dues and add taken_dues
+      // This assumes:
+      // - given_dues = money you gave (increases what others owe you)
+      // - taken_dues = money you received (decreases what others owe you)
+      const netDuesForRecord = takenDues - givenDues;
+
+      // Add to running totals
+      runningTotalDues += netDuesForRecord;
+      runningTotalPieces += totalPiece;
+
+      return {
+        ...record,
+        runningTotal: runningTotalDues,
+        runningTotalPieces: runningTotalPieces,
+        netDuesForRecord: netDuesForRecord // for debugging if needed
+      };
+    });
+  }, [filteredRecords]);
+
+  // ✅ Find last record totals for selected khata
+  const lastPrice = useMemo(() => {
     if (!selectedKhata) {
-      // If no khata selected, find the last record from all data
-      if (data.length === 0) return null;
-      return data[data.length - 1]?.id || null;
+      if (recordsWithRunningTotals.length === 0) return 0;
+      return recordsWithRunningTotals[recordsWithRunningTotals.length - 1]?.runningTotal || 0;
     }
 
-    const khataRecords = data.filter((r) => r.khata_name === selectedKhata);
-    if (khataRecords.length === 0) return null;
+    const khataRecords = recordsWithRunningTotals.filter((r) => r.khata_name === selectedKhata);
+    if (khataRecords.length === 0) return 0;
+    return khataRecords[khataRecords.length - 1]?.runningTotal || 0;
+  }, [selectedKhata, recordsWithRunningTotals]);
 
-    return khataRecords[khataRecords.length - 1]?.id || null;
-  }, [selectedKhata, data]);
+  // ✅ Find last total pieces for selected khata
+  const lastTotalPieces = useMemo(() => {
+    if (!selectedKhata) {
+      if (recordsWithRunningTotals.length === 0) return 0;
+      return recordsWithRunningTotals[recordsWithRunningTotals.length - 1]?.runningTotalPieces || 0;
+    }
+
+    const khataRecords = recordsWithRunningTotals.filter((r) => r.khata_name === selectedKhata);
+    if (khataRecords.length === 0) return 0;
+    return khataRecords[khataRecords.length - 1]?.runningTotalPieces || 0;
+  }, [selectedKhata, recordsWithRunningTotals]);
 
   // ✅ Delete record
   const handleDelete = async (id) => {
-    // Prevent deletion if not the last record
-    if (id !== lastRecordId) {
-      Swal.fire({
-        title: 'Not Allowed!',
-        text: 'You can only delete the last entry. Previous entries are locked.',
-        icon: 'warning',
-        confirmButtonText: 'Ok',
-        buttonsStyling: false,
-        customClass: { confirmButton: 'sweetalert_btn_warning' },
-      });
-      return;
-    }
-
     try {
       const result = await Swal.fire({
         title: 'Are you sure?',
@@ -120,7 +145,7 @@ const DuesRecord = () => {
     }
   };
 
-  // ✅ PDF Download (unchanged)
+  // ✅ PDF Download (updated to include both running totals)
   const handleDownloadPDF = async () => {
     try {
       const { jsPDF } = await import('jspdf');
@@ -134,18 +159,19 @@ const DuesRecord = () => {
       doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 40, 65);
 
       const tableColumn = [
-        'Sr.#', 'Name', 'Single Piece Price', 'Total Piece',
+        'Sr.#', 'Name', 'Single Piece Price', 'Total Pieces', 'Sum Of Total Pieces',
         'Given Dues', 'Taken Dues', 'Remains Total Price', 'Date'
       ];
 
-      const tableRows = filteredRecords.map((record, index) => [
+      const tableRows = recordsWithRunningTotals.map((record, index) => [
         index + 1,
         record.name || '-',
         record.single_piece_price || '0',
         record.total_piece || '0',
+        record.runningTotalPieces || '0',
         record.given_dues || '0',
         record.taken_dues || '0',
-        record.price || '0',
+        record.runningTotal || '0',
         formatDate(record.date),
       ]);
 
@@ -158,7 +184,7 @@ const DuesRecord = () => {
         headStyles: { fillColor: [244, 67, 54], textColor: 255, fontStyle: 'bold', halign: 'center' },
       });
 
-      doc.save(`Given_Dues_${selectedKhata || 'All'}_${new Date().toISOString().split('T')[0]}.pdf`);
+      doc.save(`Dues_${selectedKhata || 'All'}_${new Date().toISOString().split('T')[0]}.pdf`);
       Swal.fire({
         title: 'Success!',
         text: `PDF downloaded for ${selectedKhata || 'All Khatas'}!`,
@@ -191,21 +217,13 @@ const DuesRecord = () => {
     verticalAlign: 'middle',
   };
 
-  // ✅ Style for disabled delete button
-  const disabledDeleteButtonStyle = {
-    opacity: 0.5,
-    cursor: 'not-allowed',
-    borderColor: '#6c757d',
-    color: '#000000'
-  };
-
   return (
     <>
       <h1 className="d-flex justify-content-center my-4 gradient_text">
         Add Dues In Record
       </h1>
 
-      {/* 🧾 Add Dues Form */}
+      {/* 🧾 Add Dufes Form */}
       <DuesCard
         lastPrice={lastPrice}
         refetchData={refetch}
@@ -258,12 +276,16 @@ const DuesRecord = () => {
           <div className="form-control text-center fw-bold bg-light">{lastPrice}</div>
         </div>
         <div className="form-group mt-2">
+          <label className="form-label fw-bold">Total Pieces</label>
+          <div className="form-control text-center fw-bold bg-light">{lastTotalPieces}</div>
+        </div>
+        <div className="form-group mt-2">
           <button
             className="btn delete_btn mt-4 px-4"
             onClick={handleDownloadPDF}
-            disabled={filteredRecords.length === 0}
+            disabled={recordsWithRunningTotals.length === 0}
           >
-            📄 Download PDF ({filteredRecords.length})
+            📄 Download PDF ({recordsWithRunningTotals.length})
           </button>
         </div>
       </div>
@@ -280,7 +302,8 @@ const DuesRecord = () => {
                 {/* <th style={TableHeadingStyle}>Khata Name</th> */}
                 <th style={TableHeadingStyle}>Name</th>
                 <th style={TableHeadingStyle}>Single Piece Price</th>
-                <th style={TableHeadingStyle}>Total Piece</th>
+                <th style={TableHeadingStyle}>Total Pieces</th>
+                <th style={TableHeadingStyle}>Sum Of Total Pieces</th>
                 <th style={TableHeadingStyle}>Given Dues</th>
                 <th style={TableHeadingStyle}>Taken Dues</th>
                 <th style={TableHeadingStyle}>Remains Total Price</th>
@@ -289,44 +312,43 @@ const DuesRecord = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredRecords.length > 0 ? (
-                filteredRecords.map((record, index) => {
-                  const isLastEntry = record.id === lastRecordId;
-                  return (
-                    <tr key={record.id || index}>
-                      <td style={TableCellStyle}>{index + 1}</td>
-                      {/* <td style={TableCellStyle}>{record.khata_name}</td> */}
-                      <td style={TableCellStyle}>{record.name}</td>
-                      <td style={TableCellStyle}>{record.single_piece_price}</td>
-                      <td style={TableCellStyle}>{record.total_piece}</td>
-                      <td style={TableCellStyle}>{record.given_dues}</td>
-                      <td style={TableCellStyle}>{record.taken_dues}</td>
-                      <td style={TableCellStyle}>{record.price}</td>
-                      <td style={TableCellStyle}>{formatDate(record.date)}</td>
-                      <td style={TableCellStyle}>
-                        <Link to={`/updatedues/${record.id}`} className="update_btn me-3">
-                          Update
-                        </Link>
-                        <button
-                          className="delete_btn"
-                          onClick={() => handleDelete(record.id)}
-                          style={isLastEntry ? {} : disabledDeleteButtonStyle}
-                          disabled={!isLastEntry}
-                        >
-                          {isLastEntry ? '🗑️ Delete' : '🔒 Locked'}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
+              {recordsWithRunningTotals.length > 0 ? (
+                recordsWithRunningTotals.map((record, index) => (
+                  <tr key={record.id || index}>
+                    <td style={TableCellStyle}>{index + 1}</td>
+                    {/* <td style={TableCellStyle}>{record.khata_name}</td> */}
+                    <td style={TableCellStyle}>{record.name}</td>
+                    <td style={TableCellStyle}>{record.single_piece_price}</td>
+                    <td style={TableCellStyle}>{record.total_piece}</td>
+                    <td style={TableCellStyle} className="fw-bold">
+                      {record.runningTotalPieces}
+                    </td>
+                    <td style={TableCellStyle}>{record.given_dues}</td>
+                    <td style={TableCellStyle}>{record.taken_dues}</td>
+                    <td style={TableCellStyle} className="fw-bold">
+                      {record.runningTotal}
+                    </td>
+                    <td style={TableCellStyle}>{formatDate(record.date)}</td>
+                    <td style={TableCellStyle}>
+                      <Link to={`/updatedues/${record.id}`} className="update_btn me-3">
+                        Update
+                      </Link>
+                      <button
+                        className="delete_btn"
+                        onClick={() => handleDelete(record.id)}
+                      >
+                        🗑️ Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))
               ) : (
-                <tr><td colSpan="10" className="text-center py-4">No records found</td></tr>
+                <tr><td colSpan="11" className="text-center py-4">No records found</td></tr>
               )}
             </tbody>
           </table>
         )}
       </div>
-
     </>
   );
 };
