@@ -16,6 +16,10 @@ const UpdateDuesCard = () => {
 
   const [formData, setFormData] = useState({
     name: '',
+    single_piece_price: '',
+    total_piece: '',
+    given_dues: '',
+    taken_dues: '',
     date: '',
   });
 
@@ -24,6 +28,10 @@ const UpdateDuesCard = () => {
     if (recordData) {
       setFormData({
         name: recordData.name || '',
+        single_piece_price: recordData.single_piece_price || '',
+        total_piece: recordData.total_piece || '',
+        given_dues: recordData.given_dues || '',
+        taken_dues: recordData.taken_dues || '',
         date: formatDateForInput(recordData.date) || '',
       });
     }
@@ -74,17 +82,41 @@ const UpdateDuesCard = () => {
       return;
     }
 
+    // Numeric field validation
+    const numericFields = [
+      'single_piece_price',
+      'total_piece', 
+      'given_dues',
+      'taken_dues'
+    ];
+
+    for (const field of numericFields) {
+      if (formData[field] && isNaN(formData[field])) {
+        Swal.fire({
+          title: 'Error!',
+          text: `${field.replace(/_/g, ' ')} must be a valid number`,
+          icon: 'error',
+          confirmButtonText: 'Ok',
+        });
+        return;
+      }
+    }
+
     try {
-      // Prepare update data - only name and date
+      // Prepare update data with all fields
       const updateData = {
         name: formData.name.trim(),
+        single_piece_price: formData.single_piece_price ? parseFloat(formData.single_piece_price) : 0,
+        total_piece: formData.total_piece ? parseInt(formData.total_piece) : 0,
+        given_dues: formData.given_dues ? parseFloat(formData.given_dues) : 0,
+        taken_dues: formData.taken_dues ? parseFloat(formData.taken_dues) : 0,
         date: formData.date,
-        // Note: We're only updating name and date, other fields remain unchanged
       };
 
       // Call update API
       await updateDues({ id, userData: updateData }).unwrap();
       refetch();
+      
       // Show success message
       Swal.fire({
         title: 'Success!',
@@ -94,7 +126,7 @@ const UpdateDuesCard = () => {
         customClass: { confirmButton: 'sweetalert_btn_success' },
       }).then(() => {
         // Redirect back to dues record page
-        navigate('/duesrecord'); // Adjust the path as per your routing
+        navigate('/duesrecord');
       });
       
     } catch (error) {
@@ -150,6 +182,13 @@ const UpdateDuesCard = () => {
         {recordData && (
           <div className="alert alert-info mx-3 mb-4">
             <h6 className="fw-bold">Current Record Information:</h6>
+            <div className='mb-2'>
+            {recordData.khata_name && (
+              <div className="mt-2">
+                <strong>Khata:</strong> {recordData.khata_name}
+              </div>
+            )}
+            </div>         
             <div className="row">
               <div className="col-md-6">
                 <strong>Name:</strong> {recordData.name || 'N/A'}
@@ -158,11 +197,23 @@ const UpdateDuesCard = () => {
                 <strong>Date:</strong> {formatDateForInput(recordData.date) || 'N/A'}
               </div>
             </div>
-            {recordData.khata_name && (
-              <div className="mt-2">
-                <strong>Khata:</strong> {recordData.khata_name}
+            <div className="row mt-2">
+              <div className="col-md-6">
+                <strong>Single Piece Price:</strong> {recordData.single_piece_price || '0'}
               </div>
-            )}
+              <div className="col-md-6">
+                <strong>Total Pieces:</strong> {recordData.total_piece || '0'}
+              </div>
+            </div>
+            <div className="row mt-2">
+              <div className="col-md-6">
+                <strong>Given Dues:</strong> {recordData.given_dues || '0'}
+              </div>
+              <div className="col-md-6">
+                <strong>Taken Dues:</strong> {recordData.taken_dues || '0'}
+              </div>
+            </div>
+          
           </div>
         )}
 
@@ -193,6 +244,69 @@ const UpdateDuesCard = () => {
               value={formData.date}
               onChange={handleChange}
               required
+              disabled={isUpdating}
+            />
+          </div>
+
+          {/* Single Piece Price Input */}
+          <div className="col-12 col-md-5 mb-3">
+            <label className="form-label fw-bold">Single Piece Price</label>
+            <input
+              type="number"
+              name="single_piece_price"
+              className="form-control p-2"
+              placeholder="Enter single piece price"
+              value={formData.single_piece_price}
+              onChange={handleChange}
+              step="0.01"
+              min="0"
+              disabled={isUpdating}
+            />
+          </div>
+
+          {/* Total Pieces Input */}
+          <div className="col-12 col-md-5 mb-3">
+            <label className="form-label fw-bold">Total Pieces</label>
+            <input
+              type="number"
+              name="total_piece"
+              className="form-control p-2"
+              placeholder="Enter total pieces"
+              value={formData.total_piece}
+              onChange={handleChange}
+              min="0"
+              disabled={isUpdating}
+            />
+          </div>
+
+          {/* Given Dues Input */}
+          <div className="col-12 col-md-5 mb-3">
+            <label className="form-label fw-bold">Given Dues</label>
+            <input
+              type="number"
+              name="given_dues"
+              className="form-control p-2"
+              placeholder="Enter given dues"
+              value={formData.given_dues}
+              onChange={handleChange}
+              step="0.01"
+              min="0"
+              disabled={isUpdating}
+            />
+          </div>
+
+          {/* Taken Dues Input */}
+          <div className="col-12 col-md-5 mb-3">
+            <label className="form-label fw-bold">Taken Dues</label>
+            <input
+              type="number"
+              name="taken_dues"
+              className="form-control p-2"
+              placeholder="Enter taken dues"
+              value={formData.taken_dues}
+              onChange={handleChange}
+              step="0.01"
+              min="0"
               disabled={isUpdating}
             />
           </div>

@@ -22,13 +22,13 @@ class Dues {
   }
 
   static async updateDues(id, data) {
-    const { name, date } = data;
+    const { name, single_piece_price, total_piece, given_dues, taken_dues, date } = data;
     const query = `
       UPDATE dues 
-      SET name = ?, date = ? 
+      SET name = ?, single_piece_price = ?, total_piece = ?, given_dues = ?, taken_dues = ?, date = ? 
       WHERE id = ?
     `;
-    const [result] = await db.query(query, [name, date, id]);
+    const [result] = await db.query(query, [name, single_piece_price, total_piece, given_dues, taken_dues, date, id]);
     return result.affectedRows > 0; // Return true if rows were updated
   }
 
