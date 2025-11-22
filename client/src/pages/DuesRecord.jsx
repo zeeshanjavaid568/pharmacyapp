@@ -154,7 +154,7 @@ const DuesRecord = () => {
       const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
 
       doc.setFontSize(18);
-      doc.text(`Dues Record Report ${selectedKhata ? `(${selectedKhata})` : ''}`, 40, 40);
+      doc.text(`Ledger File ${selectedKhata ? `(${selectedKhata})` : ''}`, 40, 40);
       doc.setFontSize(10);
       doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 40, 65);
 

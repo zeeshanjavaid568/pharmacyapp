@@ -6,11 +6,11 @@ import Swal from 'sweetalert2';
 const UpdateDuesCard = () => {
   const { id } = useParams(); // Get record ID from URL parameters
   const navigate = useNavigate();
-  
+
   // Fetch single record data
   const { data: recordData, isLoading, isError, error } = useSingleGetDuesQuery(id);
-  const {refetch}=useGetAllDuesQuery();
-  
+  const { refetch } = useGetAllDuesQuery();
+
   // Update mutation
   const [updateDues, { isLoading: isUpdating }] = useUpdateDuesMutation();
 
@@ -60,7 +60,7 @@ const UpdateDuesCard = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validation
     if (!formData.name.trim()) {
       Swal.fire({
@@ -85,7 +85,7 @@ const UpdateDuesCard = () => {
     // Numeric field validation
     const numericFields = [
       'single_piece_price',
-      'total_piece', 
+      'total_piece',
       'given_dues',
       'taken_dues'
     ];
@@ -116,7 +116,7 @@ const UpdateDuesCard = () => {
       // Call update API
       await updateDues({ id, userData: updateData }).unwrap();
       refetch();
-      
+
       // Show success message
       Swal.fire({
         title: 'Success!',
@@ -128,7 +128,7 @@ const UpdateDuesCard = () => {
         // Redirect back to dues record page
         navigate('/duesrecord');
       });
-      
+
     } catch (error) {
       console.error('Update failed:', error);
       Swal.fire({
@@ -160,7 +160,7 @@ const UpdateDuesCard = () => {
         <div className="alert alert-danger text-center">
           <h5>Error Loading Record</h5>
           <p>Failed to load the dues record. Please try again.</p>
-          <button 
+          <button
             className="btn btn-primary"
             onClick={() => window.history.back()}
           >
@@ -183,12 +183,12 @@ const UpdateDuesCard = () => {
           <div className="alert alert-info mx-3 mb-4">
             <h6 className="fw-bold">Current Record Information:</h6>
             <div className='mb-2'>
-            {recordData.khata_name && (
-              <div className="mt-2">
-                <strong>Khata:</strong> {recordData.khata_name}
-              </div>
-            )}
-            </div>         
+              {recordData.khata_name && (
+                <div className="mt-2">
+                  <strong>Khata:</strong> {recordData.khata_name}
+                </div>
+              )}
+            </div>
             <div className="row">
               <div className="col-md-6">
                 <strong>Name:</strong> {recordData.name || 'N/A'}
@@ -213,15 +213,15 @@ const UpdateDuesCard = () => {
                 <strong>Taken Dues:</strong> {recordData.taken_dues || '0'}
               </div>
             </div>
-          
+
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="d-flex justify-content-between flex-wrap align-items-end mx-3">
-          
+
           {/* Name Input */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Name *</label>
+            <label className="form-label fw-bold">Name <span style={{ color: '#dc3545' }}>*</span></label>
             <input
               type="text"
               name="name"
@@ -236,7 +236,7 @@ const UpdateDuesCard = () => {
 
           {/* Date Input */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Date *</label>
+            <label className="form-label fw-bold">Date <span style={{ color: '#dc3545' }}>*</span></label>
             <input
               type="date"
               name="date"
@@ -250,7 +250,7 @@ const UpdateDuesCard = () => {
 
           {/* Single Piece Price Input */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Single Piece Price</label>
+            <label className="form-label fw-bold">Single Piece Price <span style={{ color: '#dc3545' }}>*</span></label>
             <input
               type="number"
               name="single_piece_price"
@@ -266,7 +266,7 @@ const UpdateDuesCard = () => {
 
           {/* Total Pieces Input */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Total Pieces</label>
+            <label className="form-label fw-bold">Total Pieces <span style={{ color: '#dc3545' }}>*</span></label>
             <input
               type="number"
               name="total_piece"
@@ -281,7 +281,7 @@ const UpdateDuesCard = () => {
 
           {/* Given Dues Input */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Given Dues</label>
+            <label className="form-label fw-bold">Given Dues <span style={{ color: '#dc3545' }}>*</span></label>
             <input
               type="number"
               name="given_dues"
@@ -297,7 +297,7 @@ const UpdateDuesCard = () => {
 
           {/* Taken Dues Input */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Taken Dues</label>
+            <label className="form-label fw-bold">Taken Dues <span style={{ color: '#dc3545' }}>*</span></label>
             <input
               type="number"
               name="taken_dues"
@@ -313,16 +313,16 @@ const UpdateDuesCard = () => {
 
           {/* Buttons */}
           <div className="col-12 d-flex justify-content-end gap-2 mb-2 mt-3">
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="btn btn-success px-4"
               onClick={() => navigate('/duesrecord')}
               disabled={isUpdating}
             >
               Cancel
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="btn btn-danger px-4"
               disabled={isUpdating}
             >
