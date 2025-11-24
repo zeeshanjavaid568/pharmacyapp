@@ -142,10 +142,10 @@ const DuesRecord = () => {
   const handleScroll = () => {
     if (tableContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = tableContainerRef.current;
-      
+
       // Show scroll to top button when scrolled down 100px
       setShowScrollTop(scrollTop > 100);
-      
+
       // Show scroll to bottom button when not at the bottom
       setShowScrollBottom(scrollTop + clientHeight < scrollHeight - 100);
     }
@@ -158,7 +158,7 @@ const DuesRecord = () => {
       tableContainer.addEventListener('scroll', handleScroll);
       // Initial check
       handleScroll();
-      
+
       return () => {
         tableContainer.removeEventListener('scroll', handleScroll);
       };
@@ -378,7 +378,7 @@ const DuesRecord = () => {
       </div>
 
       {/* 📋 Table Container with Scroll */}
-      <div 
+      <div
         className="table-container p-3 mb-5"
         ref={tableContainerRef}
         style={{
@@ -426,7 +426,7 @@ const DuesRecord = () => {
                       {record.runningTotal}
                     </td>
                     <td style={TableCellStyle}>{formatDate(record.date)}</td>
-                    <td style={TableCellStyle}>
+                    <td style={TableCellStyle} className='d-flex justify-content-center align-items-center'>
                       <Link to={`/updatedues/${record.id}`} className="update_btn me-3">
                         Update
                       </Link>
@@ -434,7 +434,7 @@ const DuesRecord = () => {
                         className="delete_btn"
                         onClick={() => handleDelete(record.id)}
                       >
-                        🗑️ Delete
+                        Delete
                       </button>
                     </td>
                   </tr>

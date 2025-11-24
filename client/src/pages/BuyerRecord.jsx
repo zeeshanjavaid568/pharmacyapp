@@ -408,7 +408,6 @@ const BuyerRecord = () => {
                     <th style={tableHeadingStyle}>Total Pieces</th>
                     <th style={tableHeadingStyle}>Remains Stock</th>
                     <th style={tableHeadingStyle}>Expire Date</th>
-                    <th style={tableHeadingStyle}>Remaining Days</th>
                     <th style={tableHeadingStyle}>Date</th>
                     <th style={tableHeadingStyle}>Actions</th>
                   </tr>
@@ -429,18 +428,13 @@ const BuyerRecord = () => {
                         <td>{record.pieces}</td>
                         <td>{record.stock}</td>
                         <td>{formatDate(record.expire_date)}</td>
-                        <td>
-                          <span className={`badge bg-${remainingInfo.color}`}>
-                            {remainingInfo.text}
-                          </span>
-                        </td>
                         <td>{formatDate(record.date)}</td>
-                        <td>
+                        <td className='d-flex justify-content-center align-items-center'>
                           <Link to={`/updatebuyerproduct/${record.id}`} className="update_btn me-3">
                             Update
                           </Link>
                           <button className="delete_btn" onClick={() => handleDelete(record.id)}>
-                            🗑️ Delete
+                            Delete
                           </button>
                         </td>
                       </tr>
