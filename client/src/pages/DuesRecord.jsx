@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import DuesCard from '../components/Cards/DuesCard';
 import { useGetAllDuesQuery, useDeleteGivenDuesMutation } from '../redux/features/DuesApi/giveDuesApi';
@@ -8,6 +8,10 @@ const DuesRecord = () => {
   const { data = [], isLoading, isError, refetch } = useGetAllDuesQuery();
   const [deleteGivenDues] = useDeleteGivenDuesMutation();
 
+  // ✅ Refs for scrolling
+  const tableContainerRef = useRef(null);
+  const tableRef = useRef(null);
+
   // ✅ Filters
   const [searchDate, setSearchDate] = useState('');
   const [searchName, setSearchName] = useState('');
@@ -16,6 +20,10 @@ const DuesRecord = () => {
 
   // ✅ Khata Management
   const [selectedKhata, setSelectedKhata] = useState(''); // active khata_name
+
+  // ✅ Scroll to top/bottom states
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
 
   // ✅ Get unique khata names
   const khataNames = useMemo(() => {
@@ -47,27 +55,30 @@ const DuesRecord = () => {
     return matchesKhata && matchesName && matchesDate && matchesMonth && matchesYear;
   });
 
+  // ✅ Sort records by date in ascending order (oldest to newest)
+  const sortedRecords = useMemo(() => {
+    return [...filteredRecords].sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateA - dateB; // Ascending order (oldest first)
+    });
+  }, [filteredRecords]);
+
   // ✅ Calculate running totals for both dues and pieces with CORRECT calculation
   const recordsWithRunningTotals = useMemo(() => {
-    if (!filteredRecords.length) return [];
-
-    // Sort records by date to ensure proper sequencing
-    const sortedRecords = [...filteredRecords].sort((a, b) => {
-      return new Date(a.date) - new Date(b.date);
-    });
+    if (!sortedRecords.length) return [];
 
     let runningTotalDues = 0;
     let runningTotalPieces = 0;
 
-    return sortedRecords.map((record, index) => {
+    return sortedRecords.map((record) => {
       const givenDues = Number(record.given_dues) || 0;
       const takenDues = Number(record.taken_dues) || 0;
       const totalPiece = Number(record.total_piece) || 0;
 
-      // ✅ CORRECTED CALCULATION: Subtract given_dues and add taken_dues
-      // This assumes:
-      // - given_dues = money you gave (increases what others owe you)
-      // - taken_dues = money you received (decreases what others owe you)
+      // ✅ CORRECTED CALCULATION: 
+      // given_dues = money you gave (increases your receivable)
+      // taken_dues = money you received (decreases your receivable)
       const netDuesForRecord = takenDues - givenDues;
 
       // Add to running totals
@@ -78,10 +89,10 @@ const DuesRecord = () => {
         ...record,
         runningTotal: runningTotalDues,
         runningTotalPieces: runningTotalPieces,
-        netDuesForRecord: netDuesForRecord // for debugging if needed
+        netDuesForRecord: netDuesForRecord
       };
     });
-  }, [filteredRecords]);
+  }, [sortedRecords]);
 
   // ✅ Find last record totals for selected khata
   const lastPrice = useMemo(() => {
@@ -106,6 +117,53 @@ const DuesRecord = () => {
     if (khataRecords.length === 0) return 0;
     return khataRecords[khataRecords.length - 1]?.runningTotalPieces || 0;
   }, [selectedKhata, recordsWithRunningTotals]);
+
+  // ✅ Scroll to Top Function
+  const scrollToTop = () => {
+    if (tableContainerRef.current) {
+      tableContainerRef.current.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  // ✅ Scroll to Bottom Function
+  const scrollToBottom = () => {
+    if (tableContainerRef.current) {
+      tableContainerRef.current.scrollTo({
+        top: tableContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  // ✅ Handle scroll event to show/hide scroll buttons
+  const handleScroll = () => {
+    if (tableContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = tableContainerRef.current;
+      
+      // Show scroll to top button when scrolled down 100px
+      setShowScrollTop(scrollTop > 100);
+      
+      // Show scroll to bottom button when not at the bottom
+      setShowScrollBottom(scrollTop + clientHeight < scrollHeight - 100);
+    }
+  };
+
+  // ✅ Add scroll event listener
+  useEffect(() => {
+    const tableContainer = tableContainerRef.current;
+    if (tableContainer) {
+      tableContainer.addEventListener('scroll', handleScroll);
+      // Initial check
+      handleScroll();
+      
+      return () => {
+        tableContainer.removeEventListener('scroll', handleScroll);
+      };
+    }
+  }, [recordsWithRunningTotals.length]); // Re-run when records change
 
   // ✅ Delete record
   const handleDelete = async (id) => {
@@ -217,13 +275,42 @@ const DuesRecord = () => {
     verticalAlign: 'middle',
   };
 
+  // ✅ Scroll button styles
+  const scrollButtonStyle = {
+    position: 'fixed',
+    right: '20px',
+    zIndex: 1000,
+    borderRadius: '50%',
+    width: '50px',
+    height: '50px',
+    border: 'none',
+    fontSize: '20px',
+    cursor: 'pointer',
+    boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+    transition: 'all 0.3s ease',
+  };
+
+  const scrollTopButtonStyle = {
+    ...scrollButtonStyle,
+    bottom: '90px',
+    backgroundColor: '#f44336',
+    color: 'white',
+  };
+
+  const scrollBottomButtonStyle = {
+    ...scrollButtonStyle,
+    bottom: '30px',
+    backgroundColor: '#4CAF50',
+    color: 'white',
+  };
+
   return (
     <>
       <h1 className="d-flex justify-content-center my-4 gradient_text">
         Add Dues In Record
       </h1>
 
-      {/* 🧾 Add Dufes Form */}
+      {/* 🧾 Add Dues Form */}
       <DuesCard
         lastPrice={lastPrice}
         refetchData={refetch}
@@ -290,13 +377,23 @@ const DuesRecord = () => {
         </div>
       </div>
 
-      {/* 📋 Table */}
-      <div className="table-container p-3 mb-5">
+      {/* 📋 Table Container with Scroll */}
+      <div 
+        className="table-container p-3 mb-5"
+        ref={tableContainerRef}
+        style={{
+          maxHeight: '600px',
+          overflowY: 'auto',
+          border: '1px solid #dee2e6',
+          borderRadius: '0.375rem',
+          position: 'relative'
+        }}
+      >
         {isLoading && <p className="text-center py-4">Loading...</p>}
         {isError && <p className="text-center text-danger">Error loading data.</p>}
         {!isLoading && !isError && (
-          <table className="table table-bordered table-hover form_div">
-            <thead>
+          <table className="table table-bordered table-hover form_div" ref={tableRef}>
+            <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
               <tr>
                 <th style={TableHeadingStyle}>#</th>
                 {/* <th style={TableHeadingStyle}>Khata Name</th> */}
@@ -349,6 +446,30 @@ const DuesRecord = () => {
           </table>
         )}
       </div>
+
+      {/* 🔼 Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          style={scrollTopButtonStyle}
+          title="Scroll to Top"
+          className="scroll-button"
+        >
+          ↑
+        </button>
+      )}
+
+      {/* 🔽 Scroll to Bottom Button */}
+      {showScrollBottom && (
+        <button
+          onClick={scrollToBottom}
+          style={scrollBottomButtonStyle}
+          title="Scroll to Bottom"
+          className="scroll-button"
+        >
+          ↓
+        </button>
+      )}
     </>
   );
 };
