@@ -203,7 +203,7 @@ const DuesRecord = () => {
     }
   };
 
-  // ✅ PDF Download (updated to include both running totals)
+  // ✅ PDF Download (updated with Daily Report File name and proper formatting)
   const handleDownloadPDF = async () => {
     try {
       const { jsPDF } = await import('jspdf');
@@ -211,38 +211,57 @@ const DuesRecord = () => {
       const autoTable = autoTableModule.default || autoTableModule;
       const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
 
+      // Set PDF title based on selection
+      const pdfTitle = selectedKhata ? `Ledger File (${selectedKhata})` : 'Daily Report File (All Khatas)';
+      
       doc.setFontSize(18);
-      doc.text(`Ledger File ${selectedKhata ? `(${selectedKhata})` : ''}`, 40, 40);
+      doc.text(pdfTitle, 40, 40);
       doc.setFontSize(10);
       doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 40, 65);
 
+      // Define table columns conditionally
       const tableColumn = [
-        'Sr.#', 'Name', 'Single Piece Price', 'Total Pieces', 'Sum Of Total Pieces',
-        'Given Dues', 'Taken Dues', 'Remains Total Price', 'Date'
+        'Sr.#', 
+        ...(selectedKhata ? [] : ['Khata Name']), // Show khata name only when "All Khatas" is selected
+        'Name', 
+        'Single Piece Price', 
+        'Total Pieces', 
+        'Sum Of Total Pieces',
+        'Given Dues', 
+        'Taken Dues', 
+        'Remains Total Price', 
+        'Date'
       ];
 
-      const tableRows = recordsWithRunningTotals.map((record, index) => [
-        index + 1,
-        record.name || '-',
-        record.single_piece_price || '0',
-        record.total_piece || '0',
-        record.runningTotalPieces || '0',
-        record.given_dues || '0',
-        record.taken_dues || '0',
-        record.runningTotal || '0',
-        formatDate(record.date),
-      ]);
+      // Prepare table rows
+      const tableRows = recordsWithRunningTotals.map((record, index) => {
+        const baseRow = [
+          index + 1,
+          record.name || '-',
+          record.single_piece_price || '0',
+          record.total_piece || '0',
+          record.runningTotalPieces || '0',
+          record.given_dues || '0',
+          record.taken_dues || '0',
+          record.runningTotal || '0',
+          formatDate(record.date),
+        ];
+
+        // Add khata name at the beginning if "All Khatas" is selected
+        return selectedKhata ? baseRow : [index + 1, record.khata_name || '-', ...baseRow.slice(1)];
+      });
 
       autoTable(doc, {
         head: [tableColumn],
         body: tableRows,
         startY: 100,
         theme: 'grid',
-        styles: { fontSize: 9, cellPadding: 4 },
+        styles: { fontSize: 8, cellPadding: 3 }, // Smaller font for better fit
         headStyles: { fillColor: [244, 67, 54], textColor: 255, fontStyle: 'bold', halign: 'center' },
+        margin: { left: 20, right: 20 }, // Add margins for better spacing
       });
 
-      doc.save(`Dues_${selectedKhata || 'All'}_${new Date().toISOString().split('T')[0]}.pdf`);
+      doc.save(`Ledger_File_${selectedKhata || 'All_Khatas'}_${new Date().toISOString().split('T')[0]}.pdf`);
       Swal.fire({
         title: 'Success!',
         text: `PDF downloaded for ${selectedKhata || 'All Khatas'}!`,
@@ -337,7 +356,7 @@ const DuesRecord = () => {
       </div>
 
       <h1 className="d-flex justify-content-center my-4 gradient_text">
-        {selectedKhata ? `(${selectedKhata})` : ''} Dues Record
+        {selectedKhata ? `(${selectedKhata})` : 'All Khatas'} Dues Record
       </h1>
 
       {/* 🔍 Filters */}
@@ -396,7 +415,8 @@ const DuesRecord = () => {
             <thead style={{ position: 'sticky', top: 0, zIndex: 1 }}>
               <tr>
                 <th style={TableHeadingStyle}>#</th>
-                {/* <th style={TableHeadingStyle}>Khata Name</th> */}
+                {/* Conditionally show Khata Name column only when "All Khatas" is selected */}
+                {!selectedKhata && <th style={TableHeadingStyle}>Khata Name</th>}
                 <th style={TableHeadingStyle}>Name</th>
                 <th style={TableHeadingStyle}>Single Piece Price</th>
                 <th style={TableHeadingStyle}>Total Pieces</th>
@@ -413,7 +433,8 @@ const DuesRecord = () => {
                 recordsWithRunningTotals.map((record, index) => (
                   <tr key={record.id || index}>
                     <td style={TableCellStyle}>{index + 1}</td>
-                    {/* <td style={TableCellStyle}>{record.khata_name}</td> */}
+                    {/* Conditionally show Khata Name cell only when "All Khatas" is selected */}
+                    {!selectedKhata && <td style={TableCellStyle}>{record.khata_name}</td>}
                     <td style={TableCellStyle}>{record.name}</td>
                     <td style={TableCellStyle}>{record.single_piece_price}</td>
                     <td style={TableCellStyle}>{record.total_piece}</td>
@@ -440,7 +461,14 @@ const DuesRecord = () => {
                   </tr>
                 ))
               ) : (
-                <tr><td colSpan="11" className="text-center py-4">No records found</td></tr>
+                <tr>
+                  <td 
+                    colSpan={selectedKhata ? "10" : "11"} 
+                    className="text-center py-4"
+                  >
+                    No records found
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
