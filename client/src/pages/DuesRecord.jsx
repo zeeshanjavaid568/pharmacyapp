@@ -213,7 +213,7 @@ const DuesRecord = () => {
 
       // Set PDF title based on selection
       const pdfTitle = selectedKhata ? `Ledger File (${selectedKhata})` : 'Daily Report File (All Khatas)';
-      
+
       doc.setFontSize(18);
       doc.text(pdfTitle, 40, 40);
       doc.setFontSize(10);
@@ -221,15 +221,15 @@ const DuesRecord = () => {
 
       // Define table columns conditionally
       const tableColumn = [
-        'Sr.#', 
+        'Sr.#',
         ...(selectedKhata ? [] : ['Khata Name']), // Show khata name only when "All Khatas" is selected
-        'Name', 
-        'Single Piece Price', 
-        'Total Pieces', 
+        'Name',
+        'Single Piece Price',
+        'Total Pieces',
         'Sum Of Total Pieces',
-        'Given Dues', 
-        'Taken Dues', 
-        'Remains Total Price', 
+        'Given Dues',
+        'Taken Dues',
+        'Remains Total Price',
         'Date'
       ];
 
@@ -462,8 +462,8 @@ const DuesRecord = () => {
                 ))
               ) : (
                 <tr>
-                  <td 
-                    colSpan={selectedKhata ? "10" : "11"} 
+                  <td
+                    colSpan={selectedKhata ? "10" : "11"}
                     className="text-center py-4"
                   >
                     No records found

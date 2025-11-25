@@ -8,7 +8,7 @@ const UpdateDuesCard = () => {
   const navigate = useNavigate();
 
   // Fetch single record data
-  const { data: recordData, isLoading, isError, error } = useSingleGetDuesQuery(id);
+  const { data: recordData, isLoading, isError, refetch: singeDataRefetch, error } = useSingleGetDuesQuery(id);
   const { refetch } = useGetAllDuesQuery();
 
   // Update mutation
@@ -22,6 +22,15 @@ const UpdateDuesCard = () => {
     taken_dues: '',
     date: '',
   });
+
+  // Calculate total amount (single_piece_price * total_piece)
+  const calculateTotalAmount = () => {
+    const singlePrice = parseFloat(formData.single_piece_price) || 0;
+    const totalPieces = parseInt(formData.total_piece) || 0;
+    return singlePrice * totalPieces;
+  };
+
+  const totalAmount = calculateTotalAmount();
 
   // Populate form when record data is loaded
   useEffect(() => {
@@ -102,6 +111,19 @@ const UpdateDuesCard = () => {
       }
     }
 
+    // Validate that at least one of given_dues or taken_dues is provided
+    if (!formData.given_dues && !formData.taken_dues) {
+      Swal.fire({
+        title: 'Error!',
+        text: 'Please provide either Given Dues or Taken Dues',
+        icon: 'error',
+        confirmButtonText: 'Ok',
+        customClass: { confirmButton: 'sweetalert_btn_error' },
+
+      });
+      return;
+    }
+
     try {
       // Prepare update data with all fields
       const updateData = {
@@ -116,6 +138,7 @@ const UpdateDuesCard = () => {
       // Call update API
       await updateDues({ id, userData: updateData }).unwrap();
       refetch();
+      singeDataRefetch();
 
       // Show success message
       Swal.fire({
@@ -207,13 +230,20 @@ const UpdateDuesCard = () => {
             </div>
             <div className="row mt-2">
               <div className="col-md-6">
+                <strong>Total Amount:</strong> {(parseFloat(recordData.single_piece_price || 0) * parseInt(recordData.total_piece || 0)).toFixed(2)}
+              </div>
+              <div className="col-md-6">
+                <strong>Net Amount:</strong> {(parseFloat(recordData.taken_dues || 0) - parseFloat(recordData.given_dues || 0)).toFixed(2)}
+              </div>
+            </div>
+            <div className="row mt-2">
+              <div className="col-md-6">
                 <strong>Given Dues:</strong> {recordData.given_dues || '0'}
               </div>
               <div className="col-md-6">
                 <strong>Taken Dues:</strong> {recordData.taken_dues || '0'}
               </div>
             </div>
-
           </div>
         )}
 
@@ -279,9 +309,28 @@ const UpdateDuesCard = () => {
             />
           </div>
 
+          {/* Calculated Total Amount (Read-only) */}
+          <div className="col-12 col-md-5 mb-3">
+            <label className="form-label fw-bold">Total Amount (Calculated)</label>
+            <input
+              type="number"
+              className="form-control p-2 bg-light"
+              value={totalAmount.toFixed(2)}
+              readOnly
+              disabled
+              style={{ fontWeight: 'bold', color: '#198754' }}
+            />
+            <small className="text-muted">
+              Single Piece Price × Total Pieces = {totalAmount.toFixed(2)}
+            </small>
+          </div>
+
+          {/* Empty column for layout balance */}
+          <div className="col-12 col-md-5 mb-3"></div>
+
           {/* Given Dues Input */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Given Dues <span style={{ color: '#dc3545' }}>*</span></label>
+            <label className="form-label fw-bold">Given Dues</label>
             <input
               type="number"
               name="given_dues"
@@ -297,7 +346,7 @@ const UpdateDuesCard = () => {
 
           {/* Taken Dues Input */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Taken Dues <span style={{ color: '#dc3545' }}>*</span></label>
+            <label className="form-label fw-bold">Taken Dues</label>
             <input
               type="number"
               name="taken_dues"
@@ -309,6 +358,36 @@ const UpdateDuesCard = () => {
               min="0"
               disabled={isUpdating}
             />
+          </div>
+
+          {/* Net Amount Calculation (Read-only) */}
+          <div className="col-12 mb-3">
+            <div className="card bg-light">
+              <div className="card-body text-center">
+                <h6 className="card-title fw-bold">Amount Summary</h6>
+                <div className="row">
+                  <div className="col-md-4">
+                    <strong>Total Amount:</strong> 
+                    <div className="text-success fs-5">{totalAmount.toFixed(2)}</div>
+                    <small className="text-muted">(Price × Pieces)</small>
+                  </div>
+                  <div className="col-md-4">
+                    <strong>Net Dues:</strong>
+                    <div className={`fs-5 ${(parseFloat(formData.taken_dues || 0) - parseFloat(formData.given_dues || 0)) >= 0 ? 'text-success' : 'text-danger'}`}>
+                      {(parseFloat(formData.taken_dues || 0) - parseFloat(formData.given_dues || 0)).toFixed(2)}
+                    </div>
+                    <small className="text-muted">(Taken - Given)</small>
+                  </div>
+                  <div className="col-md-4">
+                    <strong>Balance:</strong>
+                    <div className={`fs-5 ${(totalAmount + (parseFloat(formData.taken_dues || 0) - parseFloat(formData.given_dues || 0))) >= 0 ? 'text-success' : 'text-danger'}`}>
+                      {(totalAmount + (parseFloat(formData.taken_dues || 0) - parseFloat(formData.given_dues || 0))).toFixed(2)}
+                    </div>
+                    <small className="text-muted">(Total + Net Dues)</small>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Buttons */}
