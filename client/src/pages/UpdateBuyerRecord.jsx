@@ -8,7 +8,7 @@ const UpdateBuyerRecord = () => {
     const navigate = useNavigate();
 
     // Fetch single product data
-    const { data: product, isLoading: isLoadingProduct, isError } = useSingleBuyerProductQuery(id);
+    const { data: product, refetch, isLoading: isLoadingProduct, isError } = useSingleBuyerProductQuery(id);
 
     // Update mutation
     const [updateAllBuyerProduct, { isLoading: isUpdating }] = useUpdateAllBuyerProductMutation();
@@ -70,7 +70,6 @@ const UpdateBuyerRecord = () => {
                 id,
                 userData: formData
             }).unwrap();
-
             Swal.fire({
                 title: 'Success!',
                 text: 'Product updated successfully!',
@@ -78,7 +77,7 @@ const UpdateBuyerRecord = () => {
                 confirmButtonText: 'OK',
                 customClass: { confirmButton: 'sweetalert_btn_success' },
             });
-
+            refetch();
             navigate('/buyer-record');
         } catch (error) {
             console.error('Update error:', error);
@@ -206,7 +205,7 @@ const UpdateBuyerRecord = () => {
                 </div>
 
                 <div className="btn_wrapper mt-2 mb-5 d-flex flex-column">
-                   
+
                     <button
                         type="submit"
                         className="btn btn-danger input_width"
