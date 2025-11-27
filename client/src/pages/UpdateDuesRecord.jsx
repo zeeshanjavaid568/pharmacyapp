@@ -367,7 +367,7 @@ const UpdateDuesCard = () => {
                 <h6 className="card-title fw-bold">Amount Summary</h6>
                 <div className="row">
                   <div className="col-md-4">
-                    <strong>Total Amount:</strong> 
+                    <strong>Total Amount:</strong>
                     <div className="text-success fs-5">{totalAmount.toFixed(2)}</div>
                     <small className="text-muted">(Price × Pieces)</small>
                   </div>

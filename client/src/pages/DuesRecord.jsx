@@ -118,6 +118,17 @@ const DuesRecord = () => {
     return khataRecords[khataRecords.length - 1]?.runningTotalPieces || 0;
   }, [selectedKhata, recordsWithRunningTotals]);
 
+  // ✅ Color coding for positive/negative values
+  const getPriceColorStyle = (value) => {
+    if (value < 0) {
+      return { color: '#dc3545', fontWeight: 'bold' }; // Red for negative
+    } else if (value > 0) {
+      return { color: '#198754', fontWeight: 'bold' }; // Green for positive
+    } else {
+      return { color: '#6c757d', fontWeight: 'bold' }; // Gray for zero
+    }
+  };
+
   // ✅ Scroll to Top Function
   const scrollToTop = () => {
     if (tableContainerRef.current) {
@@ -203,7 +214,7 @@ const DuesRecord = () => {
     }
   };
 
-  // ✅ PDF Download (updated with Daily Report File name and proper formatting)
+  // ✅ PDF Download with background colors and fixed font duplication issue
   const handleDownloadPDF = async () => {
     try {
       const { jsPDF } = await import('jspdf');
@@ -222,7 +233,7 @@ const DuesRecord = () => {
       // Define table columns conditionally
       const tableColumn = [
         'Sr.#',
-        ...(selectedKhata ? [] : ['Khata Name']), // Show khata name only when "All Khatas" is selected
+        ...(selectedKhata ? [] : ['Khata Name']),
         'Name',
         'Single Piece Price',
         'Total Pieces',
@@ -251,14 +262,137 @@ const DuesRecord = () => {
         return selectedKhata ? baseRow : [index + 1, record.khata_name || '-', ...baseRow.slice(1)];
       });
 
+      // Define column styles with background colors
+      const columnStyles = {};
+
+      if (selectedKhata) {
+        // When specific khata is selected
+        columnStyles[0] = {
+          textColor: [90, 14, 36],
+          fillColor: [240, 240, 240] // IndexStyle
+        };
+        columnStyles[1] = {
+          textColor: [90, 14, 36],
+          fillColor: [255, 255, 255] // White for Name
+        };
+        columnStyles[2] = {
+          textColor: [90, 14, 36],
+          fillColor: [246, 246, 246] // CommonStyle
+        };
+        columnStyles[3] = {
+          textColor: [90, 14, 36],
+          fillColor: [246, 246, 246] // CommonStyle
+        };
+        columnStyles[4] = {
+          textColor: [6, 7, 113],
+          fillColor: [232, 249, 255] // SumOfTotalStyle
+        };
+        columnStyles[5] = {
+          textColor: [220, 53, 69],
+          fillColor: [254, 227, 236] // GivenDuesStyle
+        };
+        columnStyles[6] = {
+          textColor: [25, 135, 84],
+          fillColor: [202, 247, 227] // TakenDuesStyle
+        };
+        // Remains Total Price will be handled dynamically
+        columnStyles[8] = {
+          textColor: [90, 14, 36],
+          fillColor: [255, 255, 255] // White for Date
+        };
+      } else {
+        // When showing all khatas
+        columnStyles[0] = {
+          textColor: [90, 14, 36],
+          fillColor: [240, 240, 240] // IndexStyle
+        };
+        columnStyles[1] = {
+          textColor: [220, 14, 14],
+          fillColor: [255, 255, 255] // KhataStyle (white background)
+        };
+        columnStyles[2] = {
+          textColor: [90, 14, 36],
+          fillColor: [255, 255, 255] // White for Name
+        };
+        columnStyles[3] = {
+          textColor: [90, 14, 36],
+          fillColor: [246, 246, 246] // CommonStyle
+        };
+        columnStyles[4] = {
+          textColor: [90, 14, 36],
+          fillColor: [246, 246, 246] // CommonStyle
+        };
+        columnStyles[5] = {
+          textColor: [6, 7, 113],
+          fillColor: [232, 249, 255] // SumOfTotalStyle
+        };
+        columnStyles[6] = {
+          textColor: [220, 53, 69],
+          fillColor: [254, 227, 236] // GivenDuesStyle
+        };
+        columnStyles[7] = {
+          textColor: [25, 135, 84],
+          fillColor: [202, 247, 227] // TakenDuesStyle
+        };
+        // Remains Total Price will be handled dynamically
+        columnStyles[9] = {
+          textColor: [90, 14, 36],
+          fillColor: [255, 255, 255] // White for Date
+        };
+      }
+
+      // Define cell styles for PDF
+      const styles = {
+        fontSize: 8,
+        cellPadding: 3,
+        halign: 'center',
+      };
+
+      // FIXED: Use didParseCell instead of didDrawCell to avoid font duplication
+      const didParseCell = (data) => {
+        if (data.section === 'body') {
+          const rowIndex = data.row.index;
+          const columnIndex = data.column.index;
+
+          // Get the original record for this row
+          const record = recordsWithRunningTotals[rowIndex];
+
+          if (!record) return;
+
+          // Only handle Remains Total Price column dynamically
+          const remainsTotalPriceColumn = selectedKhata ? 7 : 8;
+
+          if (columnIndex === remainsTotalPriceColumn) {
+            // Set dynamic color based on value
+            if (record.runningTotal < 0) {
+              data.cell.styles.textColor = [220, 53, 69]; // Red for negative
+            } else if (record.runningTotal > 0) {
+              data.cell.styles.textColor = [25, 135, 84]; // Green for positive
+            } else {
+              data.cell.styles.textColor = [108, 117, 125]; // Gray for zero
+            }
+            data.cell.styles.fontStyle = 'bold';
+          }
+        }
+      };
+
       autoTable(doc, {
         head: [tableColumn],
         body: tableRows,
         startY: 100,
         theme: 'grid',
-        styles: { fontSize: 8, cellPadding: 3 }, // Smaller font for better fit
-        headStyles: { fillColor: [244, 67, 54], textColor: 255, fontStyle: 'bold', halign: 'center' },
-        margin: { left: 20, right: 20 }, // Add margins for better spacing
+        styles: styles,
+        columnStyles: columnStyles,
+        headStyles: {
+          fillColor: [244, 67, 54],
+          textColor: 255,
+          fontStyle: 'bold',
+          halign: 'center',
+          fontSize: 8
+        },
+        margin: { left: 20, right: 20 },
+        didParseCell: didParseCell, // Use didParseCell instead of didDrawCell
+        // Remove willDrawCell completely to avoid font conflicts
       });
 
       doc.save(`Ledger_File_${selectedKhata || 'All_Khatas'}_${new Date().toISOString().split('T')[0]}.pdf`);
@@ -293,6 +427,28 @@ const DuesRecord = () => {
     textAlign: 'center',
     verticalAlign: 'middle',
   };
+  const IndexStyle = {
+    backgroundColor: '#F0F0F0'
+  }
+  const KhataStyle = {
+    color: '#DC0E0E',
+  }
+  const CommonStyle = {
+    color: '#5A0E24',
+    backgroundColor: '#F6F6F6'
+  }
+  const SumOfTotalStyle = {
+    color: '#060771',
+    backgroundColor: '#E8F9FF'
+  }
+  const GivenDuesStyle = {
+    color: 'rgb(220, 53, 69)',
+    backgroundColor: '#FEE3EC'
+  }
+  const TakenDuesStyle = {
+    color: 'rgb(25, 135, 84)',
+    backgroundColor: '#CAF7E3'
+  }
 
   // ✅ Scroll button styles
   const scrollButtonStyle = {
@@ -379,7 +535,12 @@ const DuesRecord = () => {
         </div>
         <div className="form-group mt-2">
           <label className="form-label fw-bold">Remains Total Price</label>
-          <div className="form-control text-center fw-bold bg-light">{lastPrice}</div>
+          <div
+            className="form-control text-center fw-bold bg-light"
+            style={getPriceColorStyle(lastPrice)}
+          >
+            {lastPrice}
+          </div>
         </div>
         <div className="form-group mt-2">
           <label className="form-label fw-bold">Total Pieces</label>
@@ -432,21 +593,50 @@ const DuesRecord = () => {
               {recordsWithRunningTotals.length > 0 ? (
                 recordsWithRunningTotals.map((record, index) => (
                   <tr key={record.id || index}>
-                    <td style={TableCellStyle}>{index + 1}</td>
+                    <td style={{
+                      ...TableCellStyle,
+                      ...IndexStyle
+                    }}>{index + 1}</td>
                     {/* Conditionally show Khata Name cell only when "All Khatas" is selected */}
-                    {!selectedKhata && <td style={TableCellStyle}>{record.khata_name}</td>}
+                    {!selectedKhata && <td style={{
+                      ...TableCellStyle,
+                      ...KhataStyle
+                    }}>{record.khata_name}</td>}
                     <td style={TableCellStyle}>{record.name}</td>
-                    <td style={TableCellStyle}>{record.single_piece_price}</td>
-                    <td style={TableCellStyle}>{record.total_piece}</td>
-                    <td style={TableCellStyle} className="fw-bold">
+                    <td style={{
+                      ...TableCellStyle,
+                      ...CommonStyle
+                    }}>{record.single_piece_price}</td>
+                    <td style={{
+                      ...TableCellStyle,
+                      ...CommonStyle
+                    }}>{record.total_piece}</td>
+                    <td style={{
+                      ...TableCellStyle,
+                      ...SumOfTotalStyle
+                    }} className="fw-bold">
                       {record.runningTotalPieces}
                     </td>
-                    <td style={TableCellStyle}>{record.given_dues}</td>
-                    <td style={TableCellStyle}>{record.taken_dues}</td>
-                    <td style={TableCellStyle} className="fw-bold">
+                    <td style={{
+                      ...TableCellStyle,
+                      ...GivenDuesStyle
+                    }}>{record.given_dues}</td>
+                    <td style={{
+                      ...TableCellStyle,
+                      ...TakenDuesStyle
+                    }}>{record.taken_dues}</td>
+                    <td
+                      style={{
+                        ...TableCellStyle,
+                        ...getPriceColorStyle(record.runningTotal)
+                      }}
+                      className="fw-bold"
+                    >
                       {record.runningTotal}
                     </td>
-                    <td style={TableCellStyle}>{formatDate(record.date)}</td>
+                    <td style={{
+                      ...TableCellStyle,
+                    }}>{formatDate(record.date)}</td>
                     <td style={TableCellStyle} className='d-flex justify-content-center align-items-center'>
                       <Link to={`/updatedues/${record.id}`} className="update_btn me-3">
                         Update
