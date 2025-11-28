@@ -69,19 +69,41 @@ const BuyerRecord = () => {
   const [expiringProducts, setExpiringProducts] = useState([]);
   const [expiredProducts, setExpiredProducts] = useState([]);
 
-  // ✅ Check for expiring products when data loads
+  // ✅ Get only the latest entry for each product name
+  const getLatestEntriesByProductName = (products) => {
+    if (!products || !Array.isArray(products)) return [];
+
+    const productMap = new Map();
+
+    // Sort by date in descending order to ensure we get the latest entries
+    const sortedProducts = [...products].sort((a, b) =>
+      new Date(b.date) - new Date(a.date)
+    );
+
+    // Keep only the first (latest) occurrence of each product name
+    sortedProducts.forEach(product => {
+      if (product.product_name && !productMap.has(product.product_name)) {
+        productMap.set(product.product_name, product);
+      }
+    });
+
+    return Array.from(productMap.values());
+  };
+
+  // ✅ Check for expiring products when data loads - ONLY for latest entries
   useEffect(() => {
     if (data && data.length > 0) {
       checkExpiringProducts();
     }
   }, [data]);
 
-  // ✅ Function to check expiring products
+  // ✅ Function to check expiring products - ONLY for latest entries
   const checkExpiringProducts = () => {
+    const latestEntries = getLatestEntriesByProductName(data);
     const soonExpiring = [];
     const alreadyExpired = [];
 
-    data.forEach(product => {
+    latestEntries.forEach(product => {
       if (product.expire_date) {
         const remainingDays = getRemainingDays(product.expire_date);
 
@@ -102,7 +124,7 @@ const BuyerRecord = () => {
     showExpirationAlerts(soonExpiring, alreadyExpired);
   };
 
-  // ✅ Show expiration alerts with remaining days
+  // ✅ Show expiration alerts with remaining days - ONLY for latest entries
   const showExpirationAlerts = (soonExpiring, alreadyExpired) => {
     // Show expired products alert first
     if (alreadyExpired.length > 0) {
@@ -110,6 +132,7 @@ const BuyerRecord = () => {
         `<tr>
           <td><strong>${p.product_name}</strong></td>
           <td style="color: #d32f2f; font-weight: bold;">Expired ${Math.abs(p.remainingDays)} days ago</td>
+          <td style="font-size: 0.9em; color: #666;">${formatDate(p.date)}</td>
         </tr>`
       ).join('');
 
@@ -117,12 +140,13 @@ const BuyerRecord = () => {
         title: '⚠️ Expired Products Alert!',
         html: `
           <div style="text-align: left;">
-            <p><strong>The following products have EXPIRED:</strong></p>
+            <p><strong>The following products have EXPIRED (showing latest entries only):</strong></p>
             <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
               <thead>
                 <tr style="border-bottom: 1px solid #ddd;">
                   <th style="text-align: left; padding: 8px;">Product Name</th>
                   <th style="text-align: left; padding: 8px;">Status</th>
+                  <th style="text-align: left; padding: 8px;">Purchase Date</th>
                 </tr>
               </thead>
               <tbody>
@@ -135,7 +159,7 @@ const BuyerRecord = () => {
         icon: 'error',
         confirmButtonText: 'I Understand',
         confirmButtonColor: '#d32f2f',
-        width: 700,
+        width: 750,
         customClass: {
           popup: 'expiration-alert-popup'
         }
@@ -154,6 +178,7 @@ const BuyerRecord = () => {
           return `<tr>
             <td><strong>${p.product_name}</strong></td>
             <td style="color: ${color}; font-weight: bold;">${daysText}</td>
+            <td style="font-size: 0.9em; color: #666;">${formatDate(p.date)}</td>
           </tr>`;
         }).join('');
 
@@ -161,12 +186,13 @@ const BuyerRecord = () => {
           title: '📅 Expiration Warning!',
           html: `
             <div style="text-align: left;">
-              <p><strong>The following products will expire soon:</strong></p>
+              <p><strong>The following products will expire soon (showing latest entries only):</strong></p>
               <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
                 <thead>
                   <tr style="border-bottom: 1px solid #ddd;">
                     <th style="text-align: left; padding: 8px;">Product Name</th>
                     <th style="text-align: left; padding: 8px;">Remaining Days</th>
+                    <th style="text-align: left; padding: 8px;">Purchase Date</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -179,7 +205,7 @@ const BuyerRecord = () => {
           icon: 'warning',
           confirmButtonText: 'Got It',
           confirmButtonColor: '#ff9800',
-          width: 700,
+          width: 750,
           customClass: {
             popup: 'expiration-warning-popup'
           }
@@ -193,10 +219,18 @@ const BuyerRecord = () => {
     if (data && data.length > 0) {
       checkExpiringProducts();
 
-      if (expiringProducts.length === 0 && expiredProducts.length === 0) {
+      const latestEntries = getLatestEntriesByProductName(data);
+      const hasExpiring = latestEntries.some(product =>
+        product.expire_date && isExpiringWithinOneMonth(product.expire_date)
+      );
+      const hasExpired = latestEntries.some(product =>
+        product.expire_date && isExpired(product.expire_date)
+      );
+
+      if (!hasExpiring && !hasExpired) {
         Swal.fire({
           title: '✅ All Good!',
-          text: 'No products are expired or expiring soon.',
+          text: 'No products (latest entries) are expired or expiring soon.',
           icon: 'success',
           confirmButtonText: 'Great!',
           confirmButtonColor: '#4caf50'
@@ -265,7 +299,7 @@ const BuyerRecord = () => {
 
   const tableHeadingStyle = { backgroundColor: '#f44336', color: 'white' }
 
-  // ✅ Row style based on expiration status
+  // ✅ Row style based on expiration status - applies to ALL records in table
   const getRowStyle = (record) => {
     if (!record.expire_date) return {};
 
@@ -277,7 +311,7 @@ const BuyerRecord = () => {
     return {};
   };
 
-  // ✅ Expiration status badge with remaining days
+  // ✅ Expiration status badge with remaining days - shows for ALL records
   const getExpirationBadge = (record) => {
     if (!record.expire_date) return null;
 
@@ -305,7 +339,7 @@ const BuyerRecord = () => {
         <button
           className="btn btn-warning"
           onClick={handleCheckExpiration}
-          title="Check for products expiring within 30 days"
+          title="Check for products expiring within 30 days (latest entries only)"
         >
           🔔 Check Product Expiration
         </button>
@@ -325,6 +359,13 @@ const BuyerRecord = () => {
             )}
           </div>
         )}
+
+        {/* ℹ️ Info Text */}
+        <div className="mt-2">
+          <small className="text-muted">
+            <i>Note: Expiration alerts show only for the latest entry of each product</i>
+          </small>
+        </div>
       </div>
 
       {!selectedYear ? (
