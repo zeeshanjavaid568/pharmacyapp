@@ -6,6 +6,7 @@ import Swal from 'sweetalert2/dist/sweetalert2';
 const SalerProductCard = ({ onProductAdded }) => {
     const [formData, setFormData] = useState({
         product_name: '',
+        product_place: '',
         product_price: '',
         pieces_price: '',
         stock: '',
@@ -185,6 +186,7 @@ const SalerProductCard = ({ onProductAdded }) => {
 
             setFormData({
                 product_name: '',
+                product_place: '',
                 product_price: '',
                 pieces_price: '',
                 stock: '',
@@ -301,6 +303,17 @@ const SalerProductCard = ({ onProductAdded }) => {
                     name="date"
                 />
                 {errors.date && <span style={{ color: 'red' }}>{errors.date}</span>}
+            </div>
+
+            <div className="input_div d-flex flex-column input_width">
+                <label>Product Place</label>
+                <input
+                    type="text"
+                    value={formData.product_place}
+                    onChange={handleInputs}
+                    name="product_place"
+                    placeholder="Enter product place"
+                />
             </div>
 
             <div className="btn_wrapper mt-2 mt-xxl-5 mt-xl-5 mt-lg-5 mt-md-5 mb-5">

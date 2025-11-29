@@ -142,6 +142,7 @@ const SalerRecord = () => {
                 <tr>
                   <th style={{ backgroundColor: '#f44336', color: 'white' }}>#</th>
                   <th style={{ backgroundColor: '#f44336', color: 'white' }}>Product Name</th>
+                  <th style={{ backgroundColor: '#f44336', color: 'white' }}>Product Place</th>
                   <th style={{ backgroundColor: '#f44336', color: 'white' }}>Product Price</th>
                   <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Pieces Price</th>
                   <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Pieces</th>
@@ -154,6 +155,7 @@ const SalerRecord = () => {
                   <tr key={record.id || index}>
                     <td>{index + 1}</td>
                     <td>{record.product_name}</td>
+                    <td>{record.product_place}</td>
                     <td>{record.product_price}</td>
                     <td>{record.pieces_price}</td>
                     <td>{record.stock}</td>
