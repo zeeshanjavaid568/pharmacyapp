@@ -19,6 +19,7 @@ import DailyBuyerProductTotalPriceRecord from './pages/DailyBuyerProductTotalPri
 import DuesRecord from './pages/DuesRecord';
 import UpdateDuesRecord from './pages/UpdateDuesRecord';
 import TakenDuesRecord from './pages/TakenDuesRecord';
+import SalerDailyTotalPriceRecord from './pages/DailySalerProductTotalPriceRecord';
 
 
 function App() {
@@ -67,6 +68,14 @@ function App() {
                             element={
                                 <PrivateRoute>
                                     <SalerRecord />
+                                </PrivateRoute>
+                            }
+                        />
+
+                        <Route path="/saler-daily-total-price-record"
+                            element={
+                                <PrivateRoute>
+                                    <SalerDailyTotalPriceRecord />
                                 </PrivateRoute>
                             }
                         />

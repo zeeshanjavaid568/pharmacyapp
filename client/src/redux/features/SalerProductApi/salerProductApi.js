@@ -6,25 +6,29 @@ export const SalerProdcutApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: "http://localhost:7000",
 
-    // prepareHeaders: (headers, { getState }) => {
-    //     const apiToken = getState().storeAuth.apiToken;
-    //     if (apiToken) {
-    //       headers.set('Authorization', `Bearer ${apiToken}`);
-    //     }
-    //     return headers;
-    //   },
-
   }),
   endpoints: (builder) => ({
 
     createDailyTotalSalerProductPrice: builder.mutation({
       query: (userData) => ({
-        url: "/saler/totalsalerproduct",
+        url: "/saler/salertotalprice",
         method: "POST",
         body: userData,
         headers: {
           Accept: "application/json",
         },
+      }),
+    }),
+    salerProductsTotalPrice: builder.query({
+      query: () => ({
+        url: `/saler/products/totalprice`,
+        method: "GET",
+      }),
+    }),
+    deleteSalerProductTotalPrice: builder.mutation({
+      query: (id) => ({
+        url: `/saler/salertotalprice/${id}`,
+        method: "DELETE",
       }),
     }),
     createSalerProduct: builder.mutation({
@@ -54,6 +58,8 @@ export const SalerProdcutApi = createApi({
 
 export const {
   useCreateDailyTotalSalerProductPriceMutation,
+  useSalerProductsTotalPriceQuery,
+  useDeleteSalerProductTotalPriceMutation,
   useCreateSalerProductMutation,
   useSalerProductQuery,
   useDeleteSalerProductMutation

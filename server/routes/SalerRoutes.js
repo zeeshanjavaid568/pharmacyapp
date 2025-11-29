@@ -40,20 +40,6 @@ router.post('/product', async (req, res) => {
   }
 });
 
-// Create a new Saler Product
-router.post('/totalsalerproduct', async (req, res) => {
-  try {
-    const result = await SalerProducts.createSalerTotalPrice(req.body);
-    res.status(201).json({
-      message: 'Saler Product created successfully',
-      product: result,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Failed to create Saler Product', error });
-  }
-});
-
 // Update a Saler Product
 router.put('/product/:id', async (req, res) => {
   try {
@@ -75,6 +61,43 @@ router.delete('/product/:id', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Failed to delete Saler Product', error });
+  }
+});
+
+// Get all Saler Products Total Price
+router.get('/products/totalprice', async (req, res) => {
+  try {
+    const products = await SalerProducts.getAllSalerDailyTotalPrice();
+    res.json(products);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to fetch Saler Products', error });
+  }
+});
+
+// Create a new Saler Daily Product Total Price
+router.post('/salertotalprice', async (req, res) => {
+  try {
+    const result = await SalerProducts.createSalerDailyTotalPrice(req.body);
+    res.status(201).json({
+      message: 'Daily Saler Product Total Price created successfully',
+      product: result,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to create Daily Saler Product Total Price', error });
+  }
+});
+
+// Delete a Saler Daily Product Total Price
+router.delete('/salertotalprice/:id', async (req, res) => {
+  try {
+    const deleted = await SalerProducts.deleteSalerDailyTotalPrice(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Daily Saler Product Total Price not found' });
+    res.json({ message: 'Daily Saler Product Total Price deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Failed to delete Daily Saler Product Total Price', error });
   }
 });
 

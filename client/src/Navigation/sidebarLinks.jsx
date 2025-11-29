@@ -17,19 +17,25 @@ export const sidebarLinks = [
                 icon: <FontAwesomeIcon icon="fa-solid fa-address-card" />,
                 selectedIcon: "/assets/images/dashboard/camera.png",
                 link: '/buyer-record',
-                text: 'Purchase Product',
+                text: 'Purchase Products',
             },
             {
                 icon: <FontAwesomeIcon icon="fa-solid fa-address-card" />,
                 selectedIcon: "/assets/images/dashboard/camera.png",
                 link: '/buyer-daily-total-price-record',
-                text: 'Purchase Daily Product Total Price',
+                text: 'Purchase Daily Products Total Price',
             },
             {
                 icon: <FontAwesomeIcon icon="fa-solid fa-address-card" />,
                 selectedIcon: "/assets/images/dashboard/camera.png",
                 link: '/saler-record',
-                text: 'Saler Product',
+                text: 'Saler Products',
+            },
+            {
+                icon: <FontAwesomeIcon icon="fa-solid fa-address-card" />,
+                selectedIcon: "/assets/images/dashboard/camera.png",
+                link: '/saler-daily-total-price-record',
+                text: 'Saler Daily Products Total Price',
             },
             // {
             //     icon: <FontAwesomeIcon icon="fa-solid fa-address-card" />,
