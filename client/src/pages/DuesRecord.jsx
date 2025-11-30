@@ -251,11 +251,11 @@ const DuesRecord = () => {
         'Name',
         'Single Piece Price',
         'Medicine Pieces',
-        'Sum Of Medicine',
+        'Medicine Total Pieces',
         'Feed Pieces',
-        'Sum Of Feed',
+        'Feed Total Pieces',
         'Other Pieces',
-        'Sum Of Other',
+        'Other Total Pieces',
         'Given Dues',
         'Taken Dues',
         'Remains Total Price',
@@ -560,16 +560,16 @@ const DuesRecord = () => {
                 <th style={TableHeadingStyle}>Single Piece Price</th>
 
                 {/* Medicine Pieces Section */}
+                <th style={TableHeadingStyle}>Medicine Pieces</th>
                 <th style={TableHeadingStyle}>Medicine Total Pieces</th>
-                <th style={TableHeadingStyle}>Sum Of Medicine Total Pieces</th>
 
                 {/* Feed Pieces Section */}
+                <th style={TableHeadingStyle}>Feed Pieces</th>
                 <th style={TableHeadingStyle}>Feed Total Pieces</th>
-                <th style={TableHeadingStyle}>Sum Of Feed Total Pieces</th>
 
                 {/* Other Pieces Section */}
+                <th style={TableHeadingStyle}>Other Pieces</th>
                 <th style={TableHeadingStyle}>Other Total Pieces</th>
-                <th style={TableHeadingStyle}>Sum Of Other Total Pieces</th>
 
                 <th style={TableHeadingStyle}>Given Dues</th>
                 <th style={TableHeadingStyle}>Taken Dues</th>
