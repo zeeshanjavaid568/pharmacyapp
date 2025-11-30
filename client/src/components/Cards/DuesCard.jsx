@@ -132,7 +132,7 @@ const DuesCard = ({ lastPrice, refetchData }) => {
       <form className="d-flex justify-content-between flex-wrap align-items-end" onSubmit={handleSubmit}>
         {/* ✅ Khata Name */}
         <div className="col-auto">
-          <label className="me-2">Khata Name</label>
+          <label className="me-2">Khata Name <span style={{ color: '#dc3545' }}>*</span></label>
           <input
             type="text"
             name="khata_name"
@@ -146,7 +146,7 @@ const DuesCard = ({ lastPrice, refetchData }) => {
 
         {/* ✅ Name */}
         <div className="col-auto">
-          <label className="me-2">Name</label>
+          <label className="me-2">Name <span style={{ color: '#dc3545' }}>*</span></label>
           <input
             type="text"
             name="name"
@@ -160,7 +160,7 @@ const DuesCard = ({ lastPrice, refetchData }) => {
 
         {/* ✅ Single Piece Price */}
         <div className="col-auto">
-          <label className="me-2">Single Piece Price</label>
+          <label className="me-2">Single Piece Price <span style={{ color: '#dc3545' }}>*</span></label>
           <input
             type="number"
             name="single_piece_price"
@@ -173,7 +173,7 @@ const DuesCard = ({ lastPrice, refetchData }) => {
 
         {/* ✅ Medicine Total Piece */}
         <div className="col-auto">
-          <label className="me-2">Medicine Total Piece</label>
+          <label className="me-2">Medicine Total Piece <span style={{ color: '#dc3545' }}>*</span></label>
           <input
             type="number"
             name="m_pieces"
@@ -186,7 +186,7 @@ const DuesCard = ({ lastPrice, refetchData }) => {
 
         {/* ✅ Feed Total Piece */}
         <div className="col-auto">
-          <label className="me-2">Feed Total Piece</label>
+          <label className="me-2">Feed Total Piece <span style={{ color: '#dc3545' }}>*</span></label>
           <input
             type="number"
             name="total_piece"
@@ -199,7 +199,7 @@ const DuesCard = ({ lastPrice, refetchData }) => {
 
         {/* ✅ Other Total Piece */}
         <div className="col-auto">
-          <label className="me-2">Other Total Piece</label>
+          <label className="me-2">Other Total Piece <span style={{ color: '#dc3545' }}>*</span></label>
           <input
             type="number"
             name="o_pieces"
@@ -212,13 +212,13 @@ const DuesCard = ({ lastPrice, refetchData }) => {
 
         {/* ✅ Total Piece Price (Auto-calculated) */}
         <div className="col-auto">
-          <label className="me-2">Total Piece Price</label>
+          <label className="me-2">Total Piece Price <span style={{ color: '#dc3545' }}>*</span></label>
           <div className="form-control p-1 my-2 bg-light">{calculatedTotal || 0}</div>
         </div>
 
         {/* ✅ Given Dues */}
         <div className="col-auto">
-          <label className="me-2">Given Dues</label>
+          <label className="me-2">Given Dues <span style={{ color: '#dc3545' }}>*</span></label>
           <input
             type="number"
             name="given_dues"
@@ -231,7 +231,7 @@ const DuesCard = ({ lastPrice, refetchData }) => {
 
         {/* ✅ Taken Dues */}
         <div className="col-auto">
-          <label className="me-2">Taken Dues</label>
+          <label className="me-2">Taken Dues <span style={{ color: '#dc3545' }}>*</span></label>
           <input
             type="number"
             name="taken_dues"
@@ -244,7 +244,7 @@ const DuesCard = ({ lastPrice, refetchData }) => {
 
         {/* ✅ Remains Total Price (Auto-calculated) */}
         <div className="col-auto">
-          <label className="me-2">Remains Total Price (Auto)</label>
+          <label className="me-2">Remains Total Price (Auto) <span style={{ color: '#dc3545' }}>*</span></label>
           <input
             type="number"
             name="price"
@@ -256,7 +256,7 @@ const DuesCard = ({ lastPrice, refetchData }) => {
 
         {/* ✅ Difference Display */}
         <div className="col-auto">
-          <label className="me-2">Difference</label>
+          <label className="me-2">Difference <span style={{ color: '#dc3545' }}>*</span></label>
           <div className={`form-control p-1 my-2 bg-light ${difference < 0 ? 'text-danger' : 'text-success'}`}>
             {difference}
           </div>
@@ -264,7 +264,7 @@ const DuesCard = ({ lastPrice, refetchData }) => {
 
         {/* ✅ Date */}
         <div className="col-auto">
-          <label className="me-2">Date</label>
+          <label className="me-2">Date <span style={{ color: '#dc3545' }}>*</span></label>
           <input
             type="date"
             name="date"

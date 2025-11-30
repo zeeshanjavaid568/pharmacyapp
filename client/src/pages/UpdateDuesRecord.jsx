@@ -337,7 +337,7 @@ const UpdateDuesCard = () => {
 
           {/* Medicine Total Pieces Input */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Medicine Total Pieces</label>
+            <label className="form-label fw-bold">Medicine Total Pieces <span style={{ color: '#dc3545' }}>*</span></label>
             <input
               type="number"
               name="m_pieces"
@@ -357,7 +357,7 @@ const UpdateDuesCard = () => {
 
           {/* Feed Total Pieces Input */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Feed Total Pieces</label>
+            <label className="form-label fw-bold">Feed Total Pieces <span style={{ color: '#dc3545' }}>*</span></label>
             <input
               type="number"
               name="total_piece"
@@ -377,7 +377,7 @@ const UpdateDuesCard = () => {
 
           {/* Other Total Pieces Input */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Other Total Pieces</label>
+            <label className="form-label fw-bold">Other Total Pieces <span style={{ color: '#dc3545' }}>*</span></label>
             <input
               type="number"
               name="o_pieces"
@@ -397,7 +397,7 @@ const UpdateDuesCard = () => {
 
           {/* Calculated Total Amount (Read-only) */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Total Amount (Calculated)</label>
+            <label className="form-label fw-bold">Total Amount (Calculated) <span style={{ color: '#dc3545' }}>*</span></label>
             <input
               type="number"
               className="form-control p-2 bg-light"
@@ -423,7 +423,7 @@ const UpdateDuesCard = () => {
 
           {/* Given Dues Input */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Given Dues</label>
+            <label className="form-label fw-bold">Given Dues <span style={{ color: '#dc3545' }}>*</span></label>
             <input
               type="number"
               name="given_dues"
@@ -439,7 +439,7 @@ const UpdateDuesCard = () => {
 
           {/* Taken Dues Input */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Taken Dues</label>
+            <label className="form-label fw-bold">Taken Dues <span style={{ color: '#dc3545' }}>*</span></label>
             <input
               type="number"
               name="taken_dues"

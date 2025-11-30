@@ -64,11 +64,12 @@ const DuesRecord = () => {
     });
   }, [filteredRecords]);
 
-  // ✅ Calculate running totals for dues and all three piece types
+  // ✅ Calculate running totals for dues, single piece price, and all three piece types
   const recordsWithRunningTotals = useMemo(() => {
     if (!sortedRecords.length) return [];
 
     let runningTotalDues = 0;
+    let runningTotalSinglePiecePrice = 0;
     let runningTotalMedicinePieces = 0;
     let runningTotalFeedPieces = 0;
     let runningTotalOtherPieces = 0;
@@ -76,6 +77,7 @@ const DuesRecord = () => {
     return sortedRecords.map((record) => {
       const givenDues = Number(record.given_dues) || 0;
       const takenDues = Number(record.taken_dues) || 0;
+      const singlePiecePrice = Number(record.single_piece_price) || 0;
       const medicinePieces = Number(record.m_pieces) || 0;
       const feedPieces = Number(record.total_piece) || 0;
       const otherPieces = Number(record.o_pieces) || 0;
@@ -85,8 +87,9 @@ const DuesRecord = () => {
       // taken_dues = money you received (decreases your receivable)
       const netDuesForRecord = takenDues - givenDues;
 
-      // Add to running totals for all three piece types
+      // Add to running totals
       runningTotalDues += netDuesForRecord;
+      runningTotalSinglePiecePrice += singlePiecePrice;
       runningTotalMedicinePieces += medicinePieces;
       runningTotalFeedPieces += feedPieces;
       runningTotalOtherPieces += otherPieces;
@@ -94,6 +97,7 @@ const DuesRecord = () => {
       return {
         ...record,
         runningTotal: runningTotalDues,
+        runningTotalSinglePiecePrice: runningTotalSinglePiecePrice,
         runningTotalMedicinePieces: runningTotalMedicinePieces,
         runningTotalFeedPieces: runningTotalFeedPieces,
         runningTotalOtherPieces: runningTotalOtherPieces,
@@ -130,6 +134,18 @@ const DuesRecord = () => {
     return (lastRecord?.runningTotalMedicinePieces || 0) +
       (lastRecord?.runningTotalFeedPieces || 0) +
       (lastRecord?.runningTotalOtherPieces || 0);
+  }, [selectedKhata, recordsWithRunningTotals]);
+
+  // ✅ Find last single piece price total for selected khata
+  const lastSinglePiecePriceTotal = useMemo(() => {
+    if (!selectedKhata) {
+      if (recordsWithRunningTotals.length === 0) return 0;
+      return recordsWithRunningTotals[recordsWithRunningTotals.length - 1]?.runningTotalSinglePiecePrice || 0;
+    }
+
+    const khataRecords = recordsWithRunningTotals.filter((r) => r.khata_name === selectedKhata);
+    if (khataRecords.length === 0) return 0;
+    return khataRecords[khataRecords.length - 1]?.runningTotalSinglePiecePrice || 0;
   }, [selectedKhata, recordsWithRunningTotals]);
 
   // ✅ Color coding for positive/negative values
@@ -250,6 +266,7 @@ const DuesRecord = () => {
         ...(selectedKhata ? [] : ['Khata Name']),
         'Name',
         'Single Piece Price',
+        'Total Price or Weight',
         'Medicine Pieces',
         'Medicine Total Pieces',
         'Feed Pieces',
@@ -268,6 +285,7 @@ const DuesRecord = () => {
           index + 1,
           record.name || '-',
           record.single_piece_price || '0',
+          record.runningTotalSinglePiecePrice || '0',
           record.m_pieces || '0',
           record.runningTotalMedicinePieces || '0',
           record.total_piece || '0',
@@ -292,22 +310,7 @@ const DuesRecord = () => {
         columnStyles[0] = { textColor: [90, 14, 36], fillColor: [240, 240, 240] };
         columnStyles[1] = { textColor: [90, 14, 36], fillColor: [255, 255, 255] };
         columnStyles[2] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
-        columnStyles[3] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
-        columnStyles[4] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
-        columnStyles[5] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
-        columnStyles[6] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
-        columnStyles[7] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
-        columnStyles[8] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
-        columnStyles[9] = { textColor: [220, 53, 69], fillColor: [254, 227, 236] };
-        columnStyles[10] = { textColor: [25, 135, 84], fillColor: [202, 247, 227] };
-        // Remains Total Price will be handled dynamically
-        columnStyles[12] = { textColor: [90, 14, 36], fillColor: [255, 255, 255] };
-      } else {
-        // When showing all khatas
-        columnStyles[0] = { textColor: [90, 14, 36], fillColor: [240, 240, 240] };
-        columnStyles[1] = { textColor: [220, 14, 14], fillColor: [255, 255, 255] };
-        columnStyles[2] = { textColor: [90, 14, 36], fillColor: [255, 255, 255] };
-        columnStyles[3] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
+        columnStyles[3] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] }; // Sum of Price or Weight
         columnStyles[4] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
         columnStyles[5] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
         columnStyles[6] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
@@ -318,6 +321,23 @@ const DuesRecord = () => {
         columnStyles[11] = { textColor: [25, 135, 84], fillColor: [202, 247, 227] };
         // Remains Total Price will be handled dynamically
         columnStyles[13] = { textColor: [90, 14, 36], fillColor: [255, 255, 255] };
+      } else {
+        // When showing all khatas
+        columnStyles[0] = { textColor: [90, 14, 36], fillColor: [240, 240, 240] };
+        columnStyles[1] = { textColor: [220, 14, 14], fillColor: [255, 255, 255] };
+        columnStyles[2] = { textColor: [90, 14, 36], fillColor: [255, 255, 255] };
+        columnStyles[3] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
+        columnStyles[4] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] }; // Sum of Price or Weight
+        columnStyles[5] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
+        columnStyles[6] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
+        columnStyles[7] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
+        columnStyles[8] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
+        columnStyles[9] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
+        columnStyles[10] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
+        columnStyles[11] = { textColor: [220, 53, 69], fillColor: [254, 227, 236] };
+        columnStyles[12] = { textColor: [25, 135, 84], fillColor: [202, 247, 227] };
+        // Remains Total Price will be handled dynamically
+        columnStyles[14] = { textColor: [90, 14, 36], fillColor: [255, 255, 255] };
       }
 
       // Define cell styles for PDF
@@ -339,7 +359,7 @@ const DuesRecord = () => {
           if (!record) return;
 
           // Only handle Remains Total Price column dynamically
-          const remainsTotalPriceColumn = selectedKhata ? 11 : 12;
+          const remainsTotalPriceColumn = selectedKhata ? 12 : 13;
 
           if (columnIndex === remainsTotalPriceColumn) {
             // Set dynamic color based on value
@@ -525,6 +545,10 @@ const DuesRecord = () => {
           <div className="form-control text-center fw-bold bg-light">{lastTotalPieces}</div>
         </div>
         <div className="form-group mt-2">
+          <label className="form-label fw-bold">Sum of Single Piece Price</label>
+          <div className="form-control text-center fw-bold bg-light">{lastSinglePiecePriceTotal}</div>
+        </div>
+        <div className="form-group mt-2">
           <button
             className="btn delete_btn mt-4 px-4"
             onClick={handleDownloadPDF}
@@ -557,7 +581,8 @@ const DuesRecord = () => {
                 {/* Conditionally show Khata Name column only when "All Khatas" is selected */}
                 {!selectedKhata && <th style={TableHeadingStyle}>Khata Name</th>}
                 <th style={TableHeadingStyle}>Name</th>
-                <th style={TableHeadingStyle}>Single Piece Price</th>
+                <th style={TableHeadingStyle}>Price or Weight</th>
+                <th style={TableHeadingStyle}>Total Price or Weight</th>
 
                 {/* Medicine Pieces Section */}
                 <th style={TableHeadingStyle}>Medicine Pieces</th>
@@ -592,8 +617,15 @@ const DuesRecord = () => {
                     )}
 
                     <td style={TableCellStyle}>{record.name}</td>
+
+                    {/* Single Piece Price */}
                     <td style={{ ...TableCellStyle, ...CommonStyle }}>
                       {record.single_piece_price}
+                    </td>
+
+                    {/* Sum of Price or Weight (Running Total of Single Piece Price) */}
+                    <td style={{ ...TableCellStyle, ...SumOfTotalStyle }} className="fw-bold">
+                      {record.runningTotalSinglePiecePrice}
                     </td>
 
                     {/* Medicine Pieces */}
@@ -654,7 +686,7 @@ const DuesRecord = () => {
               ) : (
                 <tr>
                   <td
-                    colSpan={selectedKhata ? "14" : "15"}
+                    colSpan={selectedKhata ? "15" : "16"}
                     className="text-center py-4"
                   >
                     No records found
