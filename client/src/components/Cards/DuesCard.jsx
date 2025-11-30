@@ -7,7 +7,9 @@ const DuesCard = ({ lastPrice, refetchData }) => {
     khata_name: '',
     name: '',
     single_piece_price: '',
-    total_piece: '',
+    m_pieces: '',        // Medicine pieces
+    total_piece: '',     // Feed pieces (keeping original name for consistency)
+    o_pieces: '',        // Other pieces
     given_dues: '',
     taken_dues: '',
     taken_dues_2: '',
@@ -19,7 +21,7 @@ const DuesCard = ({ lastPrice, refetchData }) => {
   const [errors, setErrors] = useState({});
   const [createGivenDues, { isLoading }] = useCreateGivenDuesMutation();
 
-  // ✅ Auto-update taken_dues_2 & price whenever lastPrice changes (after delete or add)
+  // ✅ Auto-update taken_dues_2 & price whenever lastPrice changes
   useEffect(() => {
     setFormData((prev) => ({
       ...prev,
@@ -28,17 +30,21 @@ const DuesCard = ({ lastPrice, refetchData }) => {
     }));
   }, [lastPrice]);
 
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // ✅ Calculate total price based on all three piece types
   const calculatedTotal = useMemo(() => {
     const price = Number(formData.single_piece_price) || 0;
-    const pieces = Number(formData.total_piece) || 0;
-    return price * pieces;
-  }, [formData.single_piece_price, formData.total_piece]);
+    const medicinePieces = Number(formData.m_pieces) || 0;
+    const feedPieces = Number(formData.total_piece) || 0;
+    const otherPieces = Number(formData.o_pieces) || 0;
+
+    const totalPieces = medicinePieces + feedPieces + otherPieces;
+    return price * totalPieces;
+  }, [formData.single_piece_price, formData.m_pieces, formData.total_piece, formData.o_pieces]);
 
   // ✅ Auto calculate difference and remains total price
   useEffect(() => {
@@ -53,7 +59,7 @@ const DuesCard = ({ lastPrice, refetchData }) => {
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.khata_name.trim()) newErrors.khata_name = 'Name is required.';
+    if (!formData.khata_name.trim()) newErrors.khata_name = 'Khata Name is required.';
     if (!formData.name.trim()) newErrors.name = 'Name is required.';
     if (!formData.date) newErrors.date = 'Date is required.';
     setErrors(newErrors);
@@ -65,15 +71,22 @@ const DuesCard = ({ lastPrice, refetchData }) => {
     if (!validate()) return;
 
     try {
-      await createGivenDues({
-        ...formData,
+      // ✅ Prepare data for submission including all three piece types
+      const submissionData = {
+        khata_name: formData.khata_name,
+        name: formData.name,
         single_piece_price: Number(formData.single_piece_price) || 0,
-        total_piece: Number(formData.total_piece) || 0,
+        m_pieces: Number(formData.m_pieces) || 0,           // Medicine pieces
+        total_piece: Number(formData.total_piece) || 0,     // Feed pieces
+        o_pieces: Number(formData.o_pieces) || 0,           // Other pieces
         given_dues: Number(formData.given_dues) || 0,
         taken_dues: Number(formData.taken_dues) || 0,
         taken_dues_2: Number(formData.taken_dues_2) || 0,
         price: Number(formData.price) || 0,
-      }).unwrap();
+        date: formData.date,
+      };
+
+      await createGivenDues(submissionData).unwrap();
 
       swal.fire({
         title: 'Success',
@@ -84,11 +97,14 @@ const DuesCard = ({ lastPrice, refetchData }) => {
         customClass: { confirmButton: 'sweetalert_btn_success' },
       });
 
+      // ✅ Reset form with all fields
       setFormData({
         khata_name: '',
         name: '',
         single_piece_price: '',
+        m_pieces: '',
         total_piece: '',
+        o_pieces: '',
         given_dues: '',
         taken_dues: '',
         taken_dues_2: lastPrice || 0,
@@ -99,6 +115,7 @@ const DuesCard = ({ lastPrice, refetchData }) => {
       setErrors({});
       refetchData(); // refresh data for updated last price
     } catch (err) {
+      console.error('Submission error:', err);
       swal.fire({
         title: 'Error!',
         text: 'Failed to add given dues. Please try again.',
@@ -113,7 +130,7 @@ const DuesCard = ({ lastPrice, refetchData }) => {
   return (
     <div className="card form_div mb-5 p-3 rounded-2 w-100">
       <form className="d-flex justify-content-between flex-wrap align-items-end" onSubmit={handleSubmit}>
-        {/* ✅ Name */}
+        {/* ✅ Khata Name */}
         <div className="col-auto">
           <label className="me-2">Khata Name</label>
           <input
@@ -126,6 +143,7 @@ const DuesCard = ({ lastPrice, refetchData }) => {
           />
           {errors.khata_name && <div className="text-danger mb-1">{errors.khata_name}</div>}
         </div>
+
         {/* ✅ Name */}
         <div className="col-auto">
           <label className="me-2">Name</label>
@@ -153,20 +171,46 @@ const DuesCard = ({ lastPrice, refetchData }) => {
           />
         </div>
 
-        {/* ✅ Total Piece */}
+        {/* ✅ Medicine Total Piece */}
         <div className="col-auto">
-          <label className="me-2">Total Piece</label>
+          <label className="me-2">Medicine Total Piece</label>
+          <input
+            type="number"
+            name="m_pieces"
+            className="form-control p-1 my-2"
+            placeholder="Enter medicine pieces"
+            value={formData.m_pieces}
+            onChange={handleChange}
+          />
+        </div>
+
+        {/* ✅ Feed Total Piece */}
+        <div className="col-auto">
+          <label className="me-2">Feed Total Piece</label>
           <input
             type="number"
             name="total_piece"
             className="form-control p-1 my-2"
-            placeholder="Enter total pieces"
+            placeholder="Enter feed pieces"
             value={formData.total_piece}
             onChange={handleChange}
           />
         </div>
 
-        {/* ✅ Total Piece Price */}
+        {/* ✅ Other Total Piece */}
+        <div className="col-auto">
+          <label className="me-2">Other Total Piece</label>
+          <input
+            type="number"
+            name="o_pieces"
+            className="form-control p-1 my-2"
+            placeholder="Enter other pieces"
+            value={formData.o_pieces}
+            onChange={handleChange}
+          />
+        </div>
+
+        {/* ✅ Total Piece Price (Auto-calculated) */}
         <div className="col-auto">
           <label className="me-2">Total Piece Price</label>
           <div className="form-control p-1 my-2 bg-light">{calculatedTotal || 0}</div>
@@ -198,7 +242,7 @@ const DuesCard = ({ lastPrice, refetchData }) => {
           />
         </div>
 
-        {/* ✅ Remains Total Price */}
+        {/* ✅ Remains Total Price (Auto-calculated) */}
         <div className="col-auto">
           <label className="me-2">Remains Total Price (Auto)</label>
           <input
@@ -208,6 +252,14 @@ const DuesCard = ({ lastPrice, refetchData }) => {
             value={formData.price}
             readOnly
           />
+        </div>
+
+        {/* ✅ Difference Display */}
+        <div className="col-auto">
+          <label className="me-2">Difference</label>
+          <div className={`form-control p-1 my-2 bg-light ${difference < 0 ? 'text-danger' : 'text-success'}`}>
+            {difference}
+          </div>
         </div>
 
         {/* ✅ Date */}
@@ -223,7 +275,7 @@ const DuesCard = ({ lastPrice, refetchData }) => {
           {errors.date && <div className="text-danger mb-1">{errors.date}</div>}
         </div>
 
-        {/* ✅ Submit */}
+        {/* ✅ Submit Button */}
         <div className="col-auto mb-2">
           <button type="submit" className="btn btn-danger my-2" disabled={isLoading}>
             {isLoading ? 'Submitting...' : 'Add Dues'}

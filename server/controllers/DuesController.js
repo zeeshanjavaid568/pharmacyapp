@@ -15,20 +15,20 @@ class Dues {
   }
 
   static async createGiveDues(data) {
-    const {  khata_name, name, single_piece_price, total_piece, given_dues, taken_dues, date } = data;
-    const query = 'INSERT INTO dues ( khata_name, name, single_piece_price, total_piece, given_dues, taken_dues, date) VALUES ( ?, ?, ?, ?, ?, ?, ?)';
-    const [result] = await db.query(query, [ khata_name, name, single_piece_price, total_piece, given_dues, taken_dues, date]);
+    const {khata_name, name, single_piece_price, m_pieces, total_piece, o_pieces, given_dues, taken_dues, date } = data;
+    const query = 'INSERT INTO dues ( khata_name, name, single_piece_price, m_pieces, total_piece, o_pieces, given_dues, taken_dues, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    const [result] = await db.query(query, [ khata_name, name, single_piece_price, m_pieces, total_piece, o_pieces, given_dues, taken_dues, date]);
     return { insertId: result.insertId, ...data }; // Return the inserted record
   }
 
   static async updateDues(id, data) {
-    const { name, single_piece_price, total_piece, given_dues, taken_dues, date } = data;
+    const { name, single_piece_price, m_pieces, total_piece, o_pieces, given_dues, taken_dues, date } = data;
     const query = `
       UPDATE dues 
-      SET name = ?, single_piece_price = ?, total_piece = ?, given_dues = ?, taken_dues = ?, date = ? 
+      SET name = ?, single_piece_price = ?, m_pieces = ?, o_pieces = ?, total_piece = ?, given_dues = ?, taken_dues = ?, date = ? 
       WHERE id = ?
     `;
-    const [result] = await db.query(query, [name, single_piece_price, total_piece, given_dues, taken_dues, date, id]);
+    const [result] = await db.query(query, [name, single_piece_price, m_pieces, total_piece, o_pieces, given_dues, taken_dues, date, id]);
     return result.affectedRows > 0; // Return true if rows were updated
   }
 

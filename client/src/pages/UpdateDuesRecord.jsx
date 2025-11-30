@@ -17,20 +17,41 @@ const UpdateDuesCard = () => {
   const [formData, setFormData] = useState({
     name: '',
     single_piece_price: '',
+    m_pieces: '',
     total_piece: '',
+    o_pieces: '',
     given_dues: '',
     taken_dues: '',
     date: '',
   });
 
-  // Calculate total amount (single_piece_price * total_piece)
+  // Calculate total amount (single_piece_price * (m_pieces + total_piece + o_pieces))
   const calculateTotalAmount = () => {
     const singlePrice = parseFloat(formData.single_piece_price) || 0;
-    const totalPieces = parseInt(formData.total_piece) || 0;
+    const medicinePieces = parseInt(formData.m_pieces) || 0;
+    const feedPieces = parseInt(formData.total_piece) || 0;
+    const otherPieces = parseInt(formData.o_pieces) || 0;
+    
+    const totalPieces = medicinePieces + feedPieces + otherPieces;
     return singlePrice * totalPieces;
   };
 
-  const totalAmount = calculateTotalAmount();
+  // Calculate individual amounts for each piece type
+  const calculateIndividualAmounts = () => {
+    const singlePrice = parseFloat(formData.single_piece_price) || 0;
+    const medicinePieces = parseInt(formData.m_pieces) || 0;
+    const feedPieces = parseInt(formData.total_piece) || 0;
+    const otherPieces = parseInt(formData.o_pieces) || 0;
+
+    return {
+      medicineAmount: singlePrice * medicinePieces,
+      feedAmount: singlePrice * feedPieces,
+      otherAmount: singlePrice * otherPieces,
+      totalAmount: singlePrice * (medicinePieces + feedPieces + otherPieces)
+    };
+  };
+
+  const { medicineAmount, feedAmount, otherAmount, totalAmount } = calculateIndividualAmounts();
 
   // Populate form when record data is loaded
   useEffect(() => {
@@ -38,7 +59,9 @@ const UpdateDuesCard = () => {
       setFormData({
         name: recordData.name || '',
         single_piece_price: recordData.single_piece_price || '',
+        m_pieces: recordData.m_pieces || '',
         total_piece: recordData.total_piece || '',
+        o_pieces: recordData.o_pieces || '',
         given_dues: recordData.given_dues || '',
         taken_dues: recordData.taken_dues || '',
         date: formatDateForInput(recordData.date) || '',
@@ -94,7 +117,9 @@ const UpdateDuesCard = () => {
     // Numeric field validation
     const numericFields = [
       'single_piece_price',
+      'm_pieces',
       'total_piece',
+      'o_pieces',
       'given_dues',
       'taken_dues'
     ];
@@ -119,17 +144,18 @@ const UpdateDuesCard = () => {
         icon: 'error',
         confirmButtonText: 'Ok',
         customClass: { confirmButton: 'sweetalert_btn_error' },
-
       });
       return;
     }
 
     try {
-      // Prepare update data with all fields
+      // Prepare update data with all fields including all three piece types
       const updateData = {
         name: formData.name.trim(),
         single_piece_price: formData.single_piece_price ? parseFloat(formData.single_piece_price) : 0,
+        m_pieces: formData.m_pieces ? parseInt(formData.m_pieces) : 0,
         total_piece: formData.total_piece ? parseInt(formData.total_piece) : 0,
+        o_pieces: formData.o_pieces ? parseInt(formData.o_pieces) : 0,
         given_dues: formData.given_dues ? parseFloat(formData.given_dues) : 0,
         taken_dues: formData.taken_dues ? parseFloat(formData.taken_dues) : 0,
         date: formData.date,
@@ -225,15 +251,30 @@ const UpdateDuesCard = () => {
                 <strong>Single Piece Price:</strong> {recordData.single_piece_price || '0'}
               </div>
               <div className="col-md-6">
-                <strong>Total Pieces:</strong> {recordData.total_piece || '0'}
+                <strong>Total Pieces:</strong> 
+                {(parseInt(recordData.m_pieces || 0) + parseInt(recordData.total_piece || 0) + parseInt(recordData.o_pieces || 0))}
               </div>
             </div>
             <div className="row mt-2">
               <div className="col-md-6">
-                <strong>Total Amount:</strong> {(parseFloat(recordData.single_piece_price || 0) * parseInt(recordData.total_piece || 0)).toFixed(2)}
+                <strong>Total Amount:</strong> 
+                {(parseFloat(recordData.single_piece_price || 0) * 
+                  (parseInt(recordData.m_pieces || 0) + parseInt(recordData.total_piece || 0) + parseInt(recordData.o_pieces || 0))
+                ).toFixed(2)}
               </div>
               <div className="col-md-6">
                 <strong>Net Amount:</strong> {(parseFloat(recordData.taken_dues || 0) - parseFloat(recordData.given_dues || 0)).toFixed(2)}
+              </div>
+            </div>
+            <div className="row mt-2">
+              <div className="col-md-4">
+                <strong>Medicine Pieces:</strong> {recordData.m_pieces || '0'}
+              </div>
+              <div className="col-md-4">
+                <strong>Feed Pieces:</strong> {recordData.total_piece || '0'}
+              </div>
+              <div className="col-md-4">
+                <strong>Other Pieces:</strong> {recordData.o_pieces || '0'}
               </div>
             </div>
             <div className="row mt-2">
@@ -294,19 +335,64 @@ const UpdateDuesCard = () => {
             />
           </div>
 
-          {/* Total Pieces Input */}
+          {/* Medicine Total Pieces Input */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Total Pieces <span style={{ color: '#dc3545' }}>*</span></label>
+            <label className="form-label fw-bold">Medicine Total Pieces</label>
+            <input
+              type="number"
+              name="m_pieces"
+              className="form-control p-2"
+              placeholder="Enter medicine pieces"
+              value={formData.m_pieces}
+              onChange={handleChange}
+              min="0"
+              disabled={isUpdating}
+            />
+            {formData.single_piece_price && formData.m_pieces && (
+              <small className="text-muted">
+                Medicine Amount: {medicineAmount.toFixed(2)} ({formData.single_piece_price} × {formData.m_pieces})
+              </small>
+            )}
+          </div>
+
+          {/* Feed Total Pieces Input */}
+          <div className="col-12 col-md-5 mb-3">
+            <label className="form-label fw-bold">Feed Total Pieces</label>
             <input
               type="number"
               name="total_piece"
               className="form-control p-2"
-              placeholder="Enter total pieces"
+              placeholder="Enter feed pieces"
               value={formData.total_piece}
               onChange={handleChange}
               min="0"
               disabled={isUpdating}
             />
+            {formData.single_piece_price && formData.total_piece && (
+              <small className="text-muted">
+                Feed Amount: {feedAmount.toFixed(2)} ({formData.single_piece_price} × {formData.total_piece})
+              </small>
+            )}
+          </div>
+
+          {/* Other Total Pieces Input */}
+          <div className="col-12 col-md-5 mb-3">
+            <label className="form-label fw-bold">Other Total Pieces</label>
+            <input
+              type="number"
+              name="o_pieces"
+              className="form-control p-2"
+              placeholder="Enter other pieces"
+              value={formData.o_pieces}
+              onChange={handleChange}
+              min="0"
+              disabled={isUpdating}
+            />
+            {formData.single_piece_price && formData.o_pieces && (
+              <small className="text-muted">
+                Other Amount: {otherAmount.toFixed(2)} ({formData.single_piece_price} × {formData.o_pieces})
+              </small>
+            )}
           </div>
 
           {/* Calculated Total Amount (Read-only) */}
@@ -321,8 +407,15 @@ const UpdateDuesCard = () => {
               style={{ fontWeight: 'bold', color: '#198754' }}
             />
             <small className="text-muted">
-              Single Piece Price × Total Pieces = {totalAmount.toFixed(2)}
+              Single Piece Price × (Medicine + Feed + Other) = {totalAmount.toFixed(2)}
             </small>
+            {formData.single_piece_price && (
+              <div className="mt-1">
+                <small>
+                  Breakdown: Medicine({medicineAmount.toFixed(2)}) + Feed({feedAmount.toFixed(2)}) + Other({otherAmount.toFixed(2)})
+                </small>
+              </div>
+            )}
           </div>
 
           {/* Empty column for layout balance */}
@@ -366,24 +459,31 @@ const UpdateDuesCard = () => {
               <div className="card-body text-center">
                 <h6 className="card-title fw-bold">Amount Summary</h6>
                 <div className="row">
-                  <div className="col-md-4">
+                  <div className="col-md-3">
                     <strong>Total Amount:</strong>
                     <div className="text-success fs-5">{totalAmount.toFixed(2)}</div>
-                    <small className="text-muted">(Price × Pieces)</small>
+                    <small className="text-muted">(Price × All Pieces)</small>
                   </div>
-                  <div className="col-md-4">
+                  <div className="col-md-3">
                     <strong>Net Dues:</strong>
                     <div className={`fs-5 ${(parseFloat(formData.taken_dues || 0) - parseFloat(formData.given_dues || 0)) >= 0 ? 'text-success' : 'text-danger'}`}>
                       {(parseFloat(formData.taken_dues || 0) - parseFloat(formData.given_dues || 0)).toFixed(2)}
                     </div>
                     <small className="text-muted">(Taken - Given)</small>
                   </div>
-                  <div className="col-md-4">
+                  <div className="col-md-3">
                     <strong>Balance:</strong>
                     <div className={`fs-5 ${(totalAmount + (parseFloat(formData.taken_dues || 0) - parseFloat(formData.given_dues || 0))) >= 0 ? 'text-success' : 'text-danger'}`}>
                       {(totalAmount + (parseFloat(formData.taken_dues || 0) - parseFloat(formData.given_dues || 0))).toFixed(2)}
                     </div>
                     <small className="text-muted">(Total + Net Dues)</small>
+                  </div>
+                  <div className="col-md-3">
+                    <strong>Total Pieces:</strong>
+                    <div className="text-primary fs-5">
+                      {(parseInt(formData.m_pieces || 0) + parseInt(formData.total_piece || 0) + parseInt(formData.o_pieces || 0))}
+                    </div>
+                    <small className="text-muted">(M + F + O)</small>
                   </div>
                 </div>
               </div>
