@@ -31,7 +31,7 @@ const UpdateDuesCard = () => {
     const medicinePieces = parseInt(formData.m_pieces) || 0;
     const feedPieces = parseInt(formData.total_piece) || 0;
     const otherPieces = parseInt(formData.o_pieces) || 0;
-    
+
     const totalPieces = medicinePieces + feedPieces + otherPieces;
     return singlePrice * totalPieces;
   };
@@ -137,16 +137,16 @@ const UpdateDuesCard = () => {
     }
 
     // Validate that at least one of given_dues or taken_dues is provided
-    if (!formData.given_dues && !formData.taken_dues) {
-      Swal.fire({
-        title: 'Error!',
-        text: 'Please provide either Given Dues or Taken Dues',
-        icon: 'error',
-        confirmButtonText: 'Ok',
-        customClass: { confirmButton: 'sweetalert_btn_error' },
-      });
-      return;
-    }
+    // if (!formData.given_dues && !formData.taken_dues) {
+    //   Swal.fire({
+    //     title: 'Error!',
+    //     text: 'Please provide either Given Dues or Taken Dues',
+    //     icon: 'error',
+    //     confirmButtonText: 'Ok',
+    //     customClass: { confirmButton: 'sweetalert_btn_error' },
+    //   });
+    //   return;
+    // }
 
     try {
       // Prepare update data with all fields including all three piece types
@@ -251,14 +251,14 @@ const UpdateDuesCard = () => {
                 <strong>Single Piece Price:</strong> {recordData.single_piece_price || '0'}
               </div>
               <div className="col-md-6">
-                <strong>Total Pieces:</strong> 
+                <strong>Total Pieces:</strong>
                 {(parseInt(recordData.m_pieces || 0) + parseInt(recordData.total_piece || 0) + parseInt(recordData.o_pieces || 0))}
               </div>
             </div>
             <div className="row mt-2">
               <div className="col-md-6">
-                <strong>Total Amount:</strong> 
-                {(parseFloat(recordData.single_piece_price || 0) * 
+                <strong>Total Amount:</strong>
+                {(parseFloat(recordData.single_piece_price || 0) *
                   (parseInt(recordData.m_pieces || 0) + parseInt(recordData.total_piece || 0) + parseInt(recordData.o_pieces || 0))
                 ).toFixed(2)}
               </div>

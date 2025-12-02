@@ -531,6 +531,15 @@ const DuesRecord = () => {
           <label className="form-label fw-bold">Search by Year (YYYY):</label>
           <input type="text" className="form-control" placeholder="e.g. 2024" value={searchYear} onChange={(e) => setSearchYear(e.target.value)} />
         </div>
+
+        <div className="form-group mt-2">
+          <label className="form-label fw-bold">Total All Pieces</label>
+          <div className="form-control text-center fw-bold bg-light" style={{ color: 'rgb(6, 7, 113)' }}>{lastTotalPieces}</div>
+        </div>
+        <div className="form-group mt-2">
+          <label className="form-label fw-bold">Total Price or Weight</label>
+          <div className="form-control text-center fw-bold bg-light" style={{ color: 'rgb(6, 7, 113)' }}>{lastSinglePiecePriceTotal}</div>
+        </div>
         <div className="form-group mt-2">
           <label className="form-label fw-bold">Remains Total Price</label>
           <div
@@ -539,14 +548,6 @@ const DuesRecord = () => {
           >
             {lastPrice}
           </div>
-        </div>
-        <div className="form-group mt-2">
-          <label className="form-label fw-bold">Total All Pieces</label>
-          <div className="form-control text-center fw-bold bg-light">{lastTotalPieces}</div>
-        </div>
-        <div className="form-group mt-2">
-          <label className="form-label fw-bold">Sum of Single Piece Price</label>
-          <div className="form-control text-center fw-bold bg-light">{lastSinglePiecePriceTotal}</div>
         </div>
         <div className="form-group mt-2">
           <button

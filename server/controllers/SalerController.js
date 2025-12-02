@@ -19,13 +19,13 @@ class SalerProducts {
   }
 
   static async update(id, data) {
-    const { product_name, product_price, stock, date } = data;
+    const { product_name, product_place, product_price, pieces_price, stock, date } = data;
     const query = `
       UPDATE saler_products 
-      SET product_name = ?, product_price = ?, stock = ?, date = ? 
+      SET product_name = ?, product_place = ?, product_price = ?,pieces_price = ?, stock = ?, date = ? 
       WHERE id = ?
     `;
-    const [result] = await db.query(query, [product_name, product_price, stock, date, id]);
+    const [result] = await db.query(query, [product_name, product_place, product_price, pieces_price, stock, date, id]);
     return result.affectedRows > 0; // Return true if rows were updated
   }
 
