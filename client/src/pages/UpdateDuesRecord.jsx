@@ -267,13 +267,13 @@ const UpdateDuesCard = () => {
               </div>
             </div>
             <div className="row mt-2">
-              <div className="col-md-4">
+              <div className="col-md-6">
                 <strong>Medicine Pieces:</strong> {recordData.m_pieces || '0'}
               </div>
-              <div className="col-md-4">
+              <div className="col-md-6">
                 <strong>Feed Pieces:</strong> {recordData.total_piece || '0'}
               </div>
-              <div className="col-md-4">
+              <div className="col-md-6 mt-2">
                 <strong>Other Pieces:</strong> {recordData.o_pieces || '0'}
               </div>
             </div>
