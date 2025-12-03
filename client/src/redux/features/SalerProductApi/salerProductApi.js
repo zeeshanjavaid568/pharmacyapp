@@ -47,6 +47,19 @@ export const SalerProdcutApi = createApi({
         method: "GET",
       }),
     }),
+    singleSalerProduct: builder.query({
+      query: (id) => ({
+        url: `saler/product/${id}`,
+        method: "GET",
+      }),
+    }),
+    updateSalerProduct: builder.mutation({
+      query: ({ id, userData }) => ({
+        url: `/saler/product/${id}`,
+        method: "PUT",
+        body: userData,
+      }),
+    }),
     deleteSalerProduct: builder.mutation({
       query: (id) => ({
         url: `/saler/product/${id}`,
@@ -62,5 +75,7 @@ export const {
   useDeleteSalerProductTotalPriceMutation,
   useCreateSalerProductMutation,
   useSalerProductQuery,
+  useSingleSalerProductQuery,
+  useUpdateSalerProductMutation,
   useDeleteSalerProductMutation
 } = SalerProdcutApi;

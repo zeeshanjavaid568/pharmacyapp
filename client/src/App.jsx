@@ -20,6 +20,7 @@ import DuesRecord from './pages/DuesRecord';
 import UpdateDuesRecord from './pages/UpdateDuesRecord';
 import TakenDuesRecord from './pages/TakenDuesRecord';
 import SalerDailyTotalPriceRecord from './pages/DailySalerProductTotalPriceRecord';
+import UpdateSalerProduct from './pages/UpdateSalerProduct';
 
 
 function App() {
@@ -71,6 +72,10 @@ function App() {
                                 </PrivateRoute>
                             }
                         />
+
+                        <Route path='/updatesalerproduct/:id' element={<PrivateRoute>
+                            <UpdateSalerProduct />
+                        </PrivateRoute>} />
 
                         <Route path="/saler-daily-total-price-record"
                             element={

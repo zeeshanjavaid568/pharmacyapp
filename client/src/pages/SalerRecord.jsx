@@ -47,10 +47,10 @@ const SalerRecord = () => {
   // ✅ Group records by Product Name and Product Place to calculate totals
   const getSummaryData = (records) => {
     const summaryMap = {};
-    
+
     records.forEach(record => {
       const key = `${record.product_name}_${record.product_place}`;
-      
+
       if (!summaryMap[key]) {
         summaryMap[key] = {
           product_name: record.product_name,
@@ -62,14 +62,14 @@ const SalerRecord = () => {
           records: [] // Store individual records for reference
         };
       }
-      
+
       summaryMap[key].total_pieces += parseInt(record.stock) || 0;
       summaryMap[key].total_product_price += parseFloat(record.product_price) || 0;
       summaryMap[key].total_pieces_price += parseFloat(record.pieces_price) || 0;
       summaryMap[key].records_count += 1;
       summaryMap[key].records.push(record);
     });
-    
+
     return Object.values(summaryMap);
   };
 
@@ -323,7 +323,7 @@ const SalerRecord = () => {
                   </div>
                 </div>
               </div>
-              
+
               {/* 📊 View Mode Toggle */}
               <div className="row mb-3">
                 <div className="col-12">
@@ -344,8 +344,8 @@ const SalerRecord = () => {
                     </button>
                   </div>
                   <small className="text-muted ms-3">
-                    {viewMode === 'summary' 
-                      ? `Showing ${summaryData.length} unique product-location combinations` 
+                    {viewMode === 'summary'
+                      ? `Showing ${summaryData.length} unique product-location combinations`
                       : `Showing ${filteredRecords.length} individual records`}
                   </small>
                 </div>
@@ -394,7 +394,7 @@ const SalerRecord = () => {
                   </button>
                 )}
               </div>
-     
+
             </div>
             <div className="form-group mt-2 me-3">
               <label htmlFor="dateSearch">Search by Date:</label>
@@ -429,9 +429,9 @@ const SalerRecord = () => {
                   {searchProductName && (
                     <span className="badge bg-primary ms-2">
                       Product Name: {searchProductName}
-                      <button 
-                        className="btn-close btn-close-white ms-1" 
-                        style={{fontSize: '0.5rem'}}
+                      <button
+                        className="btn-close btn-close-white ms-1"
+                        style={{ fontSize: '0.5rem' }}
                         onClick={() => setSearchProductName('')}
                         aria-label="Remove"
                       ></button>
@@ -440,9 +440,9 @@ const SalerRecord = () => {
                   {searchProductPlace && (
                     <span className="badge bg-success ms-2">
                       Product Place: {searchProductPlace}
-                      <button 
-                        className="btn-close btn-close-white ms-1" 
-                        style={{fontSize: '0.5rem'}}
+                      <button
+                        className="btn-close btn-close-white ms-1"
+                        style={{ fontSize: '0.5rem' }}
                         onClick={() => setSearchProductPlace('')}
                         aria-label="Remove"
                       ></button>
@@ -451,9 +451,9 @@ const SalerRecord = () => {
                   {searchDate && (
                     <span className="badge bg-warning ms-2">
                       Date: {searchDate}
-                      <button 
-                        className="btn-close btn-close-white ms-1" 
-                        style={{fontSize: '0.5rem'}}
+                      <button
+                        className="btn-close btn-close-white ms-1"
+                        style={{ fontSize: '0.5rem' }}
                         onClick={() => setSearchDate('')}
                         aria-label="Remove"
                       ></button>
@@ -511,12 +511,12 @@ const SalerRecord = () => {
                       <td>{index + 1}</td>
                       <td>{record.product_name}</td>
                       <td>{record.product_place}</td>
-                      <td>Rs: {parseFloat(record.product_price).toFixed(2)}</td>
-                      <td>Rs: {parseFloat(record.pieces_price).toFixed(2)}</td>
+                      <td>Rs: {parseFloat(record.product_price).toFixed()}</td>
+                      <td>Rs: {parseFloat(record.pieces_price).toFixed()}</td>
                       <td>{record.stock}</td>
                       <td>{formatDate(record.date)}</td>
                       <td>
-                        <Link to={'#'} className="update_btn me-3">
+                        <Link to={`/updatesalerproduct/${record.id}`} className="update_btn me-3">
                           Update
                         </Link>
                         <button
@@ -561,12 +561,12 @@ const SalerRecord = () => {
                       <td colSpan="3" className="text-end"><strong style={fontColorStyle}>Total Rs:</strong></td>
                       <td>
                         <strong>
-                          Rs: {filteredRecords.reduce((sum, record) => sum + (parseFloat(record.product_price) || 0), 0).toFixed(2)}
+                          Rs: {filteredRecords.reduce((sum, record) => sum + (parseFloat(record.product_price) || 0), 0).toFixed()}
                         </strong>
                       </td>
                       <td>
                         <strong>
-                          Rs: {filteredRecords.reduce((sum, record) => sum + (parseFloat(record.pieces_price) || 0), 0).toFixed(2)}
+                          Rs: {filteredRecords.reduce((sum, record) => sum + (parseFloat(record.pieces_price) || 0), 0).toFixed()}
                         </strong>
                       </td>
                       <td>
@@ -605,7 +605,7 @@ const SalerRecord = () => {
                     >
                       Product Place{<SortIndicator columnKey="product_place" />}
                     </th>
-                    <th 
+                    <th
                       style={{ backgroundColor: '#f44336', color: 'white', cursor: 'pointer' }}
                       onClick={() => handleSort('total_product_price')}
                     >
@@ -641,7 +641,7 @@ const SalerRecord = () => {
                       <td>{summary.records_count}</td>
                       <td>
                         <button
-                          className="btn btn-sm btn-outline-primary me-2"
+                          className="btn btn-sm btn-outline-danger me-2"
                           onClick={() => {
                             // Show details for this product-place combination
                             Swal.fire({
@@ -655,9 +655,9 @@ const SalerRecord = () => {
                                   <hr>
                                   <h6>Individual Records:</h6>
                                   <ul>
-                                    ${summary.records.map(r => 
-                                      `<li>${formatDate(r.date)}: ${r.stock} pieces (Rs: ${parseFloat(r.product_price).toFixed(2)})</li>`
-                                    ).join('')}
+                                    ${summary.records.map(r =>
+                                `<li>${formatDate(r.date)}: ${r.stock} pieces (Rs: ${parseFloat(r.product_price).toFixed(2)})</li>`
+                              ).join('')}
                                   </ul>
                                 </div>
                               `,
@@ -717,14 +717,14 @@ const SalerRecord = () => {
           )}
         </>
       )}
-              <div className='ms-3 mt-2'>
-               {uniqueProductPlaces.length > 0 && (
-                <small className="text-muted">
-                  Available places: {uniqueProductPlaces.slice(0, 3).join(', ')}
-                  {uniqueProductPlaces.length > 3 && ` and ${uniqueProductPlaces.length - 3} more...`}
-                </small>
-              )} 
-              </div>
+      <div className='ms-3 mt-2'>
+        {uniqueProductPlaces.length > 0 && (
+          <small className="text-muted">
+            Available places: {uniqueProductPlaces.slice(0, 3).join(', ')}
+            {uniqueProductPlaces.length > 3 && ` and ${uniqueProductPlaces.length - 3} more...`}
+          </small>
+        )}
+      </div>
 
     </>
   );
