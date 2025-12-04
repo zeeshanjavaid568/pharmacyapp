@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Swal from 'sweetalert2/dist/sweetalert2';
 import { useSalerProductQuery, useDeleteSalerProductMutation } from '../redux/features/SalerProductApi/salerProductApi';
 import { Link } from 'react-router-dom';
@@ -12,18 +12,26 @@ const SalerRecord = () => {
   const [searchProductPlace, setSearchProductPlace] = useState('');
   const [searchDate, setSearchDate] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'ascending' });
-  const [viewMode, setViewMode] = useState('detailed'); // 'detailed' or 'summary'
+  const [viewMode, setViewMode] = useState('detailed'); // 'detailed', 'summaryByProductAndPlace', or 'summaryByProduct'
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [scrollDirection, setScrollDirection] = useState('down'); // 'up' or 'down'
+  const [isAutoScrolling, setIsAutoScrolling] = useState(false);
+  const [scrollSpeed, setScrollSpeed] = useState(1); // 1: slow, 2: medium, 3: fast
+  const [isStickySearch, setIsStickySearch] = useState(false);
+
+  const tableRef = useRef(null);
+  const scrollIntervalRef = useRef(null);
+  const searchContainerRef = useRef(null);
+  const tableContainerRef = useRef(null);
 
   // ✅ Group data by year and sort each year's records by date (ascending)
   const groupDataByYear = (data) => {
-    // First sort all data by date in ascending order
     const sortedData = [...data].sort((a, b) => {
       const dateA = new Date(a.date);
       const dateB = new Date(b.date);
-      return dateA - dateB; // Ascending order
+      return dateA - dateB;
     });
 
-    // Then group by year
     return sortedData.reduce((acc, record) => {
       const year = new Date(record.date).getFullYear();
       if (!acc[year]) acc[year] = [];
@@ -32,20 +40,20 @@ const SalerRecord = () => {
     }, {});
   };
 
-  // ✅ Get sorted years in descending order (newest first)
+  // ✅ Get sorted years in descending order
   const getSortedYears = (yearlyData) => {
-    return Object.keys(yearlyData).sort((a, b) => b - a); // Descending order (newest year first)
+    return Object.keys(yearlyData).sort((a, b) => b - a);
   };
 
-  // ✅ Format date (YYYY-MM-DD) for display
+  // ✅ Format date
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
     return new Intl.DateTimeFormat('en-CA', options).format(new Date(dateString));
   };
 
-  // ✅ Group records by Product Name and Product Place to calculate totals
-  const getSummaryData = (records) => {
+  // ✅ Group records by Product Name and Product Place
+  const getSummaryByProductAndPlace = (records) => {
     const summaryMap = {};
 
     records.forEach(record => {
@@ -59,7 +67,7 @@ const SalerRecord = () => {
           total_product_price: 0,
           total_pieces_price: 0,
           records_count: 0,
-          records: [] // Store individual records for reference
+          records: []
         };
       }
 
@@ -73,12 +81,46 @@ const SalerRecord = () => {
     return Object.values(summaryMap);
   };
 
+  // ✅ Group records by Product Name only (across all places)
+  const getSummaryByProduct = (records) => {
+    const summaryMap = {};
+
+    records.forEach(record => {
+      const productName = record.product_name;
+
+      if (!summaryMap[productName]) {
+        summaryMap[productName] = {
+          product_name: productName,
+          total_pieces: 0,
+          total_product_price: 0,
+          total_pieces_price: 0,
+          records_count: 0,
+          unique_places: new Set(),
+          records: []
+        };
+      }
+
+      summaryMap[productName].total_pieces += parseInt(record.stock) || 0;
+      summaryMap[productName].total_product_price += parseFloat(record.product_price) || 0;
+      summaryMap[productName].total_pieces_price += parseFloat(record.pieces_price) || 0;
+      summaryMap[productName].records_count += 1;
+      summaryMap[productName].unique_places.add(record.product_place);
+      summaryMap[productName].records.push(record);
+    });
+
+    // Convert Set to Array for display
+    return Object.values(summaryMap).map(summary => ({
+      ...summary,
+      unique_places_count: summary.unique_places.size,
+      unique_places_list: Array.from(summary.unique_places)
+    }));
+  };
+
   // ✅ Handle Delete
   const handleDelete = async (id) => {
     try {
       await deleteSalerProduct(id).unwrap();
 
-      // ✅ Update localStorage "profitEntries"
       const storedRecords = JSON.parse(localStorage.getItem('profitEntries')) || [];
       const updatedRecords = storedRecords.filter(record => record.id !== id);
       localStorage.setItem('profitEntries', JSON.stringify(updatedRecords));
@@ -114,7 +156,7 @@ const SalerRecord = () => {
     setSortConfig({ key, direction });
   };
 
-  // ✅ Sort records based on sortConfig
+  // ✅ Sort detailed records
   const sortRecords = (records) => {
     if (!records || records.length === 0) return [];
 
@@ -122,35 +164,23 @@ const SalerRecord = () => {
       if (sortConfig.key === 'date') {
         const dateA = new Date(a.date);
         const dateB = new Date(b.date);
-        if (sortConfig.direction === 'ascending') {
-          return dateA - dateB;
-        } else {
-          return dateB - dateA;
-        }
+        return sortConfig.direction === 'ascending' ? dateA - dateB : dateB - dateA;
       } else if (sortConfig.key === 'product_name') {
         const nameA = a.product_name?.toLowerCase() || '';
         const nameB = b.product_name?.toLowerCase() || '';
-        if (sortConfig.direction === 'ascending') {
-          return nameA.localeCompare(nameB);
-        } else {
-          return nameB.localeCompare(nameA);
-        }
+        return sortConfig.direction === 'ascending'
+          ? nameA.localeCompare(nameB)
+          : nameB.localeCompare(nameA);
       } else if (sortConfig.key === 'product_price') {
         const priceA = parseFloat(a.product_price) || 0;
         const priceB = parseFloat(b.product_price) || 0;
-        if (sortConfig.direction === 'ascending') {
-          return priceA - priceB;
-        } else {
-          return priceB - priceA;
-        }
+        return sortConfig.direction === 'ascending' ? priceA - priceB : priceB - priceA;
       } else if (sortConfig.key === 'product_place') {
         const placeA = a.product_place?.toLowerCase() || '';
         const placeB = b.product_place?.toLowerCase() || '';
-        if (sortConfig.direction === 'ascending') {
-          return placeA.localeCompare(placeB);
-        } else {
-          return placeB.localeCompare(placeA);
-        }
+        return sortConfig.direction === 'ascending'
+          ? placeA.localeCompare(placeB)
+          : placeB.localeCompare(placeA);
       }
       return 0;
     });
@@ -158,45 +188,170 @@ const SalerRecord = () => {
     return sortedRecords;
   };
 
-  // ✅ Sort summary data
-  const sortSummaryData = (summaryData) => {
+  // ✅ Sort summary data by product and place
+  const sortSummaryByProductAndPlace = (summaryData) => {
     if (!summaryData || summaryData.length === 0) return [];
 
     const sortedSummary = [...summaryData].sort((a, b) => {
       if (sortConfig.key === 'product_name') {
         const nameA = a.product_name?.toLowerCase() || '';
         const nameB = b.product_name?.toLowerCase() || '';
-        if (sortConfig.direction === 'ascending') {
-          return nameA.localeCompare(nameB);
-        } else {
-          return nameB.localeCompare(nameA);
-        }
+        return sortConfig.direction === 'ascending'
+          ? nameA.localeCompare(nameB)
+          : nameB.localeCompare(nameA);
       } else if (sortConfig.key === 'product_place') {
         const placeA = a.product_place?.toLowerCase() || '';
         const placeB = b.product_place?.toLowerCase() || '';
-        if (sortConfig.direction === 'ascending') {
-          return placeA.localeCompare(placeB);
-        } else {
-          return placeB.localeCompare(placeA);
-        }
+        return sortConfig.direction === 'ascending'
+          ? placeA.localeCompare(placeB)
+          : placeB.localeCompare(placeA);
       } else if (sortConfig.key === 'total_pieces') {
-        if (sortConfig.direction === 'ascending') {
-          return a.total_pieces - b.total_pieces;
-        } else {
-          return b.total_pieces - a.total_pieces;
-        }
+        return sortConfig.direction === 'ascending'
+          ? a.total_pieces - b.total_pieces
+          : b.total_pieces - a.total_pieces;
       } else if (sortConfig.key === 'total_product_price') {
-        if (sortConfig.direction === 'ascending') {
-          return a.total_product_price - b.total_product_price;
-        } else {
-          return b.total_product_price - a.total_product_price;
-        }
+        return sortConfig.direction === 'ascending'
+          ? a.total_product_price - b.total_product_price
+          : b.total_product_price - a.total_product_price;
       }
       return 0;
     });
 
     return sortedSummary;
   };
+
+  // ✅ Sort summary data by product only
+  const sortSummaryByProduct = (summaryData) => {
+    if (!summaryData || summaryData.length === 0) return [];
+
+    const sortedSummary = [...summaryData].sort((a, b) => {
+      if (sortConfig.key === 'product_name') {
+        const nameA = a.product_name?.toLowerCase() || '';
+        const nameB = b.product_name?.toLowerCase() || '';
+        return sortConfig.direction === 'ascending'
+          ? nameA.localeCompare(nameB)
+          : nameB.localeCompare(nameA);
+      } else if (sortConfig.key === 'total_pieces') {
+        return sortConfig.direction === 'ascending'
+          ? a.total_pieces - b.total_pieces
+          : b.total_pieces - a.total_pieces;
+      } else if (sortConfig.key === 'total_product_price') {
+        return sortConfig.direction === 'ascending'
+          ? a.total_product_price - b.total_product_price
+          : b.total_product_price - a.total_product_price;
+      } else if (sortConfig.key === 'unique_places_count') {
+        return sortConfig.direction === 'ascending'
+          ? a.unique_places_count - b.unique_places_count
+          : b.unique_places_count - a.unique_places_count;
+      }
+      return 0;
+    });
+
+    return sortedSummary;
+  };
+
+  // ✅ Auto Scroll Functions
+  const startAutoScroll = () => {
+    if (!tableContainerRef.current || isAutoScrolling) return;
+
+    setIsAutoScrolling(true);
+    const container = tableContainerRef.current;
+    const scrollStep = scrollDirection === 'down' ? scrollSpeed * 5 : -scrollSpeed * 5;
+
+    scrollIntervalRef.current = setInterval(() => {
+      if (scrollDirection === 'down') {
+        if (container.scrollTop >= container.scrollHeight - container.clientHeight - 10) {
+          // Reached bottom, change direction to up
+          setScrollDirection('up');
+          clearInterval(scrollIntervalRef.current);
+          startAutoScroll();
+          return;
+        }
+      } else {
+        if (container.scrollTop <= 10) {
+          // Reached top, change direction to down
+          setScrollDirection('down');
+          clearInterval(scrollIntervalRef.current);
+          startAutoScroll();
+          return;
+        }
+      }
+
+      container.scrollTop += scrollStep;
+    }, 50); // Adjust interval for smoothness
+  };
+
+  const stopAutoScroll = () => {
+    if (scrollIntervalRef.current) {
+      clearInterval(scrollIntervalRef.current);
+      scrollIntervalRef.current = null;
+    }
+    setIsAutoScrolling(false);
+  };
+
+  const toggleAutoScroll = () => {
+    if (isAutoScrolling) {
+      stopAutoScroll();
+    } else {
+      startAutoScroll();
+    }
+  };
+
+  const scrollToTop = () => {
+    if (tableContainerRef.current) {
+      tableContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      setScrollDirection('down');
+      if (isAutoScrolling) {
+        stopAutoScroll();
+        startAutoScroll();
+      }
+    }
+  };
+
+  const scrollToBottom = () => {
+    if (tableContainerRef.current) {
+      tableContainerRef.current.scrollTo({
+        top: tableContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+      setScrollDirection('up');
+      if (isAutoScrolling) {
+        stopAutoScroll();
+        startAutoScroll();
+      }
+    }
+  };
+
+  // Handle scroll to show/hide scroll button
+  const handleScroll = () => {
+    if (tableContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = tableContainerRef.current;
+      setShowScrollButton(scrollHeight > clientHeight + 100);
+
+      // Detect if we're at top or bottom
+      if (scrollTop <= 10) {
+        setScrollDirection('down');
+      } else if (scrollTop >= scrollHeight - clientHeight - 10) {
+        setScrollDirection('up');
+      }
+    }
+  };
+
+  // Handle search container sticky
+  const handleTableScroll = () => {
+    if (tableContainerRef.current) {
+      setIsStickySearch(tableContainerRef.current.scrollTop > 50);
+    }
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+      }
+    };
+  }, []);
 
   // Memoize computed values
   const yearlyData = useMemo(() => data ? groupDataByYear(data) : {}, [data]);
@@ -216,13 +371,18 @@ const SalerRecord = () => {
     return sortRecords(filtered);
   }, [records, searchProductName, searchProductPlace, searchDate, sortConfig]);
 
-  // ✅ Calculate summary data from filtered records
-  const summaryData = useMemo(() => {
-    const summary = getSummaryData(filteredRecords);
-    return sortSummaryData(summary);
+  // ✅ Calculate summary data based on view mode
+  const summaryByProductAndPlace = useMemo(() => {
+    const summary = getSummaryByProductAndPlace(filteredRecords);
+    return sortSummaryByProductAndPlace(summary);
   }, [filteredRecords, sortConfig]);
 
-  // ✅ Get unique product places for dropdown suggestions
+  const summaryByProduct = useMemo(() => {
+    const summary = getSummaryByProduct(filteredRecords);
+    return sortSummaryByProduct(summary);
+  }, [filteredRecords, sortConfig]);
+
+  // ✅ Get unique product places for dropdown
   const uniqueProductPlaces = useMemo(() => {
     const places = new Set();
     records.forEach(record => {
@@ -233,9 +393,16 @@ const SalerRecord = () => {
     return Array.from(places).sort();
   }, [records]);
 
-  // ✅ Show loading/error
-  if (isLoading) return <p>Loading...</p>;
-  if (isError) return <p>Error loading data.</p>;
+  // ✅ Get unique product names for dropdown
+  const uniqueProductNames = useMemo(() => {
+    const names = new Set();
+    records.forEach(record => {
+      if (record.product_name) {
+        names.add(record.product_name);
+      }
+    });
+    return Array.from(names).sort();
+  }, [records]);
 
   // ✅ Sort indicator component
   const SortIndicator = ({ columnKey }) => {
@@ -243,7 +410,10 @@ const SalerRecord = () => {
     return sortConfig.direction === 'ascending' ? ' ↑' : ' ↓';
   };
 
-  const fontColorStyle = { color: 'rgb(244, 67, 54)' }
+  const fontColorStyle = { color: 'rgb(244, 67, 54)' };
+
+  if (isLoading) return <p>Loading...</p>;
+  if (isError) return <p>Error loading data.</p>;
 
   return (
     <>
@@ -337,24 +507,43 @@ const SalerRecord = () => {
                     </button>
                     <button
                       type="button"
-                      className={`btn ${viewMode === 'summary' ? 'btn-danger' : 'btn-outline-danger'}`}
-                      onClick={() => setViewMode('summary')}
+                      className={`btn ${viewMode === 'summaryByProductAndPlace' ? 'btn-danger' : 'btn-outline-danger'}`}
+                      onClick={() => setViewMode('summaryByProductAndPlace')}
                     >
-                      Summary View (Grouped)
+                      By Product & Place
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn ${viewMode === 'summaryByProduct' ? 'btn-danger' : 'btn-outline-danger'}`}
+                      onClick={() => setViewMode('summaryByProduct')}
+                    >
+                      By Product Only
                     </button>
                   </div>
                   <small className="text-muted ms-3">
-                    {viewMode === 'summary'
-                      ? `Showing ${summaryData.length} unique product-location combinations`
-                      : `Showing ${filteredRecords.length} individual records`}
+                    {viewMode === 'detailed' && `Showing ${filteredRecords.length} individual records`}
+                    {viewMode === 'summaryByProductAndPlace' && `Showing ${summaryByProductAndPlace.length} unique product-location combinations`}
+                    {viewMode === 'summaryByProduct' && `Showing ${summaryByProduct.length} unique products across different places`}
                   </small>
                 </div>
               </div>
             </div>
           )}
 
-          {/* 🔍 Search Filters */}
-          <div className="search-container px-3 d-flex justify-content-start align-items-center flex-wrap">
+          {/* 🔍 Search Filters - Sticky when scrolling */}
+          <div
+            ref={searchContainerRef}
+            className={`search-container px-3 d-flex justify-content-start align-items-center flex-wrap mb-3 ${isStickySearch ? 'sticky-search' : ''}`}
+            style={{
+              position: isStickySearch ? 'sticky' : 'relative',
+              top: isStickySearch ? '0' : 'auto',
+              zIndex: 1000,
+              backgroundColor: isStickySearch ? 'white' : 'transparent',
+              padding: isStickySearch ? '10px' : '0',
+              boxShadow: isStickySearch ? '0 2px 10px rgba(0,0,0,0.1)' : 'none',
+              transition: 'all 0.3s ease'
+            }}
+          >
             <div className="form-group mt-2 me-3">
               <label htmlFor="productSearch">Search by Product Name:</label>
               <input
@@ -364,7 +553,13 @@ const SalerRecord = () => {
                 placeholder="Enter product name"
                 value={searchProductName}
                 onChange={(e) => setSearchProductName(e.target.value)}
+                list="nameSuggestions"
               />
+              <datalist id="nameSuggestions">
+                {uniqueProductNames.map((name, index) => (
+                  <option key={index} value={name} />
+                ))}
+              </datalist>
             </div>
             <div className="form-group mt-2 me-3">
               <label htmlFor="placeSearch">Search by Product Place:</label>
@@ -394,7 +589,6 @@ const SalerRecord = () => {
                   </button>
                 )}
               </div>
-
             </div>
             <div className="form-group mt-2 me-3">
               <label htmlFor="dateSearch">Search by Date:</label>
@@ -462,17 +656,35 @@ const SalerRecord = () => {
                 </div>
                 <div>
                   <span className="badge bg-info">
-                    Showing {viewMode === 'summary' ? summaryData.length : filteredRecords.length} records
+                    Showing {
+                      viewMode === 'detailed' ? filteredRecords.length :
+                        viewMode === 'summaryByProductAndPlace' ? summaryByProductAndPlace.length :
+                          summaryByProduct.length
+                    } items
                   </span>
                 </div>
               </div>
             </div>
           )}
 
-          {/* 🧾 Table - Detailed View */}
-          {viewMode === 'detailed' && (
-            <div className='table-container p-3 mt-3 ms-3'>
-              <table className='table table-bordered table-hover form_div table-container thead th' style={{ borderRadius: '10px' }}>
+          {/* 🧾 Table Container with Scroll Controls */}
+          <div
+            className='table-container p-3 mt-3 ms-3 position-relative'
+            ref={tableContainerRef}
+            onScroll={() => {
+              handleScroll();
+              handleTableScroll();
+            }}
+            style={{
+              maxHeight: '600px',
+              overflowY: 'auto',
+              borderRadius: '10px',
+              position: 'relative'
+            }}
+          >
+            {/* 🧾 Table - Detailed View */}
+            {viewMode === 'detailed' && (
+              <table className='table table-bordered table-hover form_div' style={{ borderRadius: '10px' }}>
                 <thead style={{ position: 'sticky', top: 0, zIndex: 1000 }}>
                   <tr>
                     <th style={{ backgroundColor: '#f44336', color: 'white' }}>#</th>
@@ -579,153 +791,428 @@ const SalerRecord = () => {
                   </tfoot>
                 )}
               </table>
-            </div>
-          )}
+            )}
 
-          {/* 📊 Summary View - Grouped by Product and Place */}
-          {viewMode === 'summary' && (
-            <div className='table-container p-3 mt-3 ms-3'>
-              <div className="alert alert-info mb-3">
-                <i className="bi bi-info-circle me-2"></i>
-                This view groups records by Product Name and Product Place to show total pieces and prices for each combination.
-              </div>
-              <table className='table table-bordered table-hover form_div table-container thead th' style={{ borderRadius: '10px' }}>
-                <thead style={{ position: 'sticky', top: 0, zIndex: 1000 }}>
-                  <tr>
-                    <th style={{ backgroundColor: '#f44336', color: 'white' }}>#</th>
-                    <th
-                      style={{ backgroundColor: '#f44336', color: 'white', cursor: 'pointer' }}
-                      onClick={() => handleSort('product_name')}
-                    >
-                      Product Name{<SortIndicator columnKey="product_name" />}
-                    </th>
-                    <th
-                      style={{ backgroundColor: '#f44336', color: 'white', cursor: 'pointer' }}
-                      onClick={() => handleSort('product_place')}
-                    >
-                      Product Place{<SortIndicator columnKey="product_place" />}
-                    </th>
-                    <th
-                      style={{ backgroundColor: '#f44336', color: 'white', cursor: 'pointer' }}
-                      onClick={() => handleSort('total_product_price')}
-                    >
-                      Total Product Value{<SortIndicator columnKey="total_product_price" />}
-                    </th>
-                    <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Pieces Price</th>
-                    <th
-                      style={{ backgroundColor: '#f44336', color: 'white', cursor: 'pointer' }}
-                      onClick={() => handleSort('total_pieces')}
-                    >
-                      Total Pieces{<SortIndicator columnKey="total_pieces" />}
-                    </th>
-                    <th style={{ backgroundColor: '#f44336', color: 'white' }}>Records Count</th>
-                    <th style={{ backgroundColor: '#f44336', color: 'white' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {summaryData.map((summary, index) => (
-                    <tr key={`${summary.product_name}_${summary.product_place}`}>
-                      <td>{index + 1}</td>
-                      <td>{summary.product_name}</td>
-                      <td>{summary.product_place}</td>
-                      <td>Rs: {summary.total_product_price.toFixed(2)}</td>
-                      <td>Rs: {summary.total_pieces_price.toFixed(2)}</td>
-                      <td>
-                        <strong>{summary.total_pieces}</strong>
-                        {summary.records_count > 1 && (
-                          <small className="text-muted ms-2">
-                            ({summary.records_count} records)
-                          </small>
-                        )}
-                      </td>
-                      <td>{summary.records_count}</td>
-                      <td>
-                        <button
-                          className="btn btn-sm btn-outline-danger me-2"
-                          onClick={() => {
-                            // Show details for this product-place combination
-                            Swal.fire({
-                              title: `${summary.product_name} - ${summary.product_place}`,
-                              html: `
-                                <div style="text-align: left;">
-                                  <p><strong>Total Pieces:</strong> ${summary.total_pieces}</p>
-                                  <p><strong>Total Product Value:</strong> Rs: ${summary.total_product_price.toFixed(2)}</p>
-                                  <p><strong>Total Pieces Price:</strong> Rs: ${summary.total_pieces_price.toFixed(2)}</p>
-                                  <p><strong>Number of Records:</strong> ${summary.records_count}</p>
-                                  <hr>
-                                  <h6>Individual Records:</h6>
-                                  <ul>
-                                    ${summary.records.map(r =>
-                                `<li>${formatDate(r.date)}: ${r.stock} pieces (Rs: ${parseFloat(r.product_price).toFixed(2)})</li>`
-                              ).join('')}
-                                  </ul>
-                                </div>
-                              `,
-                              icon: 'info',
-                              confirmButtonText: 'Close',
-                              width: '600px'
-                            });
-                          }}
-                        >
-                          📊 Details
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {summaryData.length === 0 && (
+            {/* 📊 Summary View - Grouped by Product and Place */}
+            {viewMode === 'summaryByProductAndPlace' && (
+              <>
+                <div className="alert alert-info mb-3">
+                  <i className="bi bi-info-circle me-2"></i>
+                  This view groups records by Product Name and Product Place to show totals for each combination.
+                </div>
+                <table className='table table-bordered table-hover form_div' style={{ borderRadius: '10px' }}>
+                  <thead style={{ position: 'sticky', top: 0, zIndex: 1000 }}>
                     <tr>
-                      <td colSpan="8" className="text-center py-4">
-                        <div className="alert alert-warning mb-0">
-                          No summary data found
-                          {(searchProductName || searchProductPlace || searchDate) && " for the current filters"}
-                          {!searchProductName && !searchProductPlace && !searchDate && " for the selected year"}
-                        </div>
-                      </td>
+                      <th style={{ backgroundColor: '#f44336', color: 'white' }}>#</th>
+                      <th
+                        style={{ backgroundColor: '#f44336', color: 'white', cursor: 'pointer' }}
+                        onClick={() => handleSort('product_name')}
+                      >
+                        Product Name{<SortIndicator columnKey="product_name" />}
+                      </th>
+                      <th
+                        style={{ backgroundColor: '#f44336', color: 'white', cursor: 'pointer' }}
+                        onClick={() => handleSort('product_place')}
+                      >
+                        Product Place{<SortIndicator columnKey="product_place" />}
+                      </th>
+                      <th
+                        style={{ backgroundColor: '#f44336', color: 'white', cursor: 'pointer' }}
+                        onClick={() => handleSort('total_product_price')}
+                      >
+                        Total Product Value{<SortIndicator columnKey="total_product_price" />}
+                      </th>
+                      <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Pieces Price</th>
+                      <th
+                        style={{ backgroundColor: '#f44336', color: 'white', cursor: 'pointer' }}
+                        onClick={() => handleSort('total_pieces')}
+                      >
+                        Total Pieces{<SortIndicator columnKey="total_pieces" />}
+                      </th>
+                      <th style={{ backgroundColor: '#f44336', color: 'white' }}>Records Count</th>
+                      <th style={{ backgroundColor: '#f44336', color: 'white' }}>Actions</th>
                     </tr>
+                  </thead>
+                  <tbody>
+                    {summaryByProductAndPlace.map((summary, index) => (
+                      <tr key={`${summary.product_name}_${summary.product_place}`}>
+                        <td>{index + 1}</td>
+                        <td>{summary.product_name}</td>
+                        <td>{summary.product_place}</td>
+                        <td>Rs: {summary.total_product_price.toFixed(2)}</td>
+                        <td>Rs: {summary.total_pieces_price.toFixed(2)}</td>
+                        <td>
+                          <strong>{summary.total_pieces}</strong>
+                          {summary.records_count > 1 && (
+                            <small className="text-muted ms-2">
+                              ({summary.records_count} records)
+                            </small>
+                          )}
+                        </td>
+                        <td>{summary.records_count}</td>
+                        <td>
+                          <button
+                            className="btn btn-sm btn-outline-danger me-2"
+                            onClick={() => {
+                              Swal.fire({
+                                title: `${summary.product_name} - ${summary.product_place}`,
+                                html: `
+                                  <div style="text-align: left;">
+                                    <p><strong>Total Pieces:</strong> ${summary.total_pieces}</p>
+                                    <p><strong>Total Product Value:</strong> Rs: ${summary.total_product_price.toFixed(2)}</p>
+                                    <p><strong>Total Pieces Price:</strong> Rs: ${summary.total_pieces_price.toFixed(2)}</p>
+                                    <p><strong>Number of Records:</strong> ${summary.records_count}</p>
+                                    <hr>
+                                    <h6>Individual Records:</h6>
+                                    <ul>
+                                      ${summary.records.map(r =>
+                                  `<li>${formatDate(r.date)}: ${r.stock} pieces (Rs: ${parseFloat(r.product_price).toFixed(2)})</li>`
+                                ).join('')}
+                                    </ul>
+                                  </div>
+                                `,
+                                icon: 'info',
+                                confirmButtonText: 'Close',
+                                width: '600px'
+                              });
+                            }}
+                          >
+                            📊 Details
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {summaryByProductAndPlace.length === 0 && (
+                      <tr>
+                        <td colSpan="8" className="text-center py-4">
+                          <div className="alert alert-warning mb-0">
+                            No summary data found
+                            {(searchProductName || searchProductPlace || searchDate) && " for the current filters"}
+                            {!searchProductName && !searchProductPlace && !searchDate && " for the selected year"}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                  {summaryByProductAndPlace.length > 0 && (
+                    <tfoot>
+                      <tr>
+                        <td colSpan="3" className="text-end"><strong style={fontColorStyle}>Grand Total:</strong></td>
+                        <td>
+                          <strong>
+                            Rs: {summaryByProductAndPlace.reduce((sum, s) => sum + s.total_product_price, 0).toFixed(2)}
+                          </strong>
+                        </td>
+                        <td>
+                          <strong>
+                            Rs: {summaryByProductAndPlace.reduce((sum, s) => sum + s.total_pieces_price, 0).toFixed(2)}
+                          </strong>
+                        </td>
+                        <td>
+                          <strong>
+                            {summaryByProductAndPlace.reduce((sum, s) => sum + s.total_pieces, 0)}
+                          </strong>
+                        </td>
+                        <td>
+                          <strong>
+                            {summaryByProductAndPlace.reduce((sum, s) => sum + s.records_count, 0)}
+                          </strong>
+                        </td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
                   )}
-                </tbody>
-                {summaryData.length > 0 && (
-                  <tfoot>
+                </table>
+              </>
+            )}
+
+            {/* 📊 Summary View - Grouped by Product Only */}
+            {viewMode === 'summaryByProduct' && (
+              <>
+                <div className="alert alert-info mb-3">
+                  <i className="bi bi-info-circle me-2"></i>
+                  This view groups records by Product Name only, showing totals across all different places.
+                </div>
+                <table className='table table-bordered table-hover form_div' style={{ borderRadius: '10px' }}>
+                  <thead style={{ position: 'sticky', top: 0, zIndex: 1000 }}>
                     <tr>
-                      <td colSpan="3" className="text-end"><strong style={fontColorStyle}>Grand Total:</strong></td>
-                      <td>
-                        <strong>
-                          Rs: {summaryData.reduce((sum, s) => sum + s.total_product_price, 0).toFixed(2)}
-                        </strong>
-                      </td>
-                      <td>
-                        <strong>
-                          Rs: {summaryData.reduce((sum, s) => sum + s.total_pieces_price, 0).toFixed(2)}
-                        </strong>
-                      </td>
-                      <td>
-                        <strong>
-                          {summaryData.reduce((sum, s) => sum + s.total_pieces, 0)}
-                        </strong>
-                      </td>
-                      <td>
-                        <strong>
-                          {summaryData.reduce((sum, s) => sum + s.records_count, 0)}
-                        </strong>
-                      </td>
-                      <td></td>
+                      <th style={{ backgroundColor: '#f44336', color: 'white' }}>#</th>
+                      <th
+                        style={{ backgroundColor: '#f44336', color: 'white', cursor: 'pointer' }}
+                        onClick={() => handleSort('product_name')}
+                      >
+                        Product Name{<SortIndicator columnKey="product_name" />}
+                      </th>
+                      <th
+                        style={{ backgroundColor: '#f44336', color: 'white', cursor: 'pointer' }}
+                        onClick={() => handleSort('unique_places_count')}
+                      >
+                        Different Places{<SortIndicator columnKey="unique_places_count" />}
+                      </th>
+                      <th
+                        style={{ backgroundColor: '#f44336', color: 'white', cursor: 'pointer' }}
+                        onClick={() => handleSort('total_product_price')}
+                      >
+                        Total Product Value{<SortIndicator columnKey="total_product_price" />}
+                      </th>
+                      <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Pieces Price</th>
+                      <th
+                        style={{ backgroundColor: '#f44336', color: 'white', cursor: 'pointer' }}
+                        onClick={() => handleSort('total_pieces')}
+                      >
+                        Total Pieces{<SortIndicator columnKey="total_pieces" />}
+                      </th>
+                      <th style={{ backgroundColor: '#f44336', color: 'white' }}>Records Count</th>
+                      <th style={{ backgroundColor: '#f44336', color: 'white' }}>Actions</th>
                     </tr>
-                  </tfoot>
+                  </thead>
+                  <tbody>
+                    {summaryByProduct.map((summary, index) => (
+                      <tr key={summary.product_name}>
+                        <td>{index + 1}</td>
+                        <td>{summary.product_name}</td>
+                        <td>
+                          <span className="badge bg-info me-1">{summary.unique_places_count} places</span>
+                          <small className="text-muted">
+                            {summary.unique_places_list.slice(0, 3).join(', ')}
+                            {summary.unique_places_list.length > 3 && ` and ${summary.unique_places_list.length - 3} more...`}
+                          </small>
+                        </td>
+                        <td>Rs: {summary.total_product_price.toFixed(2)}</td>
+                        <td>Rs: {summary.total_pieces_price.toFixed(2)}</td>
+                        <td>
+                          <strong>{summary.total_pieces}</strong>
+                          {summary.records_count > 1 && (
+                            <small className="text-muted ms-2">
+                              ({summary.records_count} records)
+                            </small>
+                          )}
+                        </td>
+                        <td>{summary.records_count}</td>
+                        <td>
+                          <button
+                            className="btn btn-sm btn-outline-danger me-2"
+                            onClick={() => {
+                              Swal.fire({
+                                title: `${summary.product_name} - Across ${summary.unique_places_count} Places`,
+                                html: `
+                                  <div style="text-align: left;">
+                                    <p><strong>Total Pieces:</strong> ${summary.total_pieces}</p>
+                                    <p><strong>Total Product Value:</strong> Rs: ${summary.total_product_price.toFixed(2)}</p>
+                                    <p><strong>Total Pieces Price:</strong> Rs: ${summary.total_pieces_price.toFixed(2)}</p>
+                                    <p><strong>Number of Records:</strong> ${summary.records_count}</p>
+                                    <p><strong>Different Places (${summary.unique_places_count}):</strong> ${summary.unique_places_list.join(', ')}</p>
+                                    <hr>
+                                    <h6>Records by Place:</h6>
+                                    <ul>
+                                      ${summary.records.map(r =>
+                                  `<li>${formatDate(r.date)} - ${r.product_place}: ${r.stock} pieces (Rs: ${parseFloat(r.product_price).toFixed(2)})</li>`
+                                ).join('')}
+                                    </ul>
+                                  </div>
+                                `,
+                                icon: 'info',
+                                confirmButtonText: 'Close',
+                                width: '700px'
+                              });
+                            }}
+                          >
+                            📊 Details
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {summaryByProduct.length === 0 && (
+                      <tr>
+                        <td colSpan="8" className="text-center py-4">
+                          <div className="alert alert-warning mb-0">
+                            No summary data found
+                            {(searchProductName || searchProductPlace || searchDate) && " for the current filters"}
+                            {!searchProductName && !searchProductPlace && !searchDate && " for the selected year"}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                  {summaryByProduct.length > 0 && (
+                    <tfoot>
+                      <tr>
+                        <td colSpan="3" className="text-end"><strong style={fontColorStyle}>Grand Total:</strong></td>
+                        <td>
+                          <strong>
+                            Rs: {summaryByProduct.reduce((sum, s) => sum + s.total_product_price, 0).toFixed(2)}
+                          </strong>
+                        </td>
+                        <td>
+                          <strong>
+                            Rs: {summaryByProduct.reduce((sum, s) => sum + s.total_pieces_price, 0).toFixed(2)}
+                          </strong>
+                        </td>
+                        <td>
+                          <strong>
+                            {summaryByProduct.reduce((sum, s) => sum + s.total_pieces, 0)}
+                          </strong>
+                        </td>
+                        <td>
+                          <strong>
+                            {summaryByProduct.reduce((sum, s) => sum + s.records_count, 0)}
+                          </strong>
+                        </td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  )}
+                </table>
+              </>
+            )}
+
+            {/* 🔘 Auto Scroll Control Panel */}
+            {showScrollButton && (
+              <div className="scroll-control-panel" style={{
+                position: 'fixed',
+                bottom: '20px',
+                right: '20px',
+                zIndex: 1050,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px'
+              }}>
+                {/* Scroll Speed Controls */}
+                <div className="btn-group" role="group" style={{
+                  backgroundColor: 'white',
+                  padding: '5px',
+                  borderRadius: '10px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                }}>
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${scrollSpeed === 1 ? 'btn-danger' : 'btn-outline-danger'}`}
+                    onClick={() => setScrollSpeed(1)}
+                    title="Slow Scroll"
+                  >
+                    🐢
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${scrollSpeed === 2 ? 'btn-danger' : 'btn-outline-danger'}`}
+                    onClick={() => setScrollSpeed(2)}
+                    title="Medium Scroll"
+                  >
+                    🚶
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${scrollSpeed === 3 ? 'btn-danger' : 'btn-outline-danger'}`}
+                    onClick={() => setScrollSpeed(3)}
+                    title="Fast Scroll"
+                  >
+                    🏃
+                  </button>
+                </div>
+
+                {/* Main Scroll Buttons */}
+                <div className="btn-group-vertical" role="group" style={{
+                  backgroundColor: 'white',
+                  padding: '10px',
+                  borderRadius: '10px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                }}>
+                  <button
+                    className="btn btn-danger btn-sm mb-2"
+                    onClick={scrollToTop}
+                    title="Scroll to Top"
+                    style={{ minWidth: '40px' }}
+                  >
+                    ↑ Top
+                  </button>
+
+                  <button
+                    className={`btn ${isAutoScrolling ? 'btn-warning' : 'btn-danger'} btn-sm mb-2`}
+                    onClick={toggleAutoScroll}
+                    title={isAutoScrolling ? 'Stop Auto Scroll' : 'Start Auto Scroll'}
+                    style={{ minWidth: '40px' }}
+                  >
+                    {isAutoScrolling ? (
+                      <span style={{ animation: 'pulse 1s infinite' }}>
+                        ⏸️ {scrollDirection === 'down' ? '▼' : '▲'}
+                      </span>
+                    ) : (
+                      '🔁 Auto'
+                    )}
+                  </button>
+
+                  <button
+                    className="btn btn-danger btn-sm"
+                    onClick={scrollToBottom}
+                    title="Scroll to Bottom"
+                    style={{ minWidth: '40px' }}
+                  >
+                    ↓ Bottom
+                  </button>
+                </div>
+
+                {/* Scroll Indicator */}
+                {isAutoScrolling && (
+                  <div className="scroll-indicator" style={{
+                    backgroundColor: '#ff9800',
+                    color: 'white',
+                    padding: '5px 10px',
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    textAlign: 'center',
+                    animation: 'pulse 2s infinite'
+                  }}>
+                    Auto-scrolling {scrollDirection === 'down' ? 'down' : 'up'} • Speed: {
+                      scrollSpeed === 1 ? 'Slow' : scrollSpeed === 2 ? 'Medium' : 'Fast'
+                    }
+                  </div>
                 )}
-              </table>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
+
+          {/* Add CSS for pulse animation */}
+          <style>
+            {`
+              @keyframes pulse {
+                0% { opacity: 1; }
+                50% { opacity: 0.7; }
+                100% { opacity: 1; }
+              }
+              
+              .sticky-search {
+                transition: all 0.3s ease;
+              }
+              
+              .table-container::-webkit-scrollbar {
+                width: 8px;
+              }
+              
+              .table-container::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 10px;
+              }
+              
+              .table-container::-webkit-scrollbar-thumb {
+                background: #f44336;
+                border-radius: 10px;
+              }
+              
+              .table-container::-webkit-scrollbar-thumb:hover {
+                background: #d32f2f;
+              }
+              
+              .scroll-control-panel button {
+                transition: all 0.3s ease;
+              }
+              
+              .scroll-control-panel button:hover {
+                transform: scale(1.1);
+              }
+            `}
+          </style>
         </>
       )}
-      <div className='ms-3 mt-2'>
-        {uniqueProductPlaces.length > 0 && (
-          <small className="text-muted">
-            Available places: {uniqueProductPlaces.slice(0, 3).join(', ')}
-            {uniqueProductPlaces.length > 3 && ` and ${uniqueProductPlaces.length - 3} more...`}
-          </small>
-        )}
-      </div>
-
     </>
   );
 };
