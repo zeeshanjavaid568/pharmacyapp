@@ -8,11 +8,25 @@ const UpdateDuesCard = () => {
   const navigate = useNavigate();
 
   // Fetch single record data
-  const { data: recordData, isLoading, isError, refetch: singeDataRefetch, error } = useSingleGetDuesQuery(id);
+  const {
+    data: recordData,
+    isLoading,
+    isError,
+    refetch: singeDataRefetch,
+    error
+  } = useSingleGetDuesQuery(id, {
+    skip: !id, // Skip if no id
+    refetchOnMountOrArgChange: true
+  });
+
   const { refetch } = useGetAllDuesQuery();
 
   // Update mutation
-  const [updateDues, { isLoading: isUpdating }] = useUpdateDuesMutation();
+  const [updateDues, {
+    isLoading: isUpdating,
+    isSuccess: updateSuccess,
+    error: updateError
+  }] = useUpdateDuesMutation();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -24,6 +38,9 @@ const UpdateDuesCard = () => {
     taken_dues: '',
     date: '',
   });
+
+  const [formErrors, setFormErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Calculate total amount (single_piece_price * (m_pieces + total_piece + o_pieces))
   const calculateTotalAmount = () => {
@@ -53,21 +70,109 @@ const UpdateDuesCard = () => {
 
   const { medicineAmount, feedAmount, otherAmount, totalAmount } = calculateIndividualAmounts();
 
+  // Validate form
+  const validateForm = () => {
+    const errors = {};
+
+    if (!formData.name.trim()) {
+      errors.name = 'Name is required';
+    }
+
+    if (!formData.date) {
+      errors.date = 'Date is required';
+    }
+
+    // Validate numeric fields
+    const numericFields = [
+      'single_piece_price',
+      'm_pieces',
+      'total_piece',
+      'o_pieces',
+      'given_dues',
+      'taken_dues'
+    ];
+
+    numericFields.forEach(field => {
+      if (formData[field] && isNaN(formData[field])) {
+        errors[field] = `${field.replace(/_/g, ' ')} must be a valid number`;
+      }
+
+      // Additional validation for negative numbers
+      if (formData[field] && parseFloat(formData[field]) < 0) {
+        errors[field] = `${field.replace(/_/g, ' ')} cannot be negative`;
+      }
+    });
+
+    // Validate at least one piece type has quantity
+    const totalPieces = (parseInt(formData.m_pieces) || 0) +
+      (parseInt(formData.total_piece) || 0) +
+      (parseInt(formData.o_pieces) || 0);
+
+    if (totalPieces > 0 && (parseFloat(formData.single_piece_price) || 0) <= 0) {
+      errors.single_piece_price = 'Price must be greater than 0 when there are pieces';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   // Populate form when record data is loaded
   useEffect(() => {
-    if (recordData) {
+    if (recordData?.data) {
+      // Check if recordData.data exists (common pattern in RTK Query)
+      const data = recordData.data;
+      setFormData({
+        name: data.name || '',
+        single_piece_price: data.single_piece_price?.toString() || '',
+        m_pieces: data.m_pieces?.toString() || '',
+        total_piece: data.total_piece?.toString() || '',
+        o_pieces: data.o_pieces?.toString() || '',
+        given_dues: data.given_dues?.toString() || '',
+        taken_dues: data.taken_dues?.toString() || '',
+        date: formatDateForInput(data.date) || '',
+      });
+    } else if (recordData) {
+      // Fallback if data is not nested
       setFormData({
         name: recordData.name || '',
-        single_piece_price: recordData.single_piece_price || '',
-        m_pieces: recordData.m_pieces || '',
-        total_piece: recordData.total_piece || '',
-        o_pieces: recordData.o_pieces || '',
-        given_dues: recordData.given_dues || '',
-        taken_dues: recordData.taken_dues || '',
+        single_piece_price: recordData.single_piece_price?.toString() || '',
+        m_pieces: recordData.m_pieces?.toString() || '',
+        total_piece: recordData.total_piece?.toString() || '',
+        o_pieces: recordData.o_pieces?.toString() || '',
+        given_dues: recordData.given_dues?.toString() || '',
+        taken_dues: recordData.taken_dues?.toString() || '',
         date: formatDateForInput(recordData.date) || '',
       });
     }
   }, [recordData]);
+
+  // Handle update success or error
+  useEffect(() => {
+    if (updateSuccess) {
+      Swal.fire({
+        title: 'Success!',
+        text: 'Dues record updated successfully',
+        icon: 'success',
+        confirmButtonText: 'Ok',
+        customClass: { confirmButton: 'sweetalert_btn_success' },
+      }).then(() => {
+        refetch();
+        navigate('/duesrecord');
+      });
+      setIsSubmitting(false);
+    }
+
+    if (updateError) {
+      Swal.fire({
+        title: 'Error!',
+        text: updateError?.data?.message || 'Failed to update dues record. Please try again.',
+        icon: 'error',
+        confirmButtonText: 'Ok',
+        customClass: { confirmButton: 'sweetalert_btn_error' },
+      });
+      setIsSubmitting(false);
+    }
+  }, [updateSuccess, updateError, refetch, navigate]);
 
   // Format date for input field (YYYY-MM-DD)
   const formatDateForInput = (dateString) => {
@@ -87,69 +192,35 @@ const UpdateDuesCard = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Clear error for this field when user starts typing
+    if (formErrors[name]) {
+      setFormErrors(prev => ({ ...prev, [name]: '' }));
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation
-    if (!formData.name.trim()) {
+    if (!validateForm()) {
       Swal.fire({
-        title: 'Error!',
-        text: 'Please enter a name',
+        title: 'Validation Error!',
+        text: 'Please fix the errors in the form',
         icon: 'error',
         confirmButtonText: 'Ok',
       });
       return;
     }
 
-    if (!formData.date) {
-      Swal.fire({
-        title: 'Error!',
-        text: 'Please select a date',
-        icon: 'error',
-        confirmButtonText: 'Ok',
-      });
-      return;
-    }
-
-    // Numeric field validation
-    const numericFields = [
-      'single_piece_price',
-      'm_pieces',
-      'total_piece',
-      'o_pieces',
-      'given_dues',
-      'taken_dues'
-    ];
-
-    for (const field of numericFields) {
-      if (formData[field] && isNaN(formData[field])) {
-        Swal.fire({
-          title: 'Error!',
-          text: `${field.replace(/_/g, ' ')} must be a valid number`,
-          icon: 'error',
-          confirmButtonText: 'Ok',
-        });
-        return;
-      }
-    }
-
-    // Validate that at least one of given_dues or taken_dues is provided
-    // if (!formData.given_dues && !formData.taken_dues) {
-    //   Swal.fire({
-    //     title: 'Error!',
-    //     text: 'Please provide either Given Dues or Taken Dues',
-    //     icon: 'error',
-    //     confirmButtonText: 'Ok',
-    //     customClass: { confirmButton: 'sweetalert_btn_error' },
-    //   });
-    //   return;
-    // }
+    setIsSubmitting(true);
 
     try {
-      // Prepare update data with all fields including all three piece types
+      // Prepare update data
       const updateData = {
         name: formData.name.trim(),
         single_piece_price: formData.single_piece_price ? parseFloat(formData.single_piece_price) : 0,
@@ -161,33 +232,39 @@ const UpdateDuesCard = () => {
         date: formData.date,
       };
 
-      // Call update API
-      await updateDues({ id, userData: updateData }).unwrap();
-      refetch();
-      singeDataRefetch();
+      console.log(updateData);
 
-      // Show success message
-      Swal.fire({
-        title: 'Success!',
-        text: 'Dues record updated successfully',
-        icon: 'success',
-        confirmButtonText: 'Ok',
-        customClass: { confirmButton: 'sweetalert_btn_success' },
-      }).then(() => {
-        // Redirect back to dues record page
-        navigate('/duesrecord');
-      });
+      // Call update API
+      await updateDues({
+        id,
+        userData: updateData
+      }).unwrap();
+
+      // Refetch data
+      await Promise.all([
+        refetch(),
+        singeDataRefetch()
+      ]);
 
     } catch (error) {
       console.error('Update failed:', error);
       Swal.fire({
         title: 'Error!',
-        text: 'Failed to update dues record. Please try again.',
+        text: error?.data?.message || 'Failed to update dues record. Please try again.',
         icon: 'error',
         confirmButtonText: 'Ok',
         customClass: { confirmButton: 'sweetalert_btn_error' },
       });
+      setIsSubmitting(false);
     }
+  };
+
+  // Format display amount with commas
+  const formatAmount = (amount) => {
+    return parseFloat(amount || 0).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
   };
 
   // Loading state
@@ -203,22 +280,33 @@ const UpdateDuesCard = () => {
   }
 
   // Error state
-  if (isError) {
+  if (isError || !recordData) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ height: '50vh' }}>
-        <div className="alert alert-danger text-center">
+        <div className="alert alert-danger text-center w-50">
           <h5>Error Loading Record</h5>
-          <p>Failed to load the dues record. Please try again.</p>
-          <button
-            className="btn btn-primary"
-            onClick={() => window.history.back()}
-          >
-            Go Back
-          </button>
+          <p>{error?.data?.message || 'Failed to load the dues record. Please try again.'}</p>
+          <div className="d-flex justify-content-center gap-2">
+            <button
+              className="btn btn-primary"
+              onClick={() => window.history.back()}
+            >
+              Go Back
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => singeDataRefetch()}
+            >
+              Retry
+            </button>
+          </div>
         </div>
       </div>
     );
   }
+
+  // Get current record data (with fallback)
+  const currentRecord = recordData.data || recordData;
 
   return (
     <div className='d-flex justify-content-center'>
@@ -228,61 +316,68 @@ const UpdateDuesCard = () => {
         </h1>
 
         {/* Current Record Info */}
-        {recordData && (
+        {currentRecord && (
           <div className="alert alert-info mx-3 mb-4">
             <h6 className="fw-bold">Current Record Information:</h6>
             <div className='mb-2'>
-              {recordData.khata_name && (
+              {currentRecord.khata_name && (
                 <div className="mt-2">
-                  <strong>Khata:</strong> {recordData.khata_name}
+                  <strong>Khata:</strong> {currentRecord.khata_name}
                 </div>
               )}
             </div>
             <div className="row">
               <div className="col-md-6">
-                <strong>Name:</strong> {recordData.name || 'N/A'}
+                <strong>Name:</strong> {currentRecord.name || 'N/A'}
               </div>
               <div className="col-md-6">
-                <strong>Date:</strong> {formatDateForInput(recordData.date) || 'N/A'}
+                <strong>Date:</strong> {formatDateForInput(currentRecord.date) || 'N/A'}
               </div>
             </div>
             <div className="row mt-2">
               <div className="col-md-6">
-                <strong>Single Piece Price:</strong> {recordData.single_piece_price || '0'}
+                <strong>Single Piece Price:</strong> {formatAmount(currentRecord.single_piece_price)}
               </div>
               <div className="col-md-6">
                 <strong>Total Pieces:</strong>
-                {(parseInt(recordData.m_pieces || 0) + parseInt(recordData.total_piece || 0) + parseInt(recordData.o_pieces || 0))}
+                {(parseInt(currentRecord.m_pieces || 0) +
+                  parseInt(currentRecord.total_piece || 0) +
+                  parseInt(currentRecord.o_pieces || 0))}
               </div>
             </div>
             <div className="row mt-2">
               <div className="col-md-6">
-                <strong>Total Amount:</strong>
-                {(parseFloat(recordData.single_piece_price || 0) *
-                  (parseInt(recordData.m_pieces || 0) + parseInt(recordData.total_piece || 0) + parseInt(recordData.o_pieces || 0))
-                ).toFixed(2)}
+                <strong>Total Amount:</strong> {formatAmount(
+                  (parseFloat(currentRecord.single_piece_price || 0) *
+                    (parseInt(currentRecord.m_pieces || 0) +
+                      parseInt(currentRecord.total_piece || 0) +
+                      parseInt(currentRecord.o_pieces || 0)))
+                )}
               </div>
               <div className="col-md-6">
-                <strong>Net Amount:</strong> {(parseFloat(recordData.taken_dues || 0) - parseFloat(recordData.given_dues || 0)).toFixed(2)}
+                <strong>Net Amount:</strong> {formatAmount(
+                  (parseFloat(currentRecord.taken_dues || 0) -
+                    parseFloat(currentRecord.given_dues || 0))
+                )}
               </div>
             </div>
             <div className="row mt-2">
               <div className="col-md-6">
-                <strong>Medicine Pieces:</strong> {recordData.m_pieces || '0'}
+                <strong>Medicine Pieces:</strong> {currentRecord.m_pieces || '0'}
               </div>
               <div className="col-md-6">
-                <strong>Feed Pieces:</strong> {recordData.total_piece || '0'}
+                <strong>Feed Pieces:</strong> {currentRecord.total_piece || '0'}
               </div>
               <div className="col-md-6 mt-2">
-                <strong>Other Pieces:</strong> {recordData.o_pieces || '0'}
+                <strong>Other Pieces:</strong> {currentRecord.o_pieces || '0'}
               </div>
             </div>
             <div className="row mt-2">
               <div className="col-md-6">
-                <strong>Given Dues:</strong> {recordData.given_dues || '0'}
+                <strong>Given Dues:</strong> {formatAmount(currentRecord.given_dues)}
               </div>
               <div className="col-md-6">
-                <strong>Taken Dues:</strong> {recordData.taken_dues || '0'}
+                <strong>Taken Dues:</strong> {formatAmount(currentRecord.taken_dues)}
               </div>
             </div>
           </div>
@@ -296,13 +391,16 @@ const UpdateDuesCard = () => {
             <input
               type="text"
               name="name"
-              className="form-control p-2"
+              className={`form-control p-2 ${formErrors.name ? 'is-invalid' : ''}`}
               placeholder="Enter name"
               value={formData.name}
               onChange={handleChange}
               required
-              disabled={isUpdating}
+              disabled={isUpdating || isSubmitting}
             />
+            {formErrors.name && (
+              <div className="invalid-feedback">{formErrors.name}</div>
+            )}
           </div>
 
           {/* Date Input */}
@@ -311,12 +409,15 @@ const UpdateDuesCard = () => {
             <input
               type="date"
               name="date"
-              className="form-control p-2"
+              className={`form-control p-2 ${formErrors.date ? 'is-invalid' : ''}`}
               value={formData.date}
               onChange={handleChange}
               required
-              disabled={isUpdating}
+              disabled={isUpdating || isSubmitting}
             />
+            {formErrors.date && (
+              <div className="invalid-feedback">{formErrors.date}</div>
+            )}
           </div>
 
           {/* Single Piece Price Input */}
@@ -325,72 +426,89 @@ const UpdateDuesCard = () => {
             <input
               type="number"
               name="single_piece_price"
-              className="form-control p-2"
+              className={`form-control p-2 ${formErrors.single_piece_price ? 'is-invalid' : ''}`}
               placeholder="Enter single piece price"
               value={formData.single_piece_price}
               onChange={handleChange}
               step="0.01"
               min="0"
-              disabled={isUpdating}
+              disabled={isUpdating || isSubmitting}
             />
+            {formErrors.single_piece_price && (
+              <div className="invalid-feedback">{formErrors.single_piece_price}</div>
+            )}
+            {formData.single_piece_price && formData.m_pieces && (
+              <small className="text-muted">
+                Medicine Amount: {formatAmount(medicineAmount)} ({formData.single_piece_price} × {formData.m_pieces})
+              </small>
+            )}
           </div>
 
           {/* Medicine Total Pieces Input */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Medicine Total Pieces <span style={{ color: '#dc3545' }}>*</span></label>
+            <label className="form-label fw-bold">Medicine Total Pieces</label>
             <input
               type="number"
               name="m_pieces"
-              className="form-control p-2"
+              className={`form-control p-2 ${formErrors.m_pieces ? 'is-invalid' : ''}`}
               placeholder="Enter medicine pieces"
               value={formData.m_pieces}
               onChange={handleChange}
               min="0"
-              disabled={isUpdating}
+              disabled={isUpdating || isSubmitting}
             />
+            {formErrors.m_pieces && (
+              <div className="invalid-feedback">{formErrors.m_pieces}</div>
+            )}
             {formData.single_piece_price && formData.m_pieces && (
               <small className="text-muted">
-                Medicine Amount: {medicineAmount.toFixed(2)} ({formData.single_piece_price} × {formData.m_pieces})
+                Medicine Amount: {formatAmount(medicineAmount)} ({formData.single_piece_price} × {formData.m_pieces})
               </small>
             )}
           </div>
 
           {/* Feed Total Pieces Input */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Feed Total Pieces <span style={{ color: '#dc3545' }}>*</span></label>
+            <label className="form-label fw-bold">Feed Total Pieces</label>
             <input
               type="number"
               name="total_piece"
-              className="form-control p-2"
+              className={`form-control p-2 ${formErrors.total_piece ? 'is-invalid' : ''}`}
               placeholder="Enter feed pieces"
               value={formData.total_piece}
               onChange={handleChange}
               min="0"
-              disabled={isUpdating}
+              disabled={isUpdating || isSubmitting}
             />
+            {formErrors.total_piece && (
+              <div className="invalid-feedback">{formErrors.total_piece}</div>
+            )}
             {formData.single_piece_price && formData.total_piece && (
               <small className="text-muted">
-                Feed Amount: {feedAmount.toFixed(2)} ({formData.single_piece_price} × {formData.total_piece})
+                Feed Amount: {formatAmount(feedAmount)} ({formData.single_piece_price} × {formData.total_piece})
               </small>
             )}
           </div>
 
           {/* Other Total Pieces Input */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Other Total Pieces <span style={{ color: '#dc3545' }}>*</span></label>
+            <label className="form-label fw-bold">Other Total Pieces</label>
             <input
               type="number"
               name="o_pieces"
-              className="form-control p-2"
+              className={`form-control p-2 ${formErrors.o_pieces ? 'is-invalid' : ''}`}
               placeholder="Enter other pieces"
               value={formData.o_pieces}
               onChange={handleChange}
               min="0"
-              disabled={isUpdating}
+              disabled={isUpdating || isSubmitting}
             />
+            {formErrors.o_pieces && (
+              <div className="invalid-feedback">{formErrors.o_pieces}</div>
+            )}
             {formData.single_piece_price && formData.o_pieces && (
               <small className="text-muted">
-                Other Amount: {otherAmount.toFixed(2)} ({formData.single_piece_price} × {formData.o_pieces})
+                Other Amount: {formatAmount(otherAmount)} ({formData.single_piece_price} × {formData.o_pieces})
               </small>
             )}
           </div>
@@ -399,20 +517,20 @@ const UpdateDuesCard = () => {
           <div className="col-12 col-md-5 mb-3">
             <label className="form-label fw-bold">Total Amount (Calculated) <span style={{ color: '#dc3545' }}>*</span></label>
             <input
-              type="number"
+              type="text"
               className="form-control p-2 bg-light"
-              value={totalAmount.toFixed(2)}
+              value={formatAmount(totalAmount)}
               readOnly
               disabled
               style={{ fontWeight: 'bold', color: '#198754' }}
             />
             <small className="text-muted">
-              Single Piece Price × (Medicine + Feed + Other) = {totalAmount.toFixed(2)}
+              Single Piece Price × (Medicine + Feed + Other) = {formatAmount(totalAmount)}
             </small>
             {formData.single_piece_price && (
               <div className="mt-1">
                 <small>
-                  Breakdown: Medicine({medicineAmount.toFixed(2)}) + Feed({feedAmount.toFixed(2)}) + Other({otherAmount.toFixed(2)})
+                  Breakdown: Medicine({formatAmount(medicineAmount)}) + Feed({formatAmount(feedAmount)}) + Other({formatAmount(otherAmount)})
                 </small>
               </div>
             )}
@@ -423,34 +541,40 @@ const UpdateDuesCard = () => {
 
           {/* Given Dues Input */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Given Dues <span style={{ color: '#dc3545' }}>*</span></label>
+            <label className="form-label fw-bold">Given Dues</label>
             <input
               type="number"
               name="given_dues"
-              className="form-control p-2"
+              className={`form-control p-2 ${formErrors.given_dues ? 'is-invalid' : ''}`}
               placeholder="Enter given dues"
               value={formData.given_dues}
               onChange={handleChange}
               step="0.01"
               min="0"
-              disabled={isUpdating}
+              disabled={isUpdating || isSubmitting}
             />
+            {formErrors.given_dues && (
+              <div className="invalid-feedback">{formErrors.given_dues}</div>
+            )}
           </div>
 
           {/* Taken Dues Input */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Taken Dues <span style={{ color: '#dc3545' }}>*</span></label>
+            <label className="form-label fw-bold">Taken Dues</label>
             <input
               type="number"
               name="taken_dues"
-              className="form-control p-2"
+              className={`form-control p-2 ${formErrors.taken_dues ? 'is-invalid' : ''}`}
               placeholder="Enter taken dues"
               value={formData.taken_dues}
               onChange={handleChange}
               step="0.01"
               min="0"
-              disabled={isUpdating}
+              disabled={isUpdating || isSubmitting}
             />
+            {formErrors.taken_dues && (
+              <div className="invalid-feedback">{formErrors.taken_dues}</div>
+            )}
           </div>
 
           {/* Net Amount Calculation (Read-only) */}
@@ -461,20 +585,20 @@ const UpdateDuesCard = () => {
                 <div className="row">
                   <div className="col-md-3">
                     <strong>Total Amount:</strong>
-                    <div className="text-success fs-5">{totalAmount.toFixed(2)}</div>
+                    <div className="text-success fs-5">{formatAmount(totalAmount)}</div>
                     <small className="text-muted">(Price × All Pieces)</small>
                   </div>
                   <div className="col-md-3">
                     <strong>Net Dues:</strong>
                     <div className={`fs-5 ${(parseFloat(formData.taken_dues || 0) - parseFloat(formData.given_dues || 0)) >= 0 ? 'text-success' : 'text-danger'}`}>
-                      {(parseFloat(formData.taken_dues || 0) - parseFloat(formData.given_dues || 0)).toFixed(2)}
+                      {formatAmount((parseFloat(formData.taken_dues || 0) - parseFloat(formData.given_dues || 0)))}
                     </div>
                     <small className="text-muted">(Taken - Given)</small>
                   </div>
                   <div className="col-md-3">
                     <strong>Balance:</strong>
                     <div className={`fs-5 ${(totalAmount + (parseFloat(formData.taken_dues || 0) - parseFloat(formData.given_dues || 0))) >= 0 ? 'text-success' : 'text-danger'}`}>
-                      {(totalAmount + (parseFloat(formData.taken_dues || 0) - parseFloat(formData.given_dues || 0))).toFixed(2)}
+                      {formatAmount((totalAmount + (parseFloat(formData.taken_dues || 0) - parseFloat(formData.given_dues || 0))))}
                     </div>
                     <small className="text-muted">(Total + Net Dues)</small>
                   </div>
@@ -496,16 +620,16 @@ const UpdateDuesCard = () => {
               type="button"
               className="btn btn-success px-4"
               onClick={() => navigate('/duesrecord')}
-              disabled={isUpdating}
+              disabled={isUpdating || isSubmitting}
             >
               Cancel
             </button>
             <button
               type="submit"
               className="btn btn-danger px-4"
-              disabled={isUpdating}
+              disabled={isUpdating || isSubmitting}
             >
-              {isUpdating ? (
+              {(isUpdating || isSubmitting) ? (
                 <>
                   <span className="spinner-border spinner-border-sm me-2" role="status"></span>
                   Updating...

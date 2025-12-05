@@ -25,7 +25,7 @@ class Dues {
     const { name, single_piece_price, m_pieces, total_piece, o_pieces, given_dues, taken_dues, date } = data;
     const query = `
       UPDATE dues 
-      SET name = ?, single_piece_price = ?, m_pieces = ?, o_pieces = ?, total_piece = ?, given_dues = ?, taken_dues = ?, date = ? 
+      SET name = ?, single_piece_price = ?, m_pieces = ?,  total_piece = ?, o_pieces = ?, given_dues = ?, taken_dues = ?, date = ? 
       WHERE id = ?
     `;
     const [result] = await db.query(query, [name, single_piece_price, m_pieces, total_piece, o_pieces, given_dues, taken_dues, date, id]);

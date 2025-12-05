@@ -268,13 +268,13 @@ const DuesRecord = () => {
         'Single Piece Price',
         'Total Price or Weight',
         'Medicine Pieces',
-        'Medicine Total Pieces',
+        'Total Medicines',
         'Feed Pieces',
-        'Feed Total Pieces',
+        'Total Feeds',
         'Other Pieces',
-        'Other Total Pieces',
-        'Given Dues',
-        'Taken Dues',
+        'Total Others',
+        'Given Dues (-)',
+        'Taken Dues (+)',
         'Remains Total Price',
         'Date'
       ];
@@ -587,18 +587,18 @@ const DuesRecord = () => {
 
                 {/* Medicine Pieces Section */}
                 <th style={TableHeadingStyle}>Medicine Pieces</th>
-                <th style={TableHeadingStyle}>Medicine Total Pieces</th>
+                <th style={TableHeadingStyle}>Total Medicines</th>
 
                 {/* Feed Pieces Section */}
                 <th style={TableHeadingStyle}>Feed Pieces</th>
-                <th style={TableHeadingStyle}>Feed Total Pieces</th>
+                <th style={TableHeadingStyle}>Total Feeds</th>
 
                 {/* Other Pieces Section */}
                 <th style={TableHeadingStyle}>Other Pieces</th>
-                <th style={TableHeadingStyle}>Other Total Pieces</th>
+                <th style={TableHeadingStyle}>Total Others</th>
 
-                <th style={TableHeadingStyle}>Given Dues</th>
-                <th style={TableHeadingStyle}>Taken Dues</th>
+                <th style={TableHeadingStyle}>Given Dues (-)</th>
+                <th style={TableHeadingStyle}>Taken Dues (+)</th>
                 <th style={TableHeadingStyle}>Remains Total Price</th>
                 <th style={TableHeadingStyle}>Date</th>
                 <th style={TableHeadingStyle}>Actions</th>
