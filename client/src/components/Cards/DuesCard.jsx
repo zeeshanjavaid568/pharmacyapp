@@ -7,9 +7,9 @@ const DuesCard = ({ lastPrice, refetchData }) => {
     khata_name: '',
     name: '',
     single_piece_price: '',
-    m_pieces: '',        // Medicine pieces
-    total_piece: '',     // Feed pieces (keeping original name for consistency)
-    o_pieces: '',        // Other pieces
+    m_pieces: '',
+    total_piece: '',
+    o_pieces: '',
     given_dues: '',
     taken_dues: '',
     taken_dues_2: '',
@@ -23,10 +23,13 @@ const DuesCard = ({ lastPrice, refetchData }) => {
 
   // ✅ Auto-update taken_dues_2 & price whenever lastPrice changes
   useEffect(() => {
+    const lastPriceNum = Number(lastPrice) || 0;
+    const takenDuesNum = Number(formData.taken_dues) || 0;
+
     setFormData((prev) => ({
       ...prev,
-      taken_dues_2: lastPrice || 0,
-      price: (Number(prev.taken_dues) || 0) + (Number(lastPrice) || 0),
+      taken_dues_2: lastPriceNum,
+      price: (takenDuesNum + lastPriceNum).toString(),
     }));
   }, [lastPrice]);
 
@@ -51,11 +54,43 @@ const DuesCard = ({ lastPrice, refetchData }) => {
     const given = Number(formData.given_dues) || 0;
     const taken = Number(formData.taken_dues) || 0;
     const taken2 = Number(formData.taken_dues_2) || 0;
+
     const diff = taken2 - given;
     setDifference(diff);
+
     const totalRemains = diff + taken;
-    setFormData((prev) => ({ ...prev, price: totalRemains }));
+    setFormData((prev) => ({ ...prev, price: totalRemains.toString() }));
   }, [formData.given_dues, formData.taken_dues, formData.taken_dues_2]);
+
+  // ✅ Get price color class based on value
+  const getPriceColorClass = () => {
+    const priceNum = Number(formData.price) || 0;
+    if (priceNum < 0) return 'text-danger';
+    if (priceNum > 0) return 'text-success';
+    return '';
+  };
+
+  // ✅ Get difference color class based on value
+  const getDifferenceColorClass = () => {
+    if (difference < 0) return 'text-danger';
+    if (difference > 0) return 'text-success';
+    return '';
+  };
+
+  // ✅ Get previous balance color class based on value
+  const getPreviousBalanceColorClass = () => {
+    const previousBalance = Number(formData.taken_dues_2) || 0;
+    if (previousBalance < 0) return 'text-danger';
+    if (previousBalance > 0) return 'text-success';
+    return '';
+  };
+
+  // ✅ Get total piece price color class based on value
+  const getTotalPiecePriceColorClass = () => {
+    if (calculatedTotal < 0) return 'text-danger';
+    if (calculatedTotal > 0) return 'text-success';
+    return '';
+  };
 
   const validate = () => {
     const newErrors = {};
@@ -76,9 +111,9 @@ const DuesCard = ({ lastPrice, refetchData }) => {
         khata_name: formData.khata_name,
         name: formData.name,
         single_piece_price: Number(formData.single_piece_price) || 0,
-        m_pieces: Number(formData.m_pieces) || 0,           // Medicine pieces
-        total_piece: Number(formData.total_piece) || 0,     // Feed pieces
-        o_pieces: Number(formData.o_pieces) || 0,           // Other pieces
+        m_pieces: Number(formData.m_pieces) || 0,
+        total_piece: Number(formData.total_piece) || 0,
+        o_pieces: Number(formData.o_pieces) || 0,
         given_dues: Number(formData.given_dues) || 0,
         taken_dues: Number(formData.taken_dues) || 0,
         taken_dues_2: Number(formData.taken_dues_2) || 0,
@@ -213,7 +248,9 @@ const DuesCard = ({ lastPrice, refetchData }) => {
         {/* ✅ Total Piece Price (Auto-calculated) */}
         <div className="col-auto">
           <label className="me-2">Total Piece Price <span style={{ color: '#dc3545' }}>*</span></label>
-          <div className="form-control p-1 my-2 bg-light">{calculatedTotal || 0}</div>
+          <div className={`form-control p-1 my-2 bg-light ${getTotalPiecePriceColorClass()}`}>
+            {calculatedTotal || 0}
+          </div>
         </div>
 
         {/* ✅ Given Dues */}
@@ -248,16 +285,30 @@ const DuesCard = ({ lastPrice, refetchData }) => {
           <input
             type="number"
             name="price"
-            className="form-control p-1 my-2 bg-light"
+            className={`form-control p-1 my-2 bg-light ${getPriceColorClass()}`}
             value={formData.price}
             readOnly
+            style={{ fontWeight: '500' }}
+          />
+        </div>
+
+        {/* ✅ Previous Balance (Auto-filled from lastPrice) - Now with conditional coloring */}
+        <div className="col-auto">
+          <label className="me-2">Previous Balance <span style={{ color: '#dc3545' }}>*</span></label>
+          <input
+            type="number"
+            name="taken_dues_2"
+            className={`form-control p-1 my-2 bg-light ${getPreviousBalanceColorClass()}`}
+            value={formData.taken_dues_2}
+            readOnly
+            style={{ fontWeight: '500' }}
           />
         </div>
 
         {/* ✅ Difference Display */}
         <div className="col-auto">
           <label className="me-2">Difference <span style={{ color: '#dc3545' }}>*</span></label>
-          <div className={`form-control p-1 my-2 bg-light ${difference < 0 ? 'text-danger' : 'text-success'}`}>
+          <div className={`form-control p-1 my-2 bg-light ${getDifferenceColorClass()}`} style={{ fontWeight: '500' }}>
             {difference}
           </div>
         </div>
