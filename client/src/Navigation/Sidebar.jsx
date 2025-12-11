@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { sidebarLinks } from './sidebarLinks';
 import Logout from '../pages/Logout';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import RateList from '../components/common/RateList';
 
 const Sidebar = () => {
     // State to track which parent is open
@@ -65,6 +66,9 @@ const Sidebar = () => {
             </div>
             <div className='mx-2'>
                 <Logout />
+            </div>
+            <div className='mt-5'>
+                <RateList />
             </div>
         </>
     );
