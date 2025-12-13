@@ -108,8 +108,7 @@ const RateList = () => {
                                 {lastEntries && lastEntries.length > 0 ? (
                                     lastEntries.map((product, index) => {
                                         const purchasePrice = parseFloat(product.product_price) || 0;
-                                        const salePrice = parseFloat(product.saling_price) || 0;
-                                        const profitMargin = salePrice > 0 ? ((salePrice - purchasePrice) / purchasePrice * 100).toFixed(2) : 0;
+                                        const salePrice = product.saling_price || 0;
 
                                         return (
                                             <tr key={product.id || `${product.product_name || product.name}-${index}`}>
@@ -122,9 +121,8 @@ const RateList = () => {
                                                         </div>
                                                     )}
                                                 </td>
-                                                <td>{purchasePrice.toFixed()}</td>
-                                                <td>{salePrice.toFixed()}</td>
-
+                                                <td>{purchasePrice}</td>
+                                                <td>{salePrice}</td>
                                             </tr>
                                         );
                                     })

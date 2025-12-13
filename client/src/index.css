@@ -44,7 +44,7 @@
 input:focus {
   outline: none;
   border-color: var(--dark_red_color) !important;
-  box-shadow: 0 0 5px var(--dark_red_color)!important;
+  box-shadow: 0 0 5px var(--dark_red_color) !important;
 }
 
 .form_div {
