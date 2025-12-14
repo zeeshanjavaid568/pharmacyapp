@@ -21,7 +21,7 @@ const DuesRecord = () => {
     'Muslim Commercial Bank', 'MCB',
     'Allied Bank Limited', 'ABL',
     'Standard Chartered Bank', 'SCB',
-    'Bank Alfalah Limited', 'BAFL',
+    'Bank Alfalah Limited', 'BAFL', 'Alfalah',
     'Askari Bank Limited', 'AKBL',
     'Faysal Bank Limited', 'FBL',
     'JS Bank Limited', 'JSBL',
@@ -91,8 +91,77 @@ const DuesRecord = () => {
     return lowerName.includes('return') || lowerName.includes('gai');
   };
 
-  // ✅ Format Name with Medicine/Feed/Payment prefixes
+  // ✅ Format Name with Medicine/Feed/Other/Payment prefixes (For Table Display)
   const formatNameWithPieces = (record) => {
+    let name = record.name || '';
+    const medicinePieces = Number(record.m_pieces) || 0;
+    const feedPieces = Number(record.total_piece) || 0;
+    const otherPieces = Number(record.o_pieces) || 0;
+
+    // Check if medicine pieces exist and are non-zero
+    const hasMedicine = medicinePieces > 0;
+    // Check if feed pieces exist and are non-zero
+    const hasFeed = feedPieces > 0;
+    // Check if other pieces exist and are non-zero
+    const hasOther = otherPieces > 0;
+    // Check if name contains bank name or abbreviation
+    const hasBankName = isBankName(name);
+    // Check if it's a return record
+    const isReturn = isReturnRecord(name);
+
+    // Build the prefix string for pieces
+    let piecePrefix = '';
+
+    // Create an array of piece types that are present
+    const pieceTypes = [];
+    if (hasMedicine) pieceTypes.push('Medicine');
+    if (hasFeed) pieceTypes.push('Feed');
+    if (hasOther) pieceTypes.push('Other');
+
+    // Build the piece prefix based on which types are present
+    if (pieceTypes.length === 1) {
+      piecePrefix = pieceTypes[0] + ' ';
+    } else if (pieceTypes.length === 2) {
+      piecePrefix = pieceTypes.join(' & ') + ' ';
+    } else if (pieceTypes.length === 3) {
+      piecePrefix = 'Medicine & Feed & Other ';
+    }
+
+    // Start with the piece prefix
+    let prefix = piecePrefix;
+
+    // Then, add Payment prefix if it's a bank name and Payment is not already in the name
+    if (hasBankName && !name.toLowerCase().includes('payment')) {
+      // Check if we already have a piece prefix
+      if (prefix) {
+        // If piece prefix exists, add Payment at the beginning
+        prefix = 'Payment ' + prefix;
+      } else {
+        // If no piece prefix, just add Payment
+        prefix = 'Payment ';
+      }
+    }
+
+    // Add Return prefix if it's a return record and Return is not already in the name
+    if (isReturn && !name.toLowerCase().startsWith('return')) {
+      if (prefix) {
+        // If we have other prefixes, add Return at the beginning
+        prefix = 'Return ' + prefix;
+      } else {
+        prefix = 'Return ';
+      }
+    }
+
+    // Only add prefix if it doesn't already exist in the name
+    if (prefix && !name.toLowerCase().startsWith(prefix.toLowerCase().trim())) {
+      return prefix + name;
+    }
+
+    return name;
+  };
+
+  // ✅ Format Name without "Other" prefix for PDF
+  const formatNameForPDF = (record) => {
     let name = record.name || '';
     const medicinePieces = Number(record.m_pieces) || 0;
     const feedPieces = Number(record.total_piece) || 0;
@@ -106,26 +175,32 @@ const DuesRecord = () => {
     // Check if it's a return record
     const isReturn = isReturnRecord(name);
 
-    // Build the prefix string
-    let prefix = '';
+    // Build the prefix string for pieces (without "Other")
+    let piecePrefix = '';
 
-    // First, add Medicine/Feed prefix if applicable
-    if (hasMedicine && hasFeed) {
-      prefix = 'Medicine & Feed ';
-    } else if (hasMedicine) {
-      prefix = 'Medicine ';
-    } else if (hasFeed) {
-      prefix = 'Feed ';
+    // Create an array of piece types that are present (excluding "Other")
+    const pieceTypes = [];
+    if (hasMedicine) pieceTypes.push('Medicine');
+    if (hasFeed) pieceTypes.push('Feed');
+
+    // Build the piece prefix based on which types are present
+    if (pieceTypes.length === 1) {
+      piecePrefix = pieceTypes[0] + ' ';
+    } else if (pieceTypes.length === 2) {
+      piecePrefix = pieceTypes.join(' & ') + ' ';
     }
+
+    // Start with the piece prefix
+    let prefix = piecePrefix;
 
     // Then, add Payment prefix if it's a bank name and Payment is not already in the name
     if (hasBankName && !name.toLowerCase().includes('payment')) {
-      // Check if we already have a Medicine/Feed prefix
+      // Check if we already have a piece prefix
       if (prefix) {
-        // If Medicine/Feed prefix exists, add Payment at the beginning
+        // If piece prefix exists, add Payment at the beginning
         prefix = 'Payment ' + prefix;
       } else {
-        // If no Medicine/Feed prefix, just add Payment
+        // If no piece prefix, just add Payment
         prefix = 'Payment ';
       }
     }
@@ -413,7 +488,7 @@ const DuesRecord = () => {
       const tableRows = recordsWithRunningTotals.map((record, index) => {
         const baseRow = [
           index + 1,
-          record.formattedName || '-', // Use formatted name for PDF
+          formatNameForPDF(record) || '-', // Use PDF-specific name formatting (without "Other")
           record.single_piece_price || '0',
           record.runningTotalSinglePiecePrice || '0',
           record.m_pieces || '0',
@@ -752,7 +827,7 @@ const DuesRecord = () => {
                       </td>
                     )}
 
-                    {/* Display formatted name with Medicine/Feed/Payment prefixes */}
+                    {/* Display formatted name with Medicine/Feed/Other/Payment prefixes */}
                     <td style={{ ...TableCellStyle, ...(record.isReturn ? ReturnStyle : {}) }}>
                       {record.formattedName}
                     </td>
