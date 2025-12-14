@@ -8,6 +8,42 @@ const DuesRecord = () => {
   const { data = [], isLoading, isError, refetch } = useGetAllDuesQuery();
   const [deleteGivenDues] = useDeleteGivenDuesMutation();
 
+  // ✅ Bank names and abbreviations list
+  const bankNamesAndAbbreviations = [
+    'State Bank of Pakistan', 'SBP',
+    'National Bank of Pakistan', 'NBP',
+    'First Women Bank Limited', 'FWBL',
+    'Sindh Bank Limited', 'SBL',
+    'Bank of Punjab', 'BOP',
+    'Bank of Khyber', 'BOK',
+    'Habib Bank Limited', 'HBL',
+    'United Bank Limited', 'UBL',
+    'Muslim Commercial Bank', 'MCB',
+    'Allied Bank Limited', 'ABL',
+    'Standard Chartered Bank', 'SCB',
+    'Bank Alfalah Limited', 'BAFL',
+    'Askari Bank Limited', 'AKBL',
+    'Faysal Bank Limited', 'FBL',
+    'JS Bank Limited', 'JSBL',
+    'Summit Bank Limited', 'SBL',
+    'Soneri Bank Limited', 'SNBL',
+    'Silkbank Limited', 'SILK',
+    'SAMBA Bank Limited', 'SAMBA',
+    'Habib Metropolitan Bank', 'HMB',
+    'Dubai Islamic Bank Pakistan', 'DIBPL',
+    'Meezan Bank Limited', 'MBL',
+    'Meezan Bank', 'MBL',
+    'Bank Islami Pakistan', 'BIPL',
+    'Al Baraka Bank Pakistan', 'ABPL',
+    'Dubai Islamic Bank', 'DIB',
+    'MIB', 'MCB Islamic Bank', 'MIB',
+    'Khushhali Microfinance Bank', 'KMBL',
+    'Telenor Microfinance Bank', 'TMB',
+    'U Microfinance Bank', 'U Bank',
+    'NRSP Microfinance Bank', 'NRSP',
+    'Easy Paisa', 'Easypaisa', 'Jazzcash'
+  ];
+
   // ✅ Refs for scrolling
   const tableContainerRef = useRef(null);
   const tableRef = useRef(null);
@@ -39,11 +75,89 @@ const DuesRecord = () => {
     return localDate.toISOString().split('T')[0];
   };
 
+  // ✅ Check if name contains bank name or abbreviation
+  const isBankName = (name) => {
+    if (!name) return false;
+    const lowerName = name.toLowerCase();
+    return bankNamesAndAbbreviations.some(bank =>
+      lowerName.includes(bank.toLowerCase())
+    );
+  };
+
+  // ✅ Check if name contains Return or gai
+  const isReturnRecord = (name) => {
+    if (!name) return false;
+    const lowerName = name.toLowerCase();
+    return lowerName.includes('return') || lowerName.includes('gai');
+  };
+
+  // ✅ Format Name with Medicine/Feed/Payment prefixes
+  const formatNameWithPieces = (record) => {
+    let name = record.name || '';
+    const medicinePieces = Number(record.m_pieces) || 0;
+    const feedPieces = Number(record.total_piece) || 0;
+
+    // Check if medicine pieces exist and are non-zero
+    const hasMedicine = medicinePieces > 0;
+    // Check if feed pieces exist and are non-zero
+    const hasFeed = feedPieces > 0;
+    // Check if name contains bank name or abbreviation
+    const hasBankName = isBankName(name);
+    // Check if it's a return record
+    const isReturn = isReturnRecord(name);
+
+    // Build the prefix string
+    let prefix = '';
+
+    // First, add Medicine/Feed prefix if applicable
+    if (hasMedicine && hasFeed) {
+      prefix = 'Medicine & Feed ';
+    } else if (hasMedicine) {
+      prefix = 'Medicine ';
+    } else if (hasFeed) {
+      prefix = 'Feed ';
+    }
+
+    // Then, add Payment prefix if it's a bank name and Payment is not already in the name
+    if (hasBankName && !name.toLowerCase().includes('payment')) {
+      // Check if we already have a Medicine/Feed prefix
+      if (prefix) {
+        // If Medicine/Feed prefix exists, add Payment at the beginning
+        prefix = 'Payment ' + prefix;
+      } else {
+        // If no Medicine/Feed prefix, just add Payment
+        prefix = 'Payment ';
+      }
+    }
+
+    // Add Return prefix if it's a return record and Return is not already in the name
+    if (isReturn && !name.toLowerCase().startsWith('return')) {
+      if (prefix) {
+        // If we have other prefixes, add Return at the beginning
+        prefix = 'Return ' + prefix;
+      } else {
+        prefix = 'Return ';
+      }
+    }
+
+    // Only add prefix if it doesn't already exist in the name
+    if (prefix && !name.toLowerCase().startsWith(prefix.toLowerCase().trim())) {
+      return prefix + name;
+    }
+
+    return name;
+  };
+
   // ✅ Filtering logic
   const filteredRecords = data.filter((record) => {
     const recordDate = formatDate(record.date);
     const matchesKhata = selectedKhata ? record.khata_name === selectedKhata : true;
-    const matchesName = searchName ? record.name?.toLowerCase().includes(searchName.toLowerCase()) : true;
+
+    // Use formatted name for search
+    const formattedName = formatNameWithPieces(record);
+    const matchesName = searchName ?
+      formattedName.toLowerCase().includes(searchName.toLowerCase()) : true;
+
     const matchesDate = searchDate ? recordDate === searchDate : true;
 
     const recordYear = recordDate.split('-')[0];
@@ -87,12 +201,25 @@ const DuesRecord = () => {
       // taken_dues = money you received (decreases your receivable)
       const netDuesForRecord = takenDues - givenDues;
 
+      // Check if it's a return record
+      const isReturn = isReturnRecord(record.name || '');
+
       // Add to running totals
       runningTotalDues += netDuesForRecord;
       runningTotalSinglePiecePrice += singlePiecePrice;
-      runningTotalMedicinePieces += medicinePieces;
-      runningTotalFeedPieces += feedPieces;
-      runningTotalOtherPieces += otherPieces;
+
+      // Handle pieces differently for return records
+      if (isReturn) {
+        // For return records, SUBTRACT pieces from running totals
+        runningTotalMedicinePieces -= medicinePieces;
+        runningTotalFeedPieces -= feedPieces;
+        runningTotalOtherPieces -= otherPieces;
+      } else {
+        // For normal records, ADD pieces to running totals
+        runningTotalMedicinePieces += medicinePieces;
+        runningTotalFeedPieces += feedPieces;
+        runningTotalOtherPieces += otherPieces;
+      }
 
       return {
         ...record,
@@ -101,7 +228,10 @@ const DuesRecord = () => {
         runningTotalMedicinePieces: runningTotalMedicinePieces,
         runningTotalFeedPieces: runningTotalFeedPieces,
         runningTotalOtherPieces: runningTotalOtherPieces,
-        netDuesForRecord: netDuesForRecord
+        netDuesForRecord: netDuesForRecord,
+        // Add formatted name and return status to the record
+        formattedName: formatNameWithPieces(record),
+        isReturn: isReturn
       };
     });
   }, [sortedRecords]);
@@ -283,7 +413,7 @@ const DuesRecord = () => {
       const tableRows = recordsWithRunningTotals.map((record, index) => {
         const baseRow = [
           index + 1,
-          record.name || '-',
+          record.formattedName || '-', // Use formatted name for PDF
           record.single_piece_price || '0',
           record.runningTotalSinglePiecePrice || '0',
           record.m_pieces || '0',
@@ -446,6 +576,11 @@ const DuesRecord = () => {
   const TakenDuesStyle = {
     color: 'rgb(25, 135, 84)',
     backgroundColor: '#CAF7E3'
+  }
+  const ReturnStyle = {
+    color: '#ff6b35',
+    backgroundColor: '#fff3e0',
+    fontWeight: 'bold'
   }
 
   // ✅ Scroll button styles
@@ -617,7 +752,10 @@ const DuesRecord = () => {
                       </td>
                     )}
 
-                    <td style={TableCellStyle}>{record.name}</td>
+                    {/* Display formatted name with Medicine/Feed/Payment prefixes */}
+                    <td style={{ ...TableCellStyle, ...(record.isReturn ? ReturnStyle : {}) }}>
+                      {record.formattedName}
+                    </td>
 
                     {/* Single Piece Price */}
                     <td style={{ ...TableCellStyle, ...CommonStyle }}>
