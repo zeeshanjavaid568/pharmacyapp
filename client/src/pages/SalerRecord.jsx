@@ -2,6 +2,9 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Swal from 'sweetalert2/dist/sweetalert2';
 import { useSalerProductQuery, useDeleteSalerProductMutation } from '../redux/features/SalerProductApi/salerProductApi';
 import { Link } from 'react-router-dom';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 const SalerRecord = () => {
   const { data, isLoading, isError, refetch } = useSalerProductQuery();
@@ -12,12 +15,13 @@ const SalerRecord = () => {
   const [searchProductPlace, setSearchProductPlace] = useState('');
   const [searchDate, setSearchDate] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'ascending' });
-  const [viewMode, setViewMode] = useState('detailed'); // 'detailed', 'summaryByProductAndPlace', or 'summaryByProduct'
+  const [viewMode, setViewMode] = useState('detailed');
   const [showScrollButton, setShowScrollButton] = useState(false);
-  const [scrollDirection, setScrollDirection] = useState('down'); // 'up' or 'down'
+  const [scrollDirection, setScrollDirection] = useState('down');
   const [isAutoScrolling, setIsAutoScrolling] = useState(false);
-  const [scrollSpeed, setScrollSpeed] = useState(1); // 1: slow, 2: medium, 3: fast
+  const [scrollSpeed, setScrollSpeed] = useState(1);
   const [isStickySearch, setIsStickySearch] = useState(false);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
 
   const tableRef = useRef(null);
   const scrollIntervalRef = useRef(null);
@@ -45,11 +49,22 @@ const SalerRecord = () => {
     return Object.keys(yearlyData).sort((a, b) => b - a);
   };
 
-  // ✅ Format date
+  // ✅ Format date for display
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
     return new Intl.DateTimeFormat('en-CA', options).format(new Date(dateString));
+  };
+
+  // ✅ Format date for PDF
+  const formatDateForPDF = (dateString) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
   // ✅ Group records by Product Name and Product Place
@@ -108,7 +123,6 @@ const SalerRecord = () => {
       summaryMap[productName].records.push(record);
     });
 
-    // Convert Set to Array for display
     return Object.values(summaryMap).map(summary => ({
       ...summary,
       unique_places_count: summary.unique_places.size,
@@ -250,6 +264,424 @@ const SalerRecord = () => {
     return sortedSummary;
   };
 
+  // ✅ PDF Export Functions
+  const exportToPDF = () => {
+    setIsExportingPDF(true);
+
+    try {
+      const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      // Header
+      doc.setFontSize(20);
+      doc.setTextColor(244, 67, 54);
+      doc.text(`Saler Records Report - ${selectedYear}`, 14, 15);
+
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 22);
+
+      if (searchProductName || searchProductPlace || searchDate) {
+        doc.text(`Filters Applied: ${searchProductName ? `Product: ${searchProductName} ` : ''}${searchProductPlace ? `Place: ${searchProductPlace} ` : ''}${searchDate ? `Date: ${searchDate}` : ''}`, 14, 28);
+      }
+
+      // View Mode Info
+      doc.text(`View Mode: ${getViewModeText(viewMode)}`, 14, 34);
+
+      // Data based on view mode
+      let tableData = [];
+      let headers = [];
+      let columnStyles = {};
+
+      switch (viewMode) {
+        case 'detailed':
+          headers = [['#', 'Product Name', 'Product Place', 'Product Price', 'Pieces Price', 'Pieces', 'Date']];
+          columnStyles = {
+            0: { cellWidth: 10 },
+            3: { cellWidth: 25 },
+            4: { cellWidth: 25 },
+            5: { cellWidth: 20 },
+            6: { cellWidth: 25 }
+          };
+
+          filteredRecords.forEach((record, index) => {
+            tableData.push([
+              index + 1,
+              record.product_name || '-',
+              record.product_place || '-',
+              `Rs: ${parseFloat(record.product_price || 0).toFixed(2)}`,
+              `Rs: ${parseFloat(record.pieces_price || 0).toFixed(2)}`,
+              record.stock || '0',
+              formatDateForPDF(record.date)
+            ]);
+          });
+          break;
+
+        case 'summaryByProductAndPlace':
+          headers = [['#', 'Product Name', 'Product Place', 'Total Product Value', 'Total Pieces Price', 'Total Pieces', 'Records Count']];
+          columnStyles = {
+            0: { cellWidth: 10 },
+            3: { cellWidth: 30 },
+            4: { cellWidth: 30 },
+            5: { cellWidth: 25 },
+            6: { cellWidth: 25 }
+          };
+
+          summaryByProductAndPlace.forEach((summary, index) => {
+            tableData.push([
+              index + 1,
+              summary.product_name,
+              summary.product_place,
+              `Rs: ${summary.total_product_price.toFixed(2)}`,
+              `Rs: ${summary.total_pieces_price.toFixed(2)}`,
+              summary.total_pieces,
+              summary.records_count
+            ]);
+          });
+          break;
+
+        case 'summaryByProduct':
+          headers = [['#', 'Product Name', 'Different Places', 'Total Product Value', 'Total Pieces Price', 'Total Pieces', 'Records Count']];
+          columnStyles = {
+            0: { cellWidth: 10 },
+            2: { cellWidth: 40 },
+            3: { cellWidth: 30 },
+            4: { cellWidth: 30 },
+            5: { cellWidth: 25 },
+            6: { cellWidth: 25 }
+          };
+
+          summaryByProduct.forEach((summary, index) => {
+            tableData.push([
+              index + 1,
+              summary.product_name,
+              `${summary.unique_places_count} places: ${summary.unique_places_list.join(', ')}`,
+              `Rs: ${summary.total_product_price.toFixed(2)}`,
+              `Rs: ${summary.total_pieces_price.toFixed(2)}`,
+              summary.total_pieces,
+              summary.records_count
+            ]);
+          });
+          break;
+      }
+
+      // Generate table
+      autoTable(doc, {
+        head: headers,
+        body: tableData,
+        startY: 40,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [244, 67, 54],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold'
+        },
+        columnStyles: columnStyles,
+        margin: { left: 14, right: 14 },
+        styles: {
+          fontSize: 9,
+          cellPadding: 3,
+          overflow: 'linebreak'
+        },
+        didDrawPage: function (data) {
+          // Footer
+          doc.setFontSize(8);
+          doc.setTextColor(150, 150, 150);
+          doc.text(`Page ${doc.internal.getNumberOfPages()}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
+        }
+      });
+
+      // Add summary section
+      const finalY = doc.lastAutoTable.finalY + 10;
+
+      if (finalY < 180) { // Ensure we have space for summary
+        doc.setFontSize(12);
+        doc.setTextColor(244, 67, 54);
+        doc.text('Summary', 14, finalY + 5);
+
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+
+        const summaryData = [
+          [`Total Records: ${filteredRecords.length}`],
+          [`Total Product Value: Rs: ${filteredRecords.reduce((sum, record) => sum + (parseFloat(record.product_price) || 0), 0).toFixed(2)}`],
+          [`Total Pieces Price: Rs: ${filteredRecords.reduce((sum, record) => sum + (parseFloat(record.pieces_price) || 0), 0).toFixed(2)}`],
+          [`Total Pieces: ${filteredRecords.reduce((sum, record) => sum + (parseInt(record.stock) || 0), 0)}`]
+        ];
+
+        autoTable(doc, {
+          body: summaryData,
+          startY: finalY + 10,
+          theme: 'plain',
+          margin: { left: 14, right: 14 },
+          styles: {
+            fontSize: 10,
+            fontStyle: 'bold',
+            cellPadding: 5
+          }
+        });
+      }
+
+      // Save PDF
+      const fileName = `Saler_Records_${selectedYear}_${viewMode}_${new Date().getTime()}.pdf`;
+      doc.save(fileName);
+
+      Swal.fire({
+        title: 'PDF Generated!',
+        text: `Report saved as ${fileName}`,
+        icon: 'success',
+        confirmButtonText: 'Ok',
+        timer: 2000
+      });
+
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      Swal.fire({
+        title: 'Error!',
+        text: 'Failed to generate PDF. Please try again.',
+        icon: 'error',
+        confirmButtonText: 'Ok'
+      });
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
+
+  const exportAllToPDF = () => {
+    setIsExportingPDF(true);
+
+    try {
+      Swal.fire({
+        title: 'Exporting All Years',
+        text: 'Generating PDF for all years...',
+        icon: 'info',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        willOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      let currentY = 15;
+      let pageNumber = 1;
+
+      // Main title
+      doc.setFontSize(22);
+      doc.setTextColor(244, 67, 54);
+      doc.text('Complete Saler Records Report', 105, currentY, { align: 'center' });
+
+      currentY += 10;
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 105, currentY, { align: 'center' });
+
+      currentY += 15;
+
+      // Loop through each year
+      sortedYears.forEach((year, yearIndex) => {
+        const yearRecords = yearlyData[year];
+        const yearTotal = yearRecords.length;
+
+        // Check if we need a new page
+        if (currentY > 250) {
+          doc.addPage();
+          pageNumber++;
+          currentY = 15;
+        }
+
+        // Year header
+        doc.setFontSize(16);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Year: ${year} (${yearTotal} records)`, 14, currentY);
+        currentY += 10;
+
+        // Calculate yearly totals
+        const yearProductTotal = yearRecords.reduce((sum, record) => sum + (parseFloat(record.product_price) || 0), 0);
+        const yearPiecesTotal = yearRecords.reduce((sum, record) => sum + (parseFloat(record.pieces_price) || 0), 0);
+        const yearStockTotal = yearRecords.reduce((sum, record) => sum + (parseInt(record.stock) || 0), 0);
+
+        // Year summary
+        doc.setFontSize(10);
+        doc.text(`Yearly Summary:`, 14, currentY);
+        currentY += 6;
+        doc.text(`  • Total Product Value: Rs: ${yearProductTotal.toFixed(2)}`, 20, currentY);
+        currentY += 6;
+        doc.text(`  • Total Pieces Price: Rs: ${yearPiecesTotal.toFixed(2)}`, 20, currentY);
+        currentY += 6;
+        doc.text(`  • Total Pieces: ${yearStockTotal}`, 20, currentY);
+        currentY += 10;
+
+        // Create table data for this year (limited to 10 records per year in overview)
+        const tableData = yearRecords.slice(0, 10).map((record, index) => [
+          index + 1,
+          record.product_name?.substring(0, 20) || '-',
+          record.product_place?.substring(0, 15) || '-',
+          `Rs: ${parseFloat(record.product_price || 0).toFixed(2)}`,
+          record.stock || '0',
+          formatDateForPDF(record.date)
+        ]);
+
+        if (yearRecords.length > 10) {
+          tableData.push(['...', `... and ${yearRecords.length - 10} more records`, '', '', '', '']);
+        }
+
+        // Generate table for this year
+        autoTable(doc, {
+          head: [['#', 'Product Name', 'Product Place', 'Price', 'Pieces', 'Date']],
+          body: tableData,
+          startY: currentY,
+          theme: 'grid',
+          headStyles: {
+            fillColor: [100, 100, 100],
+            textColor: [255, 255, 255]
+          },
+          margin: { left: 14, right: 14 },
+          styles: {
+            fontSize: 8,
+            cellPadding: 2
+          }
+        });
+
+        currentY = doc.lastAutoTable.finalY + 15;
+      });
+
+      // Add final summary page
+      doc.addPage();
+      currentY = 15;
+
+      doc.setFontSize(20);
+      doc.setTextColor(244, 67, 54);
+      doc.text('Grand Summary', 105, currentY, { align: 'center' });
+      currentY += 15;
+
+      // Calculate overall totals
+      const allRecords = Object.values(yearlyData).flat();
+      const totalRecords = allRecords.length;
+      const totalProductValue = allRecords.reduce((sum, record) => sum + (parseFloat(record.product_price) || 0), 0);
+      const totalPiecesPrice = allRecords.reduce((sum, record) => sum + (parseFloat(record.pieces_price) || 0), 0);
+      const totalPieces = allRecords.reduce((sum, record) => sum + (parseInt(record.stock) || 0), 0);
+      const uniqueProducts = [...new Set(allRecords.map(record => record.product_name))].length;
+      const uniquePlaces = [...new Set(allRecords.map(record => record.product_place))].length;
+
+      const summaryData = [
+        ['Metric', 'Value'],
+        ['Total Years', sortedYears.length],
+        ['Total Records', totalRecords],
+        ['Unique Products', uniqueProducts],
+        ['Unique Places', uniquePlaces],
+        ['Total Product Value', `Rs: ${totalProductValue.toFixed(2)}`],
+        ['Total Pieces Price', `Rs: ${totalPiecesPrice.toFixed(2)}`],
+        ['Total Pieces Sold', totalPieces],
+        ['Average per Record', `Rs: ${(totalProductValue / totalRecords).toFixed(2)}`]
+      ];
+
+      autoTable(doc, {
+        body: summaryData,
+        startY: currentY,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [244, 67, 54],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold'
+        },
+        margin: { left: 50, right: 50 },
+        styles: {
+          fontSize: 11,
+          cellPadding: 5,
+          halign: 'center'
+        }
+      });
+
+      // Add footer
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text(`Report generated by Saler Management System - Page ${doc.internal.getNumberOfPages()}`, 105, doc.internal.pageSize.height - 10, { align: 'center' });
+
+      // Save PDF
+      const fileName = `Complete_Saler_Records_${new Date().getTime()}.pdf`;
+      doc.save(fileName);
+
+      Swal.fire({
+        title: 'Complete Report Generated!',
+        text: `Report saved as ${fileName}`,
+        icon: 'success',
+        confirmButtonText: 'Ok',
+        timer: 3000
+      });
+
+    } catch (error) {
+      console.error('Error generating complete PDF:', error);
+      Swal.fire({
+        title: 'Error!',
+        text: 'Failed to generate complete report. Please try again.',
+        icon: 'error',
+        confirmButtonText: 'Ok'
+      });
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
+
+  const exportSelectedToPDF = () => {
+    if (filteredRecords.length === 0) {
+      Swal.fire({
+        title: 'No Data!',
+        text: 'There are no records to export.',
+        icon: 'warning',
+        confirmButtonText: 'Ok'
+      });
+      return;
+    }
+
+    Swal.fire({
+      title: 'Export Options',
+      html: `
+        <div style="text-align: center; padding: 10px;">
+          <p><strong>Export Current View:</strong> ${filteredRecords.length} records</p>
+          <p><strong>View Mode:</strong> ${getViewModeText(viewMode)}</p>
+          <p><strong>Filters Applied:</strong> ${searchProductName || searchProductPlace || searchDate ? 'Yes' : 'No'}</p>
+        </div>
+      `,
+      showCancelButton: false,
+      confirmButtonText: 'Export Current View',
+      cancelButtonText: 'Export All Years',
+      showDenyButton: true,
+      denyButtonText: 'Cancel',
+      reverseButtons: true,
+      customClass: {
+        confirmButton: 'btn btn-danger me-2',
+        cancelButton: 'btn btn-primary me-2',
+        denyButton: 'btn btn-success me-2'
+      },
+      buttonsStyling: false
+    }).then((result) => {
+      if (result.isConfirmed) {
+        exportToPDF();
+      } else if (result.dismiss === Swal.DismissReason.cancel) {
+        exportAllToPDF();
+      }
+    });
+  };
+
+  // Helper function to get view mode text
+  const getViewModeText = (mode) => {
+    switch (mode) {
+      case 'detailed': return 'Detailed View';
+      case 'summaryByProductAndPlace': return 'Summary by Product & Place';
+      case 'summaryByProduct': return 'Summary by Product Only';
+      default: return mode;
+    }
+  };
+
   // ✅ Auto Scroll Functions
   const startAutoScroll = () => {
     if (!tableContainerRef.current || isAutoScrolling) return;
@@ -261,7 +693,6 @@ const SalerRecord = () => {
     scrollIntervalRef.current = setInterval(() => {
       if (scrollDirection === 'down') {
         if (container.scrollTop >= container.scrollHeight - container.clientHeight - 10) {
-          // Reached bottom, change direction to up
           setScrollDirection('up');
           clearInterval(scrollIntervalRef.current);
           startAutoScroll();
@@ -269,7 +700,6 @@ const SalerRecord = () => {
         }
       } else {
         if (container.scrollTop <= 10) {
-          // Reached top, change direction to down
           setScrollDirection('down');
           clearInterval(scrollIntervalRef.current);
           startAutoScroll();
@@ -278,7 +708,7 @@ const SalerRecord = () => {
       }
 
       container.scrollTop += scrollStep;
-    }, 50); // Adjust interval for smoothness
+    }, 50);
   };
 
   const stopAutoScroll = () => {
@@ -328,7 +758,6 @@ const SalerRecord = () => {
       const { scrollTop, scrollHeight, clientHeight } = tableContainerRef.current;
       setShowScrollButton(scrollHeight > clientHeight + 100);
 
-      // Detect if we're at top or bottom
       if (scrollTop <= 10) {
         setScrollDirection('down');
       } else if (scrollTop >= scrollHeight - clientHeight - 10) {
@@ -419,9 +848,25 @@ const SalerRecord = () => {
     <>
       {!selectedYear ? (
         <>
-          <h1 className='d-flex justify-content-center my-4 gradient_text'>
-            Saler All Years Record
-          </h1>
+          <div className="d-flex flex-column justify-content-between align-items-center my-4">
+            <h1 className='gradient_text mb-0'>
+              Saler All Years Record
+            </h1>
+            <button
+              className="btn delete_btn mt-3"
+              onClick={exportAllToPDF}
+              disabled={isExportingPDF}
+            >
+              {isExportingPDF ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  Generating PDF...
+                </>
+              ) : (
+                '📄 Export All Years to PDF'
+              )}
+            </button>
+          </div>
           <div className='responsive_card'>
             {sortedYears.map((year) => (
               <div
@@ -439,15 +884,19 @@ const SalerRecord = () => {
         </>
       ) : (
         <>
-          <h1 className='year_record_table d-flex justify-content-center my-4 gradient_text'>
-            Saler Record Details ({selectedYear})
-          </h1>
+          <div className="d-flex flex-column justify-content-center align-items-center my-4">
+            <h1 className='year_record_table gradient_text mb-0'>
+              Saler Record Details ({selectedYear})
+            </h1>
+            <div>
+              <button
+                className="btn btn-outline-danger me-2 mt-3"
+                onClick={() => setSelectedYear(null)}
+              >
+                ← Back to All Years
+              </button>
 
-          {/* 🔙 Back Button */}
-          <div className="text-center mb-5">
-            <button className="btn form_div" onClick={() => setSelectedYear(null)}>
-              ← Back to All Years
-            </button>
+            </div>
           </div>
 
           {/* 📊 Quick Stats */}
@@ -602,7 +1051,7 @@ const SalerRecord = () => {
             </div>
             <div className="form-group mt-2">
               <button
-                className="btn btn-outline-secondary mt-4"
+                className="btn btn-outline-danger mt-4"
                 onClick={() => {
                   setSearchProductName('');
                   setSearchProductPlace('');
@@ -610,6 +1059,20 @@ const SalerRecord = () => {
                 }}
               >
                 Clear All Filters
+              </button>
+              <button
+                className="btn delete_btn mt-4 ms-3"
+                onClick={exportSelectedToPDF}
+                disabled={isExportingPDF}
+              >
+                {isExportingPDF ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Exporting...
+                  </>
+                ) : (
+                  '📄 Export to PDF'
+                )}
               </button>
             </div>
           </div>
@@ -723,8 +1186,8 @@ const SalerRecord = () => {
                       <td>{index + 1}</td>
                       <td>{record.product_name}</td>
                       <td>{record.product_place}</td>
-                      <td>Rs: {parseFloat(record.product_price).toFixed()}</td>
-                      <td>Rs: {parseFloat(record.pieces_price).toFixed()}</td>
+                      <td>Rs: {parseFloat(record.product_price).toFixed(2)}</td>
+                      <td>Rs: {parseFloat(record.pieces_price).toFixed(2)}</td>
                       <td>{record.stock}</td>
                       <td>{formatDate(record.date)}</td>
                       <td>
@@ -773,12 +1236,12 @@ const SalerRecord = () => {
                       <td colSpan="3" className="text-end"><strong style={fontColorStyle}>Total Rs:</strong></td>
                       <td>
                         <strong>
-                          Rs: {filteredRecords.reduce((sum, record) => sum + (parseFloat(record.product_price) || 0), 0).toFixed()}
+                          Rs: {filteredRecords.reduce((sum, record) => sum + (parseFloat(record.product_price) || 0), 0).toFixed(2)}
                         </strong>
                       </td>
                       <td>
                         <strong>
-                          Rs: {filteredRecords.reduce((sum, record) => sum + (parseFloat(record.pieces_price) || 0), 0).toFixed()}
+                          Rs: {filteredRecords.reduce((sum, record) => sum + (parseFloat(record.pieces_price) || 0), 0).toFixed(2)}
                         </strong>
                       </td>
                       <td>
