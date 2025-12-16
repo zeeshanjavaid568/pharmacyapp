@@ -61,6 +61,27 @@ const DuesRecord = () => {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
 
+  // ✅ Voice synthesis states
+  const [speakingRecordId, setSpeakingRecordId] = useState(null);
+  const [isSpeechSupported, setIsSpeechSupported] = useState(false);
+  const [speechRate, setSpeechRate] = useState(1.0);
+  const [speechPitch, setSpeechPitch] = useState(1.0);
+  const [speechVolume, setSpeechVolume] = useState(1.0);
+
+  // Check if speech synthesis is supported
+  useEffect(() => {
+    setIsSpeechSupported('speechSynthesis' in window);
+    if ('speechSynthesis' in window) {
+      // Get available voices
+      speechSynthesis.getVoices();
+
+      // Some browsers need this event to load voices
+      window.speechSynthesis.onvoiceschanged = () => {
+        console.log('Voices loaded');
+      };
+    }
+  }, []);
+
   // ✅ Get unique khata names
   const khataNames = useMemo(() => {
     return [...new Set(data.map((item) => item.khata_name).filter(Boolean))];
@@ -73,6 +94,30 @@ const DuesRecord = () => {
     if (isNaN(date)) return '-';
     const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
     return localDate.toISOString().split('T')[0];
+  };
+
+  // ✅ Format date for speech (more natural reading)
+  const formatDateForSpeech = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date)) return '';
+
+    const day = date.getDate();
+    const month = date.toLocaleString('en-US', { month: 'long' });
+    const year = date.getFullYear();
+
+    // Add ordinal suffix to day
+    const getOrdinalSuffix = (n) => {
+      if (n > 3 && n < 21) return 'th';
+      switch (n % 10) {
+        case 1: return 'st';
+        case 2: return 'nd';
+        case 3: return 'rd';
+        default: return 'th';
+      }
+    };
+
+    return `${month} ${day}${getOrdinalSuffix(day)}, ${year}`;
   };
 
   // ✅ Check if name contains bank name or abbreviation
@@ -364,6 +409,464 @@ const DuesRecord = () => {
     }
   };
 
+  // ✅ Convert number to words (up to billions)
+  const numberToWords = (num) => {
+    const number = Math.abs(num);
+
+    // Handle zero case
+    if (number === 0) return 'zero';
+
+    // Define words arrays
+    const ones = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+    const teens = ['ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+    const tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+    const thousands = ['', 'thousand', 'lakh', 'crore', 'arab', 'kharab'];
+
+    // Indian numbering system arrays
+    const indianGroups = [2, 2, 3]; // For lakh, crore (2 digits each), then thousands (3 digits)
+
+    let words = '';
+    let tempNumber = number;
+    let groupIndex = 0;
+
+    // Process number in groups according to Indian system
+    while (tempNumber > 0) {
+      let group;
+
+      if (groupIndex === 0) {
+        // Last 3 digits (thousands)
+        group = tempNumber % 1000;
+        tempNumber = Math.floor(tempNumber / 1000);
+      } else {
+        // Next groups of 2 digits (lakh, crore, etc.)
+        group = tempNumber % 100;
+        tempNumber = Math.floor(tempNumber / 100);
+      }
+
+      if (group > 0) {
+        let groupWords = '';
+
+        // Convert hundreds place
+        if (group >= 100) {
+          groupWords += ones[Math.floor(group / 100)] + ' hundred ';
+          group %= 100;
+        }
+
+        // Convert tens and ones places
+        if (group >= 20) {
+          groupWords += tens[Math.floor(group / 10)] + ' ';
+          group %= 10;
+          if (group > 0) {
+            groupWords += ones[group] + ' ';
+          }
+        } else if (group >= 10) {
+          groupWords += teens[group - 10] + ' ';
+        } else if (group > 0) {
+          groupWords += ones[group] + ' ';
+        }
+
+        // Add thousand/lakh/crore suffix
+        if (thousands[groupIndex]) {
+          groupWords += thousands[groupIndex] + ' ';
+        }
+
+        words = groupWords + words;
+      }
+
+      groupIndex++;
+    }
+
+    // Add negative prefix if needed
+    if (num < 0) {
+      words = 'negative ' + words;
+    }
+
+    // Capitalize first letter and trim
+    words = words.trim();
+    words = words.charAt(0).toUpperCase() + words.slice(1);
+
+    // Add "only" at the end
+    words += ' only';
+
+    return words;
+  };
+
+  // ✅ Format number with commas for display
+  const formatNumberWithCommas = (num) => {
+    if (num === undefined || num === null) return '0';
+    return Math.abs(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+
+  // ✅ Generate speech text for a record with NEW pattern
+  const generateSpeechText = (record, recordNumber, totalRecords) => {
+    const name = record.formattedName || 'No Name';
+    const date = formatDateForSpeech(record.date) || 'No Date';
+
+    const singlePiecePrice = Number(record.single_piece_price) || 0;
+    const totalSinglePiecePrice = record.runningTotalSinglePiecePrice || 0;
+    const medicinePieces = Number(record.m_pieces) || 0;
+    const totalMedicinePieces = record.runningTotalMedicinePieces || 0;
+    const feedPieces = Number(record.total_piece) || 0;
+    const totalFeedPieces = record.runningTotalFeedPieces || 0;
+    const otherPieces = Number(record.o_pieces) || 0;
+    const totalOtherPieces = record.runningTotalOtherPieces || 0;
+    const givenDues = Number(record.given_dues) || 0;
+    const takenDues = Number(record.taken_dues) || 0;
+    const remainsTotal = record.runningTotal || 0;
+
+    // Convert amounts to words
+    const givenDuesWords = givenDues !== 0 ? numberToWords(givenDues) : 'zero';
+    const takenDuesWords = takenDues !== 0 ? numberToWords(takenDues) : 'zero';
+    const remainsTotalWords = remainsTotal !== 0 ? numberToWords(remainsTotal) : 'zero';
+
+    let speechText = '';
+
+    // Add record number and name
+    if (recordNumber && totalRecords) {
+      speechText += `Record ${recordNumber} of ${totalRecords}. `;
+    }
+    speechText += `Name: ${name}. `;
+
+    // Add price/weight information
+    if (singlePiecePrice > 0) {
+      speechText += `Price or Weight: ${formatNumberWithCommas(singlePiecePrice)}. `;
+    }
+    speechText += `Total Price or Weight: ${formatNumberWithCommas(totalSinglePiecePrice)}. `;
+
+    // Add medicine pieces
+    if (medicinePieces > 0) {
+      speechText += `Medicine pieces: ${medicinePieces}. `;
+    }
+    speechText += `Total Medicines: ${formatNumberWithCommas(totalMedicinePieces)}. `;
+
+    // Add feed pieces
+    if (feedPieces > 0) {
+      speechText += `Feed Pieces: ${feedPieces}. `;
+    }
+    speechText += `Total Feeds: ${formatNumberWithCommas(totalFeedPieces)}. `;
+
+    // Add other pieces
+    if (otherPieces > 0) {
+      speechText += `Other Pieces: ${otherPieces}. `;
+    }
+    speechText += `Total Others: ${formatNumberWithCommas(totalOtherPieces)}. `;
+
+    // Add given dues
+    if (givenDues > 0) {
+      speechText += `Given dues: ${formatNumberWithCommas(givenDues)} rupees, that is ${givenDuesWords}. `;
+    } else if (givenDues < 0) {
+      speechText += `Given dues: negative ${formatNumberWithCommas(givenDues)} rupees, that is ${givenDuesWords}. `;
+    } else {
+      speechText += `Given dues: zero rupees. `;
+    }
+
+    // Add taken dues
+    if (takenDues > 0) {
+      speechText += `Taken dues: ${formatNumberWithCommas(takenDues)} rupees, that is ${takenDuesWords}. `;
+    } else if (takenDues < 0) {
+      speechText += `Taken dues: negative ${formatNumberWithCommas(takenDues)} rupees, that is ${takenDuesWords}. `;
+    } else {
+      speechText += `Taken dues: zero rupees. `;
+    }
+
+    // Add remaining total
+    if (remainsTotal > 0) {
+      speechText += `Remaining total: ${formatNumberWithCommas(remainsTotal)} rupees, that is ${remainsTotalWords}. `;
+    } else if (remainsTotal < 0) {
+      speechText += `Remaining total: negative ${formatNumberWithCommas(remainsTotal)} rupees, that is ${remainsTotalWords}. `;
+    } else {
+      speechText += `Remaining total: zero rupees. `;
+    }
+
+    // Add date
+    speechText += `Date: ${date}.`;
+
+    return speechText;
+  };
+
+  // ✅ Generate speech text for single record (without record number)
+  const generateSpeechTextForSingle = (record) => {
+    const name = record.formattedName || 'No Name';
+    const date = formatDateForSpeech(record.date) || 'No Date';
+
+    const singlePiecePrice = Number(record.single_piece_price) || 0;
+    const totalSinglePiecePrice = record.runningTotalSinglePiecePrice || 0;
+    const medicinePieces = Number(record.m_pieces) || 0;
+    const totalMedicinePieces = record.runningTotalMedicinePieces || 0;
+    const feedPieces = Number(record.total_piece) || 0;
+    const totalFeedPieces = record.runningTotalFeedPieces || 0;
+    const otherPieces = Number(record.o_pieces) || 0;
+    const totalOtherPieces = record.runningTotalOtherPieces || 0;
+    const givenDues = Number(record.given_dues) || 0;
+    const takenDues = Number(record.taken_dues) || 0;
+    const remainsTotal = record.runningTotal || 0;
+
+    // Convert amounts to words
+    const givenDuesWords = givenDues !== 0 ? numberToWords(givenDues) : 'zero';
+    const takenDuesWords = takenDues !== 0 ? numberToWords(takenDues) : 'zero';
+    const remainsTotalWords = remainsTotal !== 0 ? numberToWords(remainsTotal) : 'zero';
+
+    let speechText = '';
+
+    // Start with remaining total first
+    if (remainsTotal > 0) {
+      speechText += `Remaining total: ${formatNumberWithCommas(remainsTotal)} rupees, that is ${remainsTotalWords}. `;
+    } else if (remainsTotal < 0) {
+      speechText += `Remaining total: negative ${formatNumberWithCommas(remainsTotal)} rupees, that is ${remainsTotalWords}. `;
+    } else {
+      speechText += `Remaining total: zero rupees. `;
+    }
+
+    // Add record number and name
+    speechText += `Record details: Name: ${name}. `;
+
+    // Add price/weight information
+    if (singlePiecePrice > 0) {
+      speechText += `Price or Weight: ${formatNumberWithCommas(singlePiecePrice)}. `;
+    }
+    speechText += `Total Price or Weight: ${formatNumberWithCommas(totalSinglePiecePrice)}. `;
+
+    // Add medicine pieces
+    if (medicinePieces > 0) {
+      speechText += `Medicine pieces: ${medicinePieces}. `;
+    }
+    speechText += `Total Medicines: ${formatNumberWithCommas(totalMedicinePieces)}. `;
+
+    // Add feed pieces
+    if (feedPieces > 0) {
+      speechText += `Feed Pieces: ${feedPieces}. `;
+    }
+    speechText += `Total Feeds: ${formatNumberWithCommas(totalFeedPieces)}. `;
+
+    // Add other pieces
+    if (otherPieces > 0) {
+      speechText += `Other Pieces: ${otherPieces}. `;
+    }
+    speechText += `Total Others: ${formatNumberWithCommas(totalOtherPieces)}. `;
+
+    // Add given dues
+    if (givenDues > 0) {
+      speechText += `Given dues: ${formatNumberWithCommas(givenDues)} rupees, that is ${givenDuesWords}. `;
+    } else if (givenDues < 0) {
+      speechText += `Given dues: negative ${formatNumberWithCommas(givenDues)} rupees, that is ${givenDuesWords}. `;
+    } else {
+      speechText += `Given dues: zero rupees. `;
+    }
+
+    // Add taken dues
+    if (takenDues > 0) {
+      speechText += `Taken dues: ${formatNumberWithCommas(takenDues)} rupees, that is ${takenDuesWords}. `;
+    } else if (takenDues < 0) {
+      speechText += `Taken dues: negative ${formatNumberWithCommas(takenDues)} rupees, that is ${takenDuesWords}. `;
+    } else {
+      speechText += `Taken dues: zero rupees. `;
+    }
+
+    // Add remaining total again at the end
+    if (remainsTotal > 0) {
+      speechText += `Remaining total: ${formatNumberWithCommas(remainsTotal)} rupees, that is ${remainsTotalWords}. `;
+    } else if (remainsTotal < 0) {
+      speechText += `Remaining total: negative ${formatNumberWithCommas(remainsTotal)} rupees, that is ${remainsTotalWords}. `;
+    } else {
+      speechText += `Remaining total: zero rupees. `;
+    }
+
+    // Add date
+    speechText += `Date: ${date}.`;
+
+    return speechText;
+  };
+
+  // ✅ Speak record function
+  const speakRecord = (record) => {
+    if (!isSpeechSupported) {
+      Swal.fire({
+        title: 'Speech Not Supported',
+        text: 'Your browser does not support text-to-speech functionality.',
+        icon: 'warning',
+        confirmButtonText: 'Ok'
+      });
+      return;
+    }
+
+    // Stop any ongoing speech
+    stopSpeech();
+
+    const speechText = generateSpeechTextForSingle(record);
+
+    const utterance = new SpeechSynthesisUtterance(speechText);
+
+    // Set speech properties
+    utterance.rate = speechRate;
+    utterance.pitch = speechPitch;
+    utterance.volume = speechVolume;
+
+    // Get available voices and try to find a natural-sounding one
+    const voices = speechSynthesis.getVoices();
+    const preferredVoice = voices.find(voice =>
+      voice.lang.includes('en') && (voice.name.toLowerCase().includes('natural') || voice.name.toLowerCase().includes('female'))
+    ) || voices.find(voice => voice.lang.includes('en'));
+
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+    }
+
+    // Set speaking state
+    setSpeakingRecordId(record.id);
+
+    // Handle speech events
+    utterance.onend = () => {
+      setSpeakingRecordId(null);
+    };
+
+    utterance.onerror = (error) => {
+      console.error('Speech synthesis error:', error);
+      setSpeakingRecordId(null);
+      Swal.fire({
+        title: 'Speech Error',
+        text: 'Failed to speak the record. Please try again.',
+        icon: 'error',
+        confirmButtonText: 'Ok'
+      });
+    };
+
+    // Start speaking
+    speechSynthesis.speak(utterance);
+  };
+
+  // ✅ Stop speech function
+  const stopSpeech = () => {
+    if (speechSynthesis.speaking) {
+      speechSynthesis.cancel();
+      setSpeakingRecordId(null);
+    }
+  };
+
+  // ✅ Toggle speech for a record
+  const toggleSpeech = (record) => {
+    if (speakingRecordId === record.id) {
+      stopSpeech();
+    } else {
+      speakRecord(record);
+    }
+  };
+
+  // ✅ Speak all records function with amounts in words
+  const speakAllRecords = () => {
+    if (!isSpeechSupported) {
+      Swal.fire({
+        title: 'Speech Not Supported',
+        text: 'Your browser does not support text-to-speech functionality.',
+        icon: 'warning',
+        confirmButtonText: 'Ok'
+      });
+      return;
+    }
+
+    if (recordsWithRunningTotals.length === 0) {
+      Swal.fire({
+        title: 'No Records',
+        text: 'There are no records to speak.',
+        icon: 'info',
+        confirmButtonText: 'Ok'
+      });
+      return;
+    }
+
+    // Stop any ongoing speech
+    stopSpeech();
+
+    let currentIndex = 0;
+
+    const speakNextRecord = () => {
+      if (currentIndex >= recordsWithRunningTotals.length) {
+        setSpeakingRecordId(null);
+
+        // Speak summary at the end
+        const summaryText = `End of records. Total ${recordsWithRunningTotals.length} records. Final remaining balance is ${formatNumberWithCommas(lastPrice)} rupees, that is ${numberToWords(lastPrice)}.`;
+        const summaryUtterance = new SpeechSynthesisUtterance(summaryText);
+        summaryUtterance.rate = speechRate;
+        summaryUtterance.pitch = speechPitch;
+        summaryUtterance.volume = speechVolume;
+        speechSynthesis.speak(summaryUtterance);
+
+        return;
+      }
+
+      const record = recordsWithRunningTotals[currentIndex];
+      setSpeakingRecordId(record.id);
+
+      const speechText = generateSpeechText(record, currentIndex + 1, recordsWithRunningTotals.length);
+
+      const utterance = new SpeechSynthesisUtterance(speechText);
+      utterance.rate = speechRate;
+      utterance.pitch = speechPitch;
+      utterance.volume = speechVolume;
+
+      utterance.onend = () => {
+        currentIndex++;
+        speakNextRecord();
+      };
+
+      utterance.onerror = () => {
+        currentIndex++;
+        speakNextRecord();
+      };
+
+      speechSynthesis.speak(utterance);
+    };
+
+    speakNextRecord();
+  };
+
+  // ✅ Speak summary function
+  const speakSummary = () => {
+    if (!isSpeechSupported) {
+      Swal.fire({
+        title: 'Speech Not Supported',
+        text: 'Your browser does not support text-to-speech functionality.',
+        icon: 'warning',
+        confirmButtonText: 'Ok'
+      });
+      return;
+    }
+
+    if (recordsWithRunningTotals.length === 0) {
+      Swal.fire({
+        title: 'No Records',
+        text: 'There are no records to speak.',
+        icon: 'info',
+        confirmButtonText: 'Ok'
+      });
+      return;
+    }
+
+    stopSpeech();
+
+    let summaryText = `Summary for ${selectedKhata || 'All Khatas'}. `;
+    summaryText += `Total records: ${recordsWithRunningTotals.length}. `;
+    summaryText += `Total all pieces: ${lastTotalPieces}. `;
+    summaryText += `Total price or weight: ${formatNumberWithCommas(lastSinglePiecePriceTotal)}. `;
+    summaryText += `Final remaining balance: ${formatNumberWithCommas(lastPrice)} rupees, that is ${numberToWords(lastPrice)}.`;
+
+    const utterance = new SpeechSynthesisUtterance(summaryText);
+    utterance.rate = speechRate;
+    utterance.pitch = speechPitch;
+    utterance.volume = speechVolume;
+
+    // Get available voices
+    const voices = speechSynthesis.getVoices();
+    const preferredVoice = voices.find(voice =>
+      voice.lang.includes('en') && (voice.name.toLowerCase().includes('natural') || voice.name.toLowerCase().includes('female'))
+    ) || voices.find(voice => voice.lang.includes('en'));
+
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+    }
+
+    speechSynthesis.speak(utterance);
+  };
+
   // ✅ Scroll to Top Function
   const scrollToTop = () => {
     if (tableContainerRef.current) {
@@ -481,7 +984,8 @@ const DuesRecord = () => {
         'Given Dues (-)',
         'Taken Dues (+)',
         'Remains Total Price',
-        'Date'
+        'Date',
+        'Actions'
       ];
 
       // Prepare table rows
@@ -501,6 +1005,7 @@ const DuesRecord = () => {
           record.taken_dues || '0',
           record.runningTotal || '0',
           formatDate(record.date),
+          'Update/Delete'
         ];
 
         // Add khata name at the beginning if "All Khatas" is selected
@@ -526,6 +1031,7 @@ const DuesRecord = () => {
         columnStyles[11] = { textColor: [25, 135, 84], fillColor: [202, 247, 227] };
         // Remains Total Price will be handled dynamically
         columnStyles[13] = { textColor: [90, 14, 36], fillColor: [255, 255, 255] };
+        columnStyles[14] = { textColor: [33, 37, 41], fillColor: [248, 249, 250] };
       } else {
         // When showing all khatas
         columnStyles[0] = { textColor: [90, 14, 36], fillColor: [240, 240, 240] };
@@ -543,6 +1049,7 @@ const DuesRecord = () => {
         columnStyles[12] = { textColor: [25, 135, 84], fillColor: [202, 247, 227] };
         // Remains Total Price will be handled dynamically
         columnStyles[14] = { textColor: [90, 14, 36], fillColor: [255, 255, 255] };
+        columnStyles[15] = { textColor: [33, 37, 41], fillColor: [248, 249, 250] };
       }
 
       // Define cell styles for PDF
@@ -657,6 +1164,20 @@ const DuesRecord = () => {
     backgroundColor: '#fff3e0',
     fontWeight: 'bold'
   }
+  const SpeakingStyle = {
+    backgroundColor: '#e8f4fd',
+    borderLeft: '4px solid #2196f3',
+    animation: 'pulse 2s infinite'
+  }
+
+  // ✅ CSS for pulse animation
+  const pulseAnimation = `
+    @keyframes pulse {
+      0% { background-color: #e8f4fd; }
+      50% { background-color: #bbdefb; }
+      100% { background-color: #e8f4fd; }
+    }
+  `;
 
   // ✅ Scroll button styles
   const scrollButtonStyle = {
@@ -689,6 +1210,8 @@ const DuesRecord = () => {
 
   return (
     <>
+      <style>{pulseAnimation}</style>
+
       <h1 className="d-flex justify-content-center my-4 gradient_text">
         Add Dues In Record
       </h1>
@@ -723,6 +1246,80 @@ const DuesRecord = () => {
         {selectedKhata ? `(${selectedKhata})` : 'All Khatas'} Dues Record
       </h1>
 
+      {/* 🔊 Voice Controls */}
+      {isSpeechSupported && (
+        <div className="voice-controls mb-4 p-3 bg-light rounded shadow-sm">
+          <div className="row align-items-center">
+            <div className="col-md-8">
+              <div className="row">
+                <div className="col-md-4">
+                  <label className="form-label fw-bold">Speech Rate</label>
+                  <input
+                    type="range"
+                    className="form-range"
+                    min="0.5"
+                    max="2"
+                    step="0.1"
+                    value={speechRate}
+                    onChange={(e) => setSpeechRate(parseFloat(e.target.value))}
+                  />
+                  <div className="text-center">{speechRate.toFixed(1)}x</div>
+                </div>
+                <div className="col-md-4">
+                  <label className="form-label fw-bold">Speech Pitch</label>
+                  <input
+                    type="range"
+                    className="form-range"
+                    min="0.5"
+                    max="2"
+                    step="0.1"
+                    value={speechPitch}
+                    onChange={(e) => setSpeechPitch(parseFloat(e.target.value))}
+                  />
+                  <div className="text-center">{speechPitch.toFixed(1)}</div>
+                </div>
+                <div className="col-md-4">
+                  <label className="form-label fw-bold">Speech Volume</label>
+                  <input
+                    type="range"
+                    className="form-range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={speechVolume}
+                    onChange={(e) => setSpeechVolume(parseFloat(e.target.value))}
+                  />
+                  <div className="text-center">{speechVolume.toFixed(1)}</div>
+                </div>
+              </div>
+            </div>
+            <div className="col-md-4">
+              <button
+                className="btn btn-primary me-2"
+                onClick={speakSummary}
+                disabled={recordsWithRunningTotals.length === 0}
+              >
+                📊 Speak Summary
+              </button>
+              <button
+                className="btn btn-info me-2"
+                onClick={speakAllRecords}
+                disabled={recordsWithRunningTotals.length === 0 || speakingRecordId !== null}
+              >
+                🔊 Speak All Records
+              </button>
+              <button
+                className="btn btn-warning mt-2"
+                onClick={stopSpeech}
+                disabled={!speakingRecordId}
+              >
+                ⏹️ Stop Speech
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 🔍 Filters */}
       <div className="search-container mb-3 d-flex gap-3 flex-wrap align-items-end">
         <div className="form-group mt-2">
@@ -748,7 +1345,7 @@ const DuesRecord = () => {
         </div>
         <div className="form-group mt-2">
           <label className="form-label fw-bold">Total Price or Weight</label>
-          <div className="form-control text-center fw-bold bg-light" style={{ color: 'rgb(6, 7, 113)' }}>{lastSinglePiecePriceTotal}</div>
+          <div className="form-control text-center fw-bold bg-light" style={{ color: 'rgb(6, 7, 113)' }}>{formatNumberWithCommas(lastSinglePiecePriceTotal)}</div>
         </div>
         <div className="form-group mt-2">
           <label className="form-label fw-bold">Remains Total Price</label>
@@ -756,7 +1353,7 @@ const DuesRecord = () => {
             className="form-control text-center fw-bold bg-light"
             style={getPriceColorStyle(lastPrice)}
           >
-            {lastPrice}
+            {formatNumberWithCommas(lastPrice)}
           </div>
         </div>
         <div className="form-group mt-2">
@@ -817,7 +1414,10 @@ const DuesRecord = () => {
             <tbody>
               {recordsWithRunningTotals.length > 0 ? (
                 recordsWithRunningTotals.map((record, index) => (
-                  <tr key={record.id || index}>
+                  <tr
+                    key={record.id || index}
+                    style={speakingRecordId === record.id ? SpeakingStyle : {}}
+                  >
                     <td style={{ ...TableCellStyle, ...IndexStyle }}>{index + 1}</td>
 
                     {/* Conditionally show Khata Name cell only when "All Khatas" is selected */}
@@ -834,12 +1434,12 @@ const DuesRecord = () => {
 
                     {/* Single Piece Price */}
                     <td style={{ ...TableCellStyle, ...CommonStyle }}>
-                      {record.single_piece_price}
+                      {formatNumberWithCommas(record.single_piece_price)}
                     </td>
 
                     {/* Sum of Price or Weight (Running Total of Single Piece Price) */}
                     <td style={{ ...TableCellStyle, ...SumOfTotalStyle }} className="fw-bold">
-                      {record.runningTotalSinglePiecePrice}
+                      {formatNumberWithCommas(record.runningTotalSinglePiecePrice)}
                     </td>
 
                     {/* Medicine Pieces */}
@@ -866,12 +1466,17 @@ const DuesRecord = () => {
                       {record.runningTotalOtherPieces}
                     </td>
 
+                    {/* Given Dues with proper formatting */}
                     <td style={{ ...TableCellStyle, ...GivenDuesStyle }}>
-                      {record.given_dues}
+                      {record.given_dues ? formatNumberWithCommas(record.given_dues) : '0'}
                     </td>
+
+                    {/* Taken Dues with proper formatting */}
                     <td style={{ ...TableCellStyle, ...TakenDuesStyle }}>
-                      {record.taken_dues}
+                      {record.taken_dues ? formatNumberWithCommas(record.taken_dues) : '0'}
                     </td>
+
+                    {/* Remains Total Price with proper formatting */}
                     <td
                       style={{
                         ...TableCellStyle,
@@ -879,13 +1484,13 @@ const DuesRecord = () => {
                       }}
                       className="fw-bold"
                     >
-                      {record.runningTotal}
+                      {formatNumberWithCommas(record.runningTotal)}
                     </td>
                     <td style={TableCellStyle}>
                       {formatDate(record.date)}
                     </td>
-                    <td style={TableCellStyle} className='d-flex justify-content-center align-items-center'>
-                      <Link to={`/updatedues/${record.id}`} className="update_btn me-3">
+                    <td style={TableCellStyle} className='d-flex justify-content-center align-items-center gap-2'>
+                      <Link to={`/updatedues/${record.id}`} className="update_btn">
                         Update
                       </Link>
                       <button
@@ -894,6 +1499,21 @@ const DuesRecord = () => {
                       >
                         Delete
                       </button>
+                      {isSpeechSupported && (
+                        <button
+                          className={`btn ${speakingRecordId === record.id ? 'btn-warning' : 'btn-info'}`}
+                          onClick={() => toggleSpeech(record)}
+                          style={{
+                            padding: '2px 8px',
+                            fontSize: '0.8rem',
+                            minWidth: '60px',
+
+                          }}
+                          title={speakingRecordId === record.id ? 'Stop speaking this record' : 'Speak this record with amounts in words'}
+                        >
+                          {speakingRecordId === record.id ? '⏹️ Stop' : '🔊 Speak'}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))
