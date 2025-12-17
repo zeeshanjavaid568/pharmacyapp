@@ -1,12 +1,28 @@
-import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import DuesCard from '../components/Cards/DuesCard';
 import { useGetAllDuesQuery, useDeleteGivenDuesMutation } from '../redux/features/DuesApi/giveDuesApi';
 import { Link } from 'react-router-dom';
+import { useSpeechSynthesis } from 'react-speech-kit'; // Import react-speech-kit
 
 const DuesRecord = () => {
   const { data = [], isLoading, isError, refetch } = useGetAllDuesQuery();
   const [deleteGivenDues] = useDeleteGivenDuesMutation();
+
+  // ✅ Use react-speech-kit hook
+  const { speak, speaking, cancel, voices, supported } = useSpeechSynthesis({
+    onEnd: () => setSpeakingRecordId(null),
+    onError: (event) => {
+      console.error('Speech synthesis error:', event);
+      setSpeakingRecordId(null);
+      Swal.fire({
+        title: 'Speech Error',
+        text: 'Failed to speak the record. Please try again.',
+        icon: 'error',
+        confirmButtonText: 'Ok'
+      });
+    }
+  });
 
   // ✅ Bank names and abbreviations list
   const bankNamesAndAbbreviations = [
@@ -47,8 +63,6 @@ const DuesRecord = () => {
   // ✅ Refs for scrolling
   const tableContainerRef = useRef(null);
   const tableRef = useRef(null);
-  const speechQueueRef = useRef([]);
-  const currentUtteranceRef = useRef(null);
 
   // ✅ Filters
   const [searchDate, setSearchDate] = useState('');
@@ -63,100 +77,11 @@ const DuesRecord = () => {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
 
-  // ✅ Enhanced Voice synthesis states for offline functionality
+  // ✅ Voice synthesis states
   const [speakingRecordId, setSpeakingRecordId] = useState(null);
-  const [isSpeechSupported, setIsSpeechSupported] = useState(false);
-  const [isSpeechInitialized, setIsSpeechInitialized] = useState(false);
-  const [availableVoices, setAvailableVoices] = useState([]);
-  const [selectedVoice, setSelectedVoice] = useState(null);
   const [speechRate, setSpeechRate] = useState(1.0);
   const [speechPitch, setSpeechPitch] = useState(1.0);
   const [speechVolume, setSpeechVolume] = useState(1.0);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [currentSpeechText, setCurrentSpeechText] = useState('');
-  const [speechError, setSpeechError] = useState(null);
-  const [isOfflineMode, setIsOfflineMode] = useState(false);
-
-  // ✅ Initialize speech synthesis with offline capability
-  useEffect(() => {
-    const initSpeechSynthesis = () => {
-      if ('speechSynthesis' in window) {
-        setIsSpeechSupported(true);
-        
-        // Check if we're offline
-        setIsOfflineMode(!navigator.onLine);
-        
-        // Load available voices
-        const loadVoices = () => {
-          const voices = speechSynthesis.getVoices();
-          if (voices.length > 0) {
-            setAvailableVoices(voices);
-            
-            // Try to find a natural-sounding offline voice
-            const offlineVoice = voices.find(voice => 
-              !voice.localService === false && // Local voices are usually offline
-              voice.lang.includes('en')
-            ) || voices.find(voice => 
-              voice.lang.includes('en')
-            ) || voices[0];
-            
-            if (offlineVoice) {
-              setSelectedVoice(offlineVoice);
-            }
-            
-            setIsSpeechInitialized(true);
-            setSpeechError(null);
-          } else {
-            // If no voices are available, we might be offline
-            setTimeout(() => {
-              const voices = speechSynthesis.getVoices();
-              if (voices.length > 0) {
-                setAvailableVoices(voices);
-                setSelectedVoice(voices[0]);
-                setIsSpeechInitialized(true);
-              } else {
-                setSpeechError('No voices available. Please check your system settings.');
-              }
-            }, 1000);
-          }
-        };
-        
-        // Initial load
-        loadVoices();
-        
-        // Some browsers load voices asynchronously
-        if (speechSynthesis.onvoiceschanged !== undefined) {
-          speechSynthesis.onvoiceschanged = loadVoices;
-        }
-        
-        // Listen for online/offline status
-        const handleOnline = () => {
-          setIsOfflineMode(false);
-          loadVoices();
-        };
-        
-        const handleOffline = () => {
-          setIsOfflineMode(true);
-          // Offline mode - use available voices
-          loadVoices();
-        };
-        
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
-        
-        return () => {
-          window.removeEventListener('online', handleOnline);
-          window.removeEventListener('offline', handleOffline);
-          stopSpeech();
-        };
-      } else {
-        setIsSpeechSupported(false);
-        setSpeechError('Speech synthesis is not supported in your browser.');
-      }
-    };
-    
-    initSpeechSynthesis();
-  }, []);
 
   // ✅ Get unique khata names
   const khataNames = useMemo(() => {
@@ -182,6 +107,7 @@ const DuesRecord = () => {
     const month = date.toLocaleString('en-US', { month: 'long' });
     const year = date.getFullYear();
 
+    // Add ordinal suffix to day
     const getOrdinalSuffix = (n) => {
       if (n > 3 && n < 21) return 'th';
       switch (n % 10) {
@@ -211,7 +137,7 @@ const DuesRecord = () => {
     return lowerName.includes('return') || lowerName.includes('gai');
   };
 
-  // ✅ Format Name with Medicine/Feed/Other/Payment prefixes
+  // ✅ Format Name with Medicine/Feed/Other/Payment prefixes (For Table Display)
   const formatNameWithPieces = (record) => {
     let name = record.name || '';
     const medicinePieces = Number(record.m_pieces) || 0;
@@ -314,12 +240,16 @@ const DuesRecord = () => {
   const filteredRecords = data.filter((record) => {
     const recordDate = formatDate(record.date);
     const matchesKhata = selectedKhata ? record.khata_name === selectedKhata : true;
+
     const formattedName = formatNameWithPieces(record);
     const matchesName = searchName ?
       formattedName.toLowerCase().includes(searchName.toLowerCase()) : true;
+
     const matchesDate = searchDate ? recordDate === searchDate : true;
+
     const recordYear = recordDate.split('-')[0];
     const recordMonth = recordDate ? `${recordYear}/${recordDate.split('-')[1]}` : '';
+
     const matchesMonth = searchMonth ? recordMonth === searchMonth : true;
     const matchesYear = searchYear ? recordYear === searchYear : true;
 
@@ -383,12 +313,13 @@ const DuesRecord = () => {
     });
   }, [sortedRecords]);
 
-  // ✅ Find last record totals
+  // ✅ Find last record totals for selected khata
   const lastPrice = useMemo(() => {
     if (!selectedKhata) {
       if (recordsWithRunningTotals.length === 0) return 0;
       return recordsWithRunningTotals[recordsWithRunningTotals.length - 1]?.runningTotal || 0;
     }
+
     const khataRecords = recordsWithRunningTotals.filter((r) => r.khata_name === selectedKhata);
     if (khataRecords.length === 0) return 0;
     return khataRecords[khataRecords.length - 1]?.runningTotal || 0;
@@ -402,6 +333,7 @@ const DuesRecord = () => {
         (lastRecord?.runningTotalFeedPieces || 0) +
         (lastRecord?.runningTotalOtherPieces || 0);
     }
+
     const khataRecords = recordsWithRunningTotals.filter((r) => r.khata_name === selectedKhata);
     if (khataRecords.length === 0) return 0;
     const lastRecord = khataRecords[khataRecords.length - 1];
@@ -415,6 +347,7 @@ const DuesRecord = () => {
       if (recordsWithRunningTotals.length === 0) return 0;
       return recordsWithRunningTotals[recordsWithRunningTotals.length - 1]?.runningTotalSinglePiecePrice || 0;
     }
+
     const khataRecords = recordsWithRunningTotals.filter((r) => r.khata_name === selectedKhata);
     if (khataRecords.length === 0) return 0;
     return khataRecords[khataRecords.length - 1]?.runningTotalSinglePiecePrice || 0;
@@ -431,7 +364,7 @@ const DuesRecord = () => {
     }
   };
 
-  // ✅ Convert number to words (up to billions)
+  // ✅ Convert number to words
   const numberToWords = (num) => {
     const number = Math.abs(num);
     if (number === 0) return 'zero';
@@ -447,6 +380,7 @@ const DuesRecord = () => {
 
     while (tempNumber > 0) {
       let group;
+
       if (groupIndex === 0) {
         group = tempNumber % 1000;
         tempNumber = Math.floor(tempNumber / 1000);
@@ -457,10 +391,12 @@ const DuesRecord = () => {
 
       if (group > 0) {
         let groupWords = '';
+
         if (group >= 100) {
           groupWords += ones[Math.floor(group / 100)] + ' hundred ';
           group %= 100;
         }
+
         if (group >= 20) {
           groupWords += tens[Math.floor(group / 10)] + ' ';
           group %= 10;
@@ -472,17 +408,21 @@ const DuesRecord = () => {
         } else if (group > 0) {
           groupWords += ones[group] + ' ';
         }
+
         if (thousands[groupIndex]) {
           groupWords += thousands[groupIndex] + ' ';
         }
+
         words = groupWords + words;
       }
+
       groupIndex++;
     }
 
     if (num < 0) {
       words = 'negative ' + words;
     }
+
     words = words.trim();
     words = words.charAt(0).toUpperCase() + words.slice(1);
     words += ' only';
@@ -490,14 +430,14 @@ const DuesRecord = () => {
     return words;
   };
 
-  // ✅ Format number with commas for display
+  // ✅ Format number with commas
   const formatNumberWithCommas = (num) => {
     if (num === undefined || num === null) return '0';
     return Math.abs(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
 
-  // ✅ Generate speech text for single record
-  const generateSpeechTextForSingle = useCallback((record) => {
+  // ✅ Generate speech text for a single record
+  const generateSpeechTextForSingle = (record) => {
     const name = record.formattedName || 'No Name';
     const date = formatDateForSpeech(record.date) || 'No Date';
 
@@ -565,104 +505,168 @@ const DuesRecord = () => {
       speechText += `Taken dues: zero rupees. `;
     }
 
+    if (remainsTotal > 0) {
+      speechText += `Remaining total: ${formatNumberWithCommas(remainsTotal)} rupees, that is ${remainsTotalWords}. `;
+    } else if (remainsTotal < 0) {
+      speechText += `Remaining total: negative ${formatNumberWithCommas(remainsTotal)} rupees, that is ${remainsTotalWords}. `;
+    } else {
+      speechText += `Remaining total: zero rupees. `;
+    }
+
     speechText += `Date: ${date}.`;
 
     return speechText;
-  }, []);
+  };
 
-  // ✅ Enhanced speak function with offline support
-  const speakText = useCallback((text, onEnd = null) => {
-    if (!isSpeechSupported || !isSpeechInitialized) {
+  // ✅ Generate speech text with record number
+  const generateSpeechText = (record, recordNumber, totalRecords) => {
+    const name = record.formattedName || 'No Name';
+    const date = formatDateForSpeech(record.date) || 'No Date';
+
+    const singlePiecePrice = Number(record.single_piece_price) || 0;
+    const totalSinglePiecePrice = record.runningTotalSinglePiecePrice || 0;
+    const medicinePieces = Number(record.m_pieces) || 0;
+    const totalMedicinePieces = record.runningTotalMedicinePieces || 0;
+    const feedPieces = Number(record.total_piece) || 0;
+    const totalFeedPieces = record.runningTotalFeedPieces || 0;
+    const otherPieces = Number(record.o_pieces) || 0;
+    const totalOtherPieces = record.runningTotalOtherPieces || 0;
+    const givenDues = Number(record.given_dues) || 0;
+    const takenDues = Number(record.taken_dues) || 0;
+    const remainsTotal = record.runningTotal || 0;
+
+    const givenDuesWords = givenDues !== 0 ? numberToWords(givenDues) : 'zero';
+    const takenDuesWords = takenDues !== 0 ? numberToWords(takenDues) : 'zero';
+    const remainsTotalWords = remainsTotal !== 0 ? numberToWords(remainsTotal) : 'zero';
+
+    let speechText = '';
+
+    if (recordNumber && totalRecords) {
+      speechText += `Record ${recordNumber} of ${totalRecords}. `;
+    }
+    speechText += `Name: ${name}. `;
+
+    if (singlePiecePrice > 0) {
+      speechText += `Price or Weight: ${formatNumberWithCommas(singlePiecePrice)}. `;
+    }
+    speechText += `Total Price or Weight: ${formatNumberWithCommas(totalSinglePiecePrice)}. `;
+
+    if (medicinePieces > 0) {
+      speechText += `Medicine pieces: ${medicinePieces}. `;
+    }
+    speechText += `Total Medicines: ${formatNumberWithCommas(totalMedicinePieces)}. `;
+
+    if (feedPieces > 0) {
+      speechText += `Feed Pieces: ${feedPieces}. `;
+    }
+    speechText += `Total Feeds: ${formatNumberWithCommas(totalFeedPieces)}. `;
+
+    if (otherPieces > 0) {
+      speechText += `Other Pieces: ${otherPieces}. `;
+    }
+    speechText += `Total Others: ${formatNumberWithCommas(totalOtherPieces)}. `;
+
+    if (givenDues > 0) {
+      speechText += `Given dues: ${formatNumberWithCommas(givenDues)} rupees, that is ${givenDuesWords}. `;
+    } else if (givenDues < 0) {
+      speechText += `Given dues: negative ${formatNumberWithCommas(givenDues)} rupees, that is ${givenDuesWords}. `;
+    } else {
+      speechText += `Given dues: zero rupees. `;
+    }
+
+    if (takenDues > 0) {
+      speechText += `Taken dues: ${formatNumberWithCommas(takenDues)} rupees, that is ${takenDuesWords}. `;
+    } else if (takenDues < 0) {
+      speechText += `Taken dues: negative ${formatNumberWithCommas(takenDues)} rupees, that is ${takenDuesWords}. `;
+    } else {
+      speechText += `Taken dues: zero rupees. `;
+    }
+
+    if (remainsTotal > 0) {
+      speechText += `Remaining total: ${formatNumberWithCommas(remainsTotal)} rupees, that is ${remainsTotalWords}. `;
+    } else if (remainsTotal < 0) {
+      speechText += `Remaining total: negative ${formatNumberWithCommas(remainsTotal)} rupees, that is ${remainsTotalWords}. `;
+    } else {
+      speechText += `Remaining total: zero rupees. `;
+    }
+
+    speechText += `Date: ${date}.`;
+
+    return speechText;
+  };
+
+  // ✅ Speak record function using react-speech-kit
+  const speakRecord = (record) => {
+    if (!supported) {
       Swal.fire({
-        title: 'Speech Not Available',
-        text: speechError || 'Speech synthesis is not available. Please check your system settings.',
+        title: 'Speech Not Supported',
+        text: 'Text-to-speech is not supported in your browser.',
         icon: 'warning',
         confirmButtonText: 'Ok'
       });
-      return null;
+      return;
     }
 
-    stopSpeech();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    utterance.rate = speechRate;
-    utterance.pitch = speechPitch;
-    utterance.volume = speechVolume;
-    
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
+    // Stop any ongoing speech
+    if (speaking) {
+      cancel();
     }
 
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      setCurrentSpeechText('');
-      if (onEnd) onEnd();
-    };
-
-    utterance.onerror = (error) => {
-      console.error('Speech synthesis error:', error);
-      setIsSpeaking(false);
-      setCurrentSpeechText('');
-      setSpeechError('Speech synthesis failed. Please try again.');
-    };
-
-    setCurrentSpeechText(text);
-    setIsSpeaking(true);
-    currentUtteranceRef.current = utterance;
-    
-    // Use try-catch for better error handling
-    try {
-      speechSynthesis.speak(utterance);
-      return utterance;
-    } catch (error) {
-      console.error('Error starting speech:', error);
-      setIsSpeaking(false);
-      setCurrentSpeechText('');
-      return null;
-    }
-  }, [isSpeechSupported, isSpeechInitialized, selectedVoice, speechRate, speechPitch, speechVolume, speechError]);
-
-  // ✅ Speak record function
-  const speakRecord = useCallback((record) => {
     const speechText = generateSpeechTextForSingle(record);
-    const utterance = speakText(speechText);
     
-    if (utterance) {
-      setSpeakingRecordId(record.id);
-      utterance.onend = () => {
+    // Find the best voice (prefer English voices)
+    const availableVoices = voices || [];
+    const englishVoice = availableVoices.find(voice => 
+      voice.lang.includes('en') || voice.lang.startsWith('en-')
+    ) || (availableVoices.length > 0 ? availableVoices[0] : null);
+
+    // Set speaking state
+    setSpeakingRecordId(record.id);
+
+    // Speak with react-speech-kit
+    speak({
+      text: speechText,
+      rate: speechRate,
+      pitch: speechPitch,
+      volume: speechVolume,
+      voice: englishVoice,
+      onEnd: () => setSpeakingRecordId(null),
+      onError: (event) => {
+        console.error('Speech synthesis error:', event);
         setSpeakingRecordId(null);
-      };
-    }
-  }, [generateSpeechTextForSingle, speakText]);
+        Swal.fire({
+          title: 'Speech Error',
+          text: 'Failed to speak the record. Please try again.',
+          icon: 'error',
+          confirmButtonText: 'Ok'
+        });
+      }
+    });
+  };
 
   // ✅ Stop speech function
-  const stopSpeech = useCallback(() => {
-    if (speechSynthesis.speaking) {
-      speechSynthesis.cancel();
+  const stopSpeech = () => {
+    if (speaking) {
+      cancel();
+      setSpeakingRecordId(null);
     }
-    setIsSpeaking(false);
-    setCurrentSpeechText('');
-    setSpeakingRecordId(null);
-    speechQueueRef.current = [];
-    currentUtteranceRef.current = null;
-  }, []);
+  };
 
   // ✅ Toggle speech for a record
-  const toggleSpeech = useCallback((record) => {
-    if (speakingRecordId === record.id && isSpeaking) {
+  const toggleSpeech = (record) => {
+    if (speakingRecordId === record.id && speaking) {
       stopSpeech();
     } else {
       speakRecord(record);
     }
-  }, [speakingRecordId, isSpeaking, speakRecord, stopSpeech]);
+  };
 
-  // ✅ Speak all records function with queue system
-  const speakAllRecords = useCallback(() => {
-    if (!isSpeechSupported || !isSpeechInitialized) {
+  // ✅ Speak all records function
+  const speakAllRecords = () => {
+    if (!supported) {
       Swal.fire({
-        title: 'Speech Not Available',
-        text: speechError || 'Speech synthesis is not available.',
+        title: 'Speech Not Supported',
+        text: 'Text-to-speech is not supported in your browser.',
         icon: 'warning',
         confirmButtonText: 'Ok'
       });
@@ -679,37 +683,72 @@ const DuesRecord = () => {
       return;
     }
 
-    stopSpeech();
+    // Stop any ongoing speech
+    if (speaking) {
+      cancel();
+    }
 
-    const speakNextRecord = (index) => {
-      if (index >= recordsWithRunningTotals.length) {
+    let currentIndex = 0;
+
+    const speakNextRecord = () => {
+      if (currentIndex >= recordsWithRunningTotals.length) {
         setSpeakingRecordId(null);
-        
+
         // Speak summary at the end
         const summaryText = `End of records. Total ${recordsWithRunningTotals.length} records. Final remaining balance is ${formatNumberWithCommas(lastPrice)} rupees, that is ${numberToWords(lastPrice)}.`;
-        speakText(summaryText);
+        
+        const availableVoices = voices || [];
+        const englishVoice = availableVoices.find(voice => 
+          voice.lang.includes('en') || voice.lang.startsWith('en-')
+        ) || (availableVoices.length > 0 ? availableVoices[0] : null);
+
+        speak({
+          text: summaryText,
+          rate: speechRate,
+          pitch: speechPitch,
+          volume: speechVolume,
+          voice: englishVoice
+        });
+
         return;
       }
 
-      const record = recordsWithRunningTotals[index];
+      const record = recordsWithRunningTotals[currentIndex];
       setSpeakingRecordId(record.id);
-      
-      const speechText = `Record ${index + 1} of ${recordsWithRunningTotals.length}. ${generateSpeechTextForSingle(record)}`;
-      
-      speakText(speechText, () => {
-        speakNextRecord(index + 1);
+
+      const speechText = generateSpeechText(record, currentIndex + 1, recordsWithRunningTotals.length);
+
+      const availableVoices = voices || [];
+      const englishVoice = availableVoices.find(voice => 
+        voice.lang.includes('en') || voice.lang.startsWith('en-')
+      ) || (availableVoices.length > 0 ? availableVoices[0] : null);
+
+      speak({
+        text: speechText,
+        rate: speechRate,
+        pitch: speechPitch,
+        volume: speechVolume,
+        voice: englishVoice,
+        onEnd: () => {
+          currentIndex++;
+          setTimeout(speakNextRecord, 500); // Small delay between records
+        },
+        onError: () => {
+          currentIndex++;
+          setTimeout(speakNextRecord, 500);
+        }
       });
     };
 
-    speakNextRecord(0);
-  }, [recordsWithRunningTotals, lastPrice, isSpeechSupported, isSpeechInitialized, generateSpeechTextForSingle, speakText, stopSpeech, speechError]);
+    speakNextRecord();
+  };
 
   // ✅ Speak summary function
-  const speakSummary = useCallback(() => {
-    if (!isSpeechSupported || !isSpeechInitialized) {
+  const speakSummary = () => {
+    if (!supported) {
       Swal.fire({
-        title: 'Speech Not Available',
-        text: speechError || 'Speech synthesis is not available.',
+        title: 'Speech Not Supported',
+        text: 'Text-to-speech is not supported in your browser.',
         icon: 'warning',
         confirmButtonText: 'Ok'
       });
@@ -726,7 +765,9 @@ const DuesRecord = () => {
       return;
     }
 
-    stopSpeech();
+    if (speaking) {
+      cancel();
+    }
 
     let summaryText = `Summary for ${selectedKhata || 'All Khatas'}. `;
     summaryText += `Total records: ${recordsWithRunningTotals.length}. `;
@@ -734,63 +775,48 @@ const DuesRecord = () => {
     summaryText += `Total price or weight: ${formatNumberWithCommas(lastSinglePiecePriceTotal)}. `;
     summaryText += `Final remaining balance: ${formatNumberWithCommas(lastPrice)} rupees, that is ${numberToWords(lastPrice)}.`;
 
-    speakText(summaryText);
-  }, [selectedKhata, recordsWithRunningTotals, lastTotalPieces, lastSinglePiecePriceTotal, lastPrice, isSpeechSupported, isSpeechInitialized, speakText, stopSpeech, speechError]);
+    const availableVoices = voices || [];
+    const englishVoice = availableVoices.find(voice => 
+      voice.lang.includes('en') || voice.lang.startsWith('en-')
+    ) || (availableVoices.length > 0 ? availableVoices[0] : null);
 
-  // ✅ Refresh voices function
-  const refreshVoices = useCallback(() => {
-    if ('speechSynthesis' in window) {
-      const voices = speechSynthesis.getVoices();
-      setAvailableVoices(voices);
-      
-      if (voices.length === 0) {
-        setSpeechError('No voices found. Please check your system speech settings.');
-      } else {
-        setSpeechError(null);
-        if (!selectedVoice) {
-          setSelectedVoice(voices[0]);
-        }
-      }
-    }
-  }, [selectedVoice]);
-
-  // ✅ Handle voice selection
-  const handleVoiceChange = useCallback((event) => {
-    const voiceName = event.target.value;
-    const voice = availableVoices.find(v => v.name === voiceName);
-    if (voice) {
-      setSelectedVoice(voice);
-    }
-  }, [availableVoices]);
+    speak({
+      text: summaryText,
+      rate: speechRate,
+      pitch: speechPitch,
+      volume: speechVolume,
+      voice: englishVoice
+    });
+  };
 
   // ✅ Scroll to Top Function
-  const scrollToTop = useCallback(() => {
+  const scrollToTop = () => {
     if (tableContainerRef.current) {
       tableContainerRef.current.scrollTo({
         top: 0,
         behavior: 'smooth'
       });
     }
-  }, []);
+  };
 
   // ✅ Scroll to Bottom Function
-  const scrollToBottom = useCallback(() => {
+  const scrollToBottom = () => {
     if (tableContainerRef.current) {
       tableContainerRef.current.scrollTo({
         top: tableContainerRef.current.scrollHeight,
         behavior: 'smooth'
       });
     }
-  }, []);
+  };
 
-  // ✅ Handle scroll event
-  const handleScroll = useCallback(() => {
+  // ✅ Handle scroll event to show/hide scroll buttons
+  const handleScroll = () => {
     if (tableContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = tableContainerRef.current;
       setShowScrollTop(scrollTop > 100);
       setShowScrollBottom(scrollTop + clientHeight < scrollHeight - 100);
     }
-  }, []);
+  };
 
   // ✅ Add scroll event listener
   useEffect(() => {
@@ -803,14 +829,7 @@ const DuesRecord = () => {
         tableContainer.removeEventListener('scroll', handleScroll);
       };
     }
-  }, [recordsWithRunningTotals.length, handleScroll]);
-
-  // ✅ Clean up speech synthesis on unmount
-  useEffect(() => {
-    return () => {
-      stopSpeech();
-    };
-  }, [stopSpeech]);
+  }, [recordsWithRunningTotals.length]);
 
   // ✅ Delete record
   const handleDelete = async (id) => {
@@ -850,12 +869,166 @@ const DuesRecord = () => {
     }
   };
 
-  // ✅ PDF Download function (keep as is)
+  // ✅ PDF Download
   const handleDownloadPDF = async () => {
-    // ... (keep existing PDF download code)
+    try {
+      const { jsPDF } = await import('jspdf');
+      const autoTableModule = await import('jspdf-autotable');
+      const autoTable = autoTableModule.default || autoTableModule;
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+
+      const pdfTitle = selectedKhata ? `Ledger File (${selectedKhata})` : 'Daily Report File (All Khatas)';
+
+      doc.setFontSize(18);
+      doc.text(pdfTitle, 40, 40);
+      doc.setFontSize(10);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 40, 65);
+
+      const tableColumn = [
+        'Sr.#',
+        ...(selectedKhata ? [] : ['Khata Name']),
+        'Name',
+        'Single Piece Price',
+        'Total Price or Weight',
+        'Medicine Pieces',
+        'Total Medicines',
+        'Feed Pieces',
+        'Total Feeds',
+        'Other Pieces',
+        'Total Others',
+        'Given Dues (-)',
+        'Taken Dues (+)',
+        'Remains Total Price',
+        'Date',
+        'Actions'
+      ];
+
+      const tableRows = recordsWithRunningTotals.map((record, index) => {
+        const baseRow = [
+          index + 1,
+          formatNameForPDF(record) || '-',
+          record.single_piece_price || '0',
+          record.runningTotalSinglePiecePrice || '0',
+          record.m_pieces || '0',
+          record.runningTotalMedicinePieces || '0',
+          record.total_piece || '0',
+          record.runningTotalFeedPieces || '0',
+          record.o_pieces || '0',
+          record.runningTotalOtherPieces || '0',
+          record.given_dues || '0',
+          record.taken_dues || '0',
+          record.runningTotal || '0',
+          formatDate(record.date),
+          'Update/Delete'
+        ];
+
+        return selectedKhata ? baseRow : [index + 1, record.khata_name || '-', ...baseRow.slice(1)];
+      });
+
+      const columnStyles = {};
+
+      if (selectedKhata) {
+        columnStyles[0] = { textColor: [90, 14, 36], fillColor: [240, 240, 240] };
+        columnStyles[1] = { textColor: [90, 14, 36], fillColor: [255, 255, 255] };
+        columnStyles[2] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
+        columnStyles[3] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
+        columnStyles[4] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
+        columnStyles[5] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
+        columnStyles[6] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
+        columnStyles[7] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
+        columnStyles[8] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
+        columnStyles[9] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
+        columnStyles[10] = { textColor: [220, 53, 69], fillColor: [254, 227, 236] };
+        columnStyles[11] = { textColor: [25, 135, 84], fillColor: [202, 247, 227] };
+        columnStyles[13] = { textColor: [90, 14, 36], fillColor: [255, 255, 255] };
+        columnStyles[14] = { textColor: [33, 37, 41], fillColor: [248, 249, 250] };
+      } else {
+        columnStyles[0] = { textColor: [90, 14, 36], fillColor: [240, 240, 240] };
+        columnStyles[1] = { textColor: [220, 14, 14], fillColor: [255, 255, 255] };
+        columnStyles[2] = { textColor: [90, 14, 36], fillColor: [255, 255, 255] };
+        columnStyles[3] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
+        columnStyles[4] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
+        columnStyles[5] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
+        columnStyles[6] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
+        columnStyles[7] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
+        columnStyles[8] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
+        columnStyles[9] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
+        columnStyles[10] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
+        columnStyles[11] = { textColor: [220, 53, 69], fillColor: [254, 227, 236] };
+        columnStyles[12] = { textColor: [25, 135, 84], fillColor: [202, 247, 227] };
+        columnStyles[14] = { textColor: [90, 14, 36], fillColor: [255, 255, 255] };
+        columnStyles[15] = { textColor: [33, 37, 41], fillColor: [248, 249, 250] };
+      }
+
+      const styles = {
+        fontSize: 8,
+        cellPadding: 3,
+        halign: 'center',
+      };
+
+      const didParseCell = (data) => {
+        if (data.section === 'body') {
+          const rowIndex = data.row.index;
+          const columnIndex = data.column.index;
+          const record = recordsWithRunningTotals[rowIndex];
+
+          if (!record) return;
+
+          const remainsTotalPriceColumn = selectedKhata ? 12 : 13;
+
+          if (columnIndex === remainsTotalPriceColumn) {
+            if (record.runningTotal < 0) {
+              data.cell.styles.textColor = [220, 53, 69];
+            } else if (record.runningTotal > 0) {
+              data.cell.styles.textColor = [25, 135, 84];
+            } else {
+              data.cell.styles.textColor = [108, 117, 125];
+            }
+            data.cell.styles.fontStyle = 'bold';
+          }
+        }
+      };
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 100,
+        theme: 'grid',
+        styles: styles,
+        columnStyles: columnStyles,
+        headStyles: {
+          fillColor: [244, 67, 54],
+          textColor: 255,
+          fontStyle: 'bold',
+          halign: 'center',
+          fontSize: 8
+        },
+        margin: { left: 20, right: 20 },
+        didParseCell: didParseCell,
+      });
+
+      doc.save(`Ledger_File_${selectedKhata || 'All_Khatas'}_${new Date().toISOString().split('T')[0]}.pdf`);
+      Swal.fire({
+        title: 'Success!',
+        text: `PDF downloaded for ${selectedKhata || 'All Khatas'}!`,
+        icon: 'success',
+        confirmButtonText: 'Ok',
+        buttonsStyling: false,
+        customClass: { confirmButton: 'sweetalert_btn_success' },
+      });
+    } catch {
+      Swal.fire({
+        title: 'Error!',
+        text: 'Failed to generate PDF.',
+        icon: 'error',
+        confirmButtonText: 'Ok',
+        buttonsStyling: false,
+        customClass: { confirmButton: 'sweetalert_btn_error' },
+      });
+    }
   };
 
-  // ✅ Styles
+  // ✅ Style objects (same as before)
   const TableHeadingStyle = {
     backgroundColor: '#f44336',
     color: 'white',
@@ -867,41 +1040,33 @@ const DuesRecord = () => {
     textAlign: 'center',
     verticalAlign: 'middle',
   };
-  
   const IndexStyle = {
     backgroundColor: '#F0F0F0'
   }
-  
   const KhataStyle = {
     color: '#DC0E0E',
   }
-  
   const CommonStyle = {
     color: '#5A0E24',
     backgroundColor: '#F6F6F6'
   }
-  
   const SumOfTotalStyle = {
     color: '#060771',
     backgroundColor: '#E8F9FF'
   }
-  
   const GivenDuesStyle = {
     color: 'rgb(220, 53, 69)',
     backgroundColor: '#FEE3EC'
   }
-  
   const TakenDuesStyle = {
     color: 'rgb(25, 135, 84)',
     backgroundColor: '#CAF7E3'
   }
-  
   const ReturnStyle = {
     color: '#ff6b35',
     backgroundColor: '#fff3e0',
     fontWeight: 'bold'
   }
-  
   const SpeakingStyle = {
     backgroundColor: '#e8f4fd',
     borderLeft: '4px solid #2196f3',
@@ -984,12 +1149,12 @@ const DuesRecord = () => {
         {selectedKhata ? `(${selectedKhata})` : 'All Khatas'} Dues Record
       </h1>
 
-      {/* 🔊 Enhanced Voice Controls with Offline Support */}
-      {isSpeechSupported && (
+      {/* 🔊 Voice Controls */}
+      {supported && (
         <div className="voice-controls mb-4 p-3 bg-light rounded shadow-sm">
           <div className="row align-items-center">
             <div className="col-md-8">
-              <div className="row mb-3">
+              <div className="row">
                 <div className="col-md-4">
                   <label className="form-label fw-bold">Speech Rate</label>
                   <input
@@ -1001,7 +1166,7 @@ const DuesRecord = () => {
                     value={speechRate}
                     onChange={(e) => setSpeechRate(parseFloat(e.target.value))}
                   />
-                  <div className="text-center small">{speechRate.toFixed(1)}x</div>
+                  <div className="text-center">{speechRate.toFixed(1)}x</div>
                 </div>
                 <div className="col-md-4">
                   <label className="form-label fw-bold">Speech Pitch</label>
@@ -1014,7 +1179,7 @@ const DuesRecord = () => {
                     value={speechPitch}
                     onChange={(e) => setSpeechPitch(parseFloat(e.target.value))}
                   />
-                  <div className="text-center small">{speechPitch.toFixed(1)}</div>
+                  <div className="text-center">{speechPitch.toFixed(1)}</div>
                 </div>
                 <div className="col-md-4">
                   <label className="form-label fw-bold">Speech Volume</label>
@@ -1027,91 +1192,82 @@ const DuesRecord = () => {
                     value={speechVolume}
                     onChange={(e) => setSpeechVolume(parseFloat(e.target.value))}
                   />
-                  <div className="text-center small">{speechVolume.toFixed(1)}</div>
+                  <div className="text-center">{speechVolume.toFixed(1)}</div>
                 </div>
               </div>
-              
-              <div className="row">
-                <div className="col-md-6">
-                  <label className="form-label fw-bold">Voice Selection</label>
-                  <select 
-                    className="form-select form-select-sm" 
-                    value={selectedVoice?.name || ''}
-                    onChange={handleVoiceChange}
-                    disabled={!isSpeechInitialized}
-                  >
-                    {availableVoices.map((voice, index) => (
-                      <option key={index} value={voice.name}>
-                        {voice.name} ({voice.lang}) {voice.localService ? '(Local)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-md-6 d-flex align-items-end">
-                  <button
-                    className="btn btn-sm btn-outline-secondary"
-                    onClick={refreshVoices}
-                    title="Refresh available voices"
-                  >
-                    🔄 Refresh Voices
-                  </button>
-                </div>
-              </div>
-              
-              {speechError && (
-                <div className="alert alert-warning mt-2 py-2 small" role="alert">
-                  ⚠️ {speechError}
-                </div>
-              )}
-              
-              {isOfflineMode && (
-                <div className="alert alert-info mt-2 py-2 small" role="alert">
-                  🌐 Offline Mode - Using local system voices
-                </div>
-              )}
             </div>
-            
             <div className="col-md-4">
-              <div className="d-grid gap-2">
-                <button
-                  className="btn btn-primary"
-                  onClick={speakSummary}
-                  disabled={recordsWithRunningTotals.length === 0 || !isSpeechInitialized}
-                >
-                  📊 Speak Summary
-                </button>
-                <button
-                  className="btn btn-info"
-                  onClick={speakAllRecords}
-                  disabled={recordsWithRunningTotals.length === 0 || isSpeaking || !isSpeechInitialized}
-                >
-                  {isSpeaking ? '🔊 Speaking...' : '🔊 Speak All Records'}
-                </button>
-                <button
-                  className="btn btn-warning"
-                  onClick={stopSpeech}
-                  disabled={!isSpeaking}
-                >
-                  ⏹️ Stop Speech
-                </button>
-              </div>
-              
-              {currentSpeechText && (
-                <div className="mt-2 p-2 bg-white border rounded small">
-                  <div className="fw-bold">Currently Speaking:</div>
-                  <div className="text-truncate" title={currentSpeechText}>
-                    {currentSpeechText.substring(0, 80)}...
-                  </div>
-                </div>
-              )}
+              <button
+                className="btn btn-primary me-2"
+                onClick={speakSummary}
+                disabled={recordsWithRunningTotals.length === 0 || speaking}
+              >
+                📊 Speak Summary
+              </button>
+              <button
+                className="btn btn-info me-2"
+                onClick={speakAllRecords}
+                disabled={recordsWithRunningTotals.length === 0 || speaking}
+              >
+                🔊 Speak All Records
+              </button>
+              <button
+                className="btn btn-warning mt-2"
+                onClick={stopSpeech}
+                disabled={!speaking}
+              >
+                ⏹️ Stop Speech
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* 🔍 Filters (keep existing) */}
+      {/* 🔍 Filters */}
       <div className="search-container mb-3 d-flex gap-3 flex-wrap align-items-end">
-        {/* ... existing filter code ... */}
+        <div className="form-group mt-2">
+          <label className="form-label fw-bold">Search by Name:</label>
+          <input type="text" className="form-control" placeholder="Enter name..." value={searchName} onChange={(e) => setSearchName(e.target.value)} />
+        </div>
+        <div className="form-group mt-2">
+          <label className="form-label fw-bold">Search by Date:</label>
+          <input type="date" className="form-control" value={searchDate} onChange={(e) => setSearchDate(e.target.value)} />
+        </div>
+        <div className="form-group mt-2">
+          <label className="form-label fw-bold">Search by Month (YYYY/MM):</label>
+          <input type="text" className="form-control" placeholder="e.g. 2025/05" value={searchMonth} onChange={(e) => setSearchMonth(e.target.value)} />
+        </div>
+        <div className="form-group mt-2">
+          <label className="form-label fw-bold">Search by Year (YYYY):</label>
+          <input type="text" className="form-control" placeholder="e.g. 2024" value={searchYear} onChange={(e) => setSearchYear(e.target.value)} />
+        </div>
+
+        <div className="form-group mt-2">
+          <label className="form-label fw-bold">Total All Pieces</label>
+          <div className="form-control text-center fw-bold bg-light" style={{ color: 'rgb(6, 7, 113)' }}>{lastTotalPieces}</div>
+        </div>
+        <div className="form-group mt-2">
+          <label className="form-label fw-bold">Total Price or Weight</label>
+          <div className="form-control text-center fw-bold bg-light" style={{ color: 'rgb(6, 7, 113)' }}>{formatNumberWithCommas(lastSinglePiecePriceTotal)}</div>
+        </div>
+        <div className="form-group mt-2">
+          <label className="form-label fw-bold">Remains Total Price</label>
+          <div
+            className="form-control text-center fw-bold bg-light"
+            style={getPriceColorStyle(lastPrice)}
+          >
+            {formatNumberWithCommas(lastPrice)}
+          </div>
+        </div>
+        <div className="form-group mt-2">
+          <button
+            className="btn delete_btn mt-4 px-4"
+            onClick={handleDownloadPDF}
+            disabled={recordsWithRunningTotals.length === 0}
+          >
+            📄 Download PDF ({recordsWithRunningTotals.length})
+          </button>
+        </div>
       </div>
 
       {/* 📋 Table Container with Scroll */}
@@ -1218,7 +1374,7 @@ const DuesRecord = () => {
                       >
                         Delete
                       </button>
-                      {isSpeechSupported && isSpeechInitialized && (
+                      {supported && (
                         <button
                           className={`btn ${speakingRecordId === record.id ? 'btn-warning' : 'btn-info'}`}
                           onClick={() => toggleSpeech(record)}
@@ -1227,8 +1383,7 @@ const DuesRecord = () => {
                             fontSize: '0.8rem',
                             minWidth: '60px',
                           }}
-                          title={speakingRecordId === record.id ? 'Stop speaking this record' : 'Speak this record'}
-                          disabled={isSpeaking && speakingRecordId !== record.id}
+                          title={speakingRecordId === record.id ? 'Stop speaking this record' : 'Speak this record with amounts in words'}
                         >
                           {speakingRecordId === record.id ? '⏹️ Stop' : '🔊 Speak'}
                         </button>
