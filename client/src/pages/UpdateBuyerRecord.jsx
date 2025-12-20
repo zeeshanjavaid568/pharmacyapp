@@ -89,7 +89,7 @@ const UpdateBuyerRecord = () => {
             date: formData.date ? new Date(formData.date).toISOString() : new Date().toISOString(),
             // Ensure numeric values are properly converted
             product_price: parseFloat(formData.product_price) || 0,
-            saling_price: parseFloat(formData.saling_price) || 0,
+            saling_price: formData.saling_price || 0,
             pieces_price: parseFloat(formData.pieces_price) || 0,
             pieces: parseInt(formData.pieces) || 0,
             stock: parseInt(formData.stock) || 0
