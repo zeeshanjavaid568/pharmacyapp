@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useBuyerProductQuery, useDeleteBuyerProductMutation } from '../redux/features/BuyerProductApi/buyerProductApi';
 import { Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
@@ -12,6 +12,7 @@ const formatDate = (dateString) => {
   const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
   return localDate.toISOString().split('T')[0];
 };
+
 
 // ✅ Helper: Calculate remaining days until expiration
 const getRemainingDays = (expireDate) => {
@@ -246,9 +247,18 @@ const BuyerRecord = () => {
     }
   };
 
-  // ✅ Helper: Group data by year
+  // ✅ Helper: Group data by year with automatic date sorting in ascending order
   const groupDataByYear = (data) => {
-    return data.reduce((acc, record) => {
+    if (!data || !Array.isArray(data)) return {};
+
+    // First, sort all data by date in ascending order
+    const sortedData = [...data].sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateA - dateB; // Ascending order
+    });
+
+    return sortedData.reduce((acc, record) => {
       const year = new Date(record.date).getFullYear();
       if (!acc[year]) acc[year] = [];
       acc[year].push(record);
@@ -256,7 +266,14 @@ const BuyerRecord = () => {
     }, {});
   };
 
-  const yearlyData = data ? groupDataByYear(data) : {};
+  // ✅ Get sorted years in descending order (most recent first)
+  const getSortedYears = (yearlyData) => {
+    return Object.keys(yearlyData).sort((a, b) => b - a);
+  };
+
+  // Memoize computed values
+  const yearlyData = useMemo(() => data ? groupDataByYear(data) : {}, [data]);
+  const sortedYears = useMemo(() => getSortedYears(yearlyData), [yearlyData]);
 
   // ✅ Delete Record
   const handleDelete = async (id) => {
@@ -283,19 +300,23 @@ const BuyerRecord = () => {
     }
   };
 
-  // ✅ Filter records if a year is selected
+  // ✅ Filter records if a year is selected (already sorted by date in ascending order)
   const records = selectedYear ? yearlyData[selectedYear] || [] : [];
 
-  const filteredRecords = records.filter((record) => {
-    const matchesProductName = record.product_name
-      ?.toLowerCase()
-      .includes(searchProductName.toLowerCase());
-    const matchesDate = searchDate ? formatDate(record.date) === searchDate : true;
-    const matchesExpireDate = searchExpireDate
-      ? formatDate(record.expire_date) === searchExpireDate
-      : true;
-    return matchesProductName && matchesDate && matchesExpireDate;
-  });
+  // ✅ Filter records based on search criteria (maintaining date order)
+  const filteredRecords = useMemo(() => {
+    return records.filter((record) => {
+      const matchesProductName = record.product_name
+        ?.toLowerCase()
+        .includes(searchProductName.toLowerCase());
+      const matchesDate = searchDate ? formatDate(record.date) === searchDate : true;
+      const matchesExpireDate = searchExpireDate
+        ? formatDate(record.expire_date) === searchExpireDate
+        : true;
+      return matchesProductName && matchesDate && matchesExpireDate;
+    });
+    // No need to sort here as records are already sorted by date in ascending order
+  }, [records, searchProductName, searchDate, searchExpireDate]);
 
   const tableHeadingStyle = { backgroundColor: '#f44336', color: 'white' }
 
@@ -374,7 +395,7 @@ const BuyerRecord = () => {
             Purchase All Years Record
           </h1>
           <div className='responsive_card'>
-            {Object.keys(yearlyData).map((year) => (
+            {sortedYears.map((year) => (
               <div
                 key={year}
                 className='yearly_record_card border rounded-2 my-1 form_div text-center'
@@ -433,6 +454,17 @@ const BuyerRecord = () => {
             </div>
           </div>
 
+          {/* ℹ️ Sorting Info */}
+          <div className="alert alert-info mb-3">
+            <i className="bi bi-info-circle me-2"></i>
+            Records are automatically sorted by date in ascending order (oldest to newest).
+            {filteredRecords.length > 0 && (
+              <span className="ms-2">
+                Showing {filteredRecords.length} records from {formatDate(filteredRecords[0]?.date)} to {formatDate(filteredRecords[filteredRecords.length - 1]?.date)}
+              </span>
+            )}
+          </div>
+
           {/* 🧾 Table */}
           <div className="table-container p-3 mb-5">
             {isLoading && <p className="text-center py-4">Loading...</p>}
@@ -487,6 +519,23 @@ const BuyerRecord = () => {
                     </tr>
                   )}
                 </tbody>
+                {filteredRecords.length > 0 && (
+                  <tfoot>
+                    <tr>
+                      <td colSpan="2" className="text-end"><strong>Date Range:</strong></td>
+                      <td colSpan="7">
+                        <small className="text-muted">
+                          {formatDate(filteredRecords[0]?.date)} to {formatDate(filteredRecords[filteredRecords.length - 1]?.date)}
+                          <span className="ms-3">
+                            <i className="bi bi-sort-up me-1"></i>
+                            Sorted by date (ascending)
+                          </span>
+                        </small>
+                      </td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             )}
           </div>

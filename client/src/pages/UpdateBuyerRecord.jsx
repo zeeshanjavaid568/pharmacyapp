@@ -36,6 +36,22 @@ const UpdateBuyerRecord = () => {
         }
     }, [formData.product_price, formData.pieces]);
 
+    // Format date for input field (YYYY-MM-DD)
+    const formatDateForInput = (dateString) => {
+        if (!dateString) return '';
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return '';
+            // Adjust for timezone offset to ensure correct date display
+            const offset = date.getTimezoneOffset() * 60000;
+            const localDate = new Date(date.getTime() - offset);
+            return localDate.toISOString().split('T')[0];
+        } catch (error) {
+            console.error('Date formatting error:', error);
+            return '';
+        }
+    };
+
     // Populate form when product data is fetched
     useEffect(() => {
         if (product) {
@@ -46,8 +62,8 @@ const UpdateBuyerRecord = () => {
                 pieces_price: product.pieces_price || '',
                 pieces: product.pieces || '',
                 stock: product.stock || '',
-                expire_date: product.expire_date ? product.expire_date.split('T')[0] : '',
-                date: product.date ? product.date.split('T')[0] : ''
+                expire_date: product.expire_date ? formatDateForInput(product.expire_date) : '',
+                date: product.date ? formatDateForInput(product.date) : ''
             });
         }
     }, [product]);
@@ -65,11 +81,26 @@ const UpdateBuyerRecord = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        // Format dates to ISO string for database
+        const formattedData = {
+            ...formData,
+            // Convert date strings to ISO format
+            expire_date: formData.expire_date ? new Date(formData.expire_date).toISOString() : null,
+            date: formData.date ? new Date(formData.date).toISOString() : new Date().toISOString(),
+            // Ensure numeric values are properly converted
+            product_price: parseFloat(formData.product_price) || 0,
+            saling_price: parseFloat(formData.saling_price) || 0,
+            pieces_price: parseFloat(formData.pieces_price) || 0,
+            pieces: parseInt(formData.pieces) || 0,
+            stock: parseInt(formData.stock) || 0
+        };
+
         try {
             await updateAllBuyerProduct({
                 id,
-                userData: formData
+                userData: formattedData
             }).unwrap();
+
             Swal.fire({
                 title: 'Success!',
                 text: 'Product updated successfully!',
@@ -83,11 +114,10 @@ const UpdateBuyerRecord = () => {
             console.error('Update error:', error);
             Swal.fire({
                 title: 'Error!',
-                text: 'Failed to update product. Please try again.',
+                text: error?.data?.message || 'Failed to update product. Please try again.',
                 icon: 'error',
                 confirmButtonText: 'OK',
                 customClass: { confirmButton: 'sweetalert_btn_error' },
-
             });
         }
     };
@@ -124,6 +154,7 @@ const UpdateBuyerRecord = () => {
                         name="product_name"
                         value={formData.product_name}
                         onChange={handleInputs}
+                        required
                     />
                 </div>
 
@@ -136,6 +167,9 @@ const UpdateBuyerRecord = () => {
                             value={formData.product_price}
                             onChange={handleInputs}
                             style={{ width: '157px' }}
+                            step="0.01"
+                            min="0"
+                            required
                         />
                     </div>
                     <div className="input_div d-flex flex-column ms-2">
@@ -146,6 +180,7 @@ const UpdateBuyerRecord = () => {
                             value={formData.pieces_price}
                             style={{ width: '157px' }}
                             disabled
+                            step="0.01"
                         />
                     </div>
                 </div>
@@ -157,16 +192,21 @@ const UpdateBuyerRecord = () => {
                         name="pieces"
                         value={formData.pieces}
                         onChange={handleInputs}
+                        min="1"
+                        required
                     />
                 </div>
 
                 <div className="input_div d-flex flex-column input_width">
-                    <label>Product Saling Price</label>
+                    <label>Product Selling Price</label>
                     <input
-                        type="number"
+                        type="text"
                         name="saling_price"
                         value={formData.saling_price}
                         onChange={handleInputs}
+                        step="0.01"
+                        min="0"
+                        required
                     />
                 </div>
 
@@ -177,11 +217,13 @@ const UpdateBuyerRecord = () => {
                         name="stock"
                         value={formData.stock}
                         onChange={handleInputs}
+                        min="0"
+                        required
                     />
                 </div>
 
                 <div className='d-flex justify-content-between input_width'>
-                    <div className="input_div d-flex flex-column input_width">
+                    <div className="input_div d-flex flex-column">
                         <label>Expire Date</label>
                         <input
                             type="date"
@@ -189,23 +231,24 @@ const UpdateBuyerRecord = () => {
                             value={formData.expire_date}
                             onChange={handleInputs}
                             style={{ width: '157px' }}
+                            required
                         />
                     </div>
 
-                    <div className="input_div d-flex flex-column input_width">
-                        <label>Product Date</label>
+                    <div className="input_div d-flex flex-column">
+                        <label>Purchase Date</label>
                         <input
                             type="date"
                             name="date"
                             value={formData.date}
                             onChange={handleInputs}
                             style={{ width: '157px' }}
+                            required
                         />
                     </div>
                 </div>
 
                 <div className="btn_wrapper mt-2 mb-5 d-flex flex-column">
-
                     <button
                         type="submit"
                         className="btn btn-danger input_width"

@@ -147,7 +147,7 @@ const BuyerProductCard = ({ onProductAdded }) => {
             {/* Selling Price */}
             <div className="input_div d-flex flex-column input_width">
                 <label>Product Selling Price</label>
-                <input type="number" name="saling_price" value={formData.saling_price} onChange={handleInputs} />
+                <input type="text" name="saling_price" value={formData.saling_price} onChange={handleInputs} />
             </div>
 
             {/* Dates */}

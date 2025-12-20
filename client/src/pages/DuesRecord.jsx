@@ -613,10 +613,10 @@ const DuesRecord = () => {
     }
 
     const speechText = generateSpeechTextForSingle(record);
-    
+
     // Find the best voice (prefer English voices)
     const availableVoices = voices || [];
-    const englishVoice = availableVoices.find(voice => 
+    const englishVoice = availableVoices.find(voice =>
       voice.lang.includes('en') || voice.lang.startsWith('en-')
     ) || (availableVoices.length > 0 ? availableVoices[0] : null);
 
@@ -696,9 +696,9 @@ const DuesRecord = () => {
 
         // Speak summary at the end
         const summaryText = `End of records. Total ${recordsWithRunningTotals.length} records. Final remaining balance is ${formatNumberWithCommas(lastPrice)} rupees, that is ${numberToWords(lastPrice)}.`;
-        
+
         const availableVoices = voices || [];
-        const englishVoice = availableVoices.find(voice => 
+        const englishVoice = availableVoices.find(voice =>
           voice.lang.includes('en') || voice.lang.startsWith('en-')
         ) || (availableVoices.length > 0 ? availableVoices[0] : null);
 
@@ -719,7 +719,7 @@ const DuesRecord = () => {
       const speechText = generateSpeechText(record, currentIndex + 1, recordsWithRunningTotals.length);
 
       const availableVoices = voices || [];
-      const englishVoice = availableVoices.find(voice => 
+      const englishVoice = availableVoices.find(voice =>
         voice.lang.includes('en') || voice.lang.startsWith('en-')
       ) || (availableVoices.length > 0 ? availableVoices[0] : null);
 
@@ -776,7 +776,7 @@ const DuesRecord = () => {
     summaryText += `Final remaining balance: ${formatNumberWithCommas(lastPrice)} rupees, that is ${numberToWords(lastPrice)}.`;
 
     const availableVoices = voices || [];
-    const englishVoice = availableVoices.find(voice => 
+    const englishVoice = availableVoices.find(voice =>
       voice.lang.includes('en') || voice.lang.startsWith('en-')
     ) || (availableVoices.length > 0 ? availableVoices[0] : null);
 
@@ -900,7 +900,6 @@ const DuesRecord = () => {
         'Taken Dues (+)',
         'Remains Total Price',
         'Date',
-        'Actions'
       ];
 
       const tableRows = recordsWithRunningTotals.map((record, index) => {
@@ -919,7 +918,6 @@ const DuesRecord = () => {
           record.taken_dues || '0',
           record.runningTotal || '0',
           formatDate(record.date),
-          'Update/Delete'
         ];
 
         return selectedKhata ? baseRow : [index + 1, record.khata_name || '-', ...baseRow.slice(1)];

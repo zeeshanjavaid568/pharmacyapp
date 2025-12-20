@@ -14,6 +14,7 @@ const SalerRecord = () => {
   const [searchProductName, setSearchProductName] = useState('');
   const [searchProductPlace, setSearchProductPlace] = useState('');
   const [searchDate, setSearchDate] = useState('');
+  const [searchMonth, setSearchMonth] = useState(''); // New state for month search
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'ascending' });
   const [viewMode, setViewMode] = useState('detailed');
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -27,6 +28,17 @@ const SalerRecord = () => {
   const scrollIntervalRef = useRef(null);
   const searchContainerRef = useRef(null);
   const tableContainerRef = useRef(null);
+
+  // Month names array for dropdown
+  const monthNames = [
+    'All Months', 'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  // ✅ Get month number from month name
+  const getMonthNumber = (monthName) => {
+    return monthNames.indexOf(monthName);
+  };
 
   // ✅ Group data by year and sort each year's records by date (ascending)
   const groupDataByYear = (data) => {
@@ -65,6 +77,13 @@ const SalerRecord = () => {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  // ✅ Get month name from date
+  const getMonthFromDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return monthNames[date.getMonth() + 1]; // +1 because index 0 is "All Months"
   };
 
   // ✅ Group records by Product Name and Product Place
@@ -264,6 +283,20 @@ const SalerRecord = () => {
     return sortedSummary;
   };
 
+  // ✅ Get unique months from records
+  const getUniqueMonths = (records) => {
+    const monthsSet = new Set();
+    records.forEach(record => {
+      const monthName = getMonthFromDate(record.date);
+      if (monthName) {
+        monthsSet.add(monthName);
+      }
+    });
+    return ['All Months', ...Array.from(monthsSet).sort((a, b) =>
+      monthNames.indexOf(a) - monthNames.indexOf(b)
+    )];
+  };
+
   // ✅ PDF Export Functions
   const exportToPDF = () => {
     setIsExportingPDF(true);
@@ -284,8 +317,15 @@ const SalerRecord = () => {
       doc.setTextColor(100, 100, 100);
       doc.text(`Generated on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 22);
 
-      if (searchProductName || searchProductPlace || searchDate) {
-        doc.text(`Filters Applied: ${searchProductName ? `Product: ${searchProductName} ` : ''}${searchProductPlace ? `Place: ${searchProductPlace} ` : ''}${searchDate ? `Date: ${searchDate}` : ''}`, 14, 28);
+      // Add filter info
+      let filterInfo = '';
+      if (searchProductName) filterInfo += `Product: ${searchProductName} `;
+      if (searchProductPlace) filterInfo += `Place: ${searchProductPlace} `;
+      if (searchDate) filterInfo += `Date: ${searchDate} `;
+      if (searchMonth && searchMonth !== 'All Months') filterInfo += `Month: ${searchMonth} `;
+
+      if (filterInfo) {
+        doc.text(`Filters Applied: ${filterInfo}`, 14, 28);
       }
 
       // View Mode Info
@@ -298,13 +338,14 @@ const SalerRecord = () => {
 
       switch (viewMode) {
         case 'detailed':
-          headers = [['#', 'Product Name', 'Product Place', 'Product Price', 'Pieces Price', 'Pieces', 'Date']];
+          headers = [['#', 'Product Name', 'Product Place', 'Product Price', 'Pieces Price', 'Pieces', 'Date', 'Month']];
           columnStyles = {
             0: { cellWidth: 10 },
             3: { cellWidth: 25 },
             4: { cellWidth: 25 },
             5: { cellWidth: 20 },
-            6: { cellWidth: 25 }
+            6: { cellWidth: 25 },
+            7: { cellWidth: 25 }
           };
 
           filteredRecords.forEach((record, index) => {
@@ -315,7 +356,8 @@ const SalerRecord = () => {
               `Rs: ${parseFloat(record.product_price || 0).toFixed(2)}`,
               `Rs: ${parseFloat(record.pieces_price || 0).toFixed(2)}`,
               record.stock || '0',
-              formatDateForPDF(record.date)
+              formatDateForPDF(record.date),
+              getMonthFromDate(record.date)
             ]);
           });
           break;
@@ -527,16 +569,17 @@ const SalerRecord = () => {
           record.product_place?.substring(0, 15) || '-',
           `Rs: ${parseFloat(record.product_price || 0).toFixed(2)}`,
           record.stock || '0',
-          formatDateForPDF(record.date)
+          formatDateForPDF(record.date),
+          getMonthFromDate(record.date)
         ]);
 
         if (yearRecords.length > 10) {
-          tableData.push(['...', `... and ${yearRecords.length - 10} more records`, '', '', '', '']);
+          tableData.push(['...', `... and ${yearRecords.length - 10} more records`, '', '', '', '', '']);
         }
 
         // Generate table for this year
         autoTable(doc, {
-          head: [['#', 'Product Name', 'Product Place', 'Price', 'Pieces', 'Date']],
+          head: [['#', 'Product Name', 'Product Place', 'Price', 'Pieces', 'Date', 'Month']],
           body: tableData,
           startY: currentY,
           theme: 'grid',
@@ -648,7 +691,7 @@ const SalerRecord = () => {
         <div style="text-align: center; padding: 10px;">
           <p><strong>Export Current View:</strong> ${filteredRecords.length} records</p>
           <p><strong>View Mode:</strong> ${getViewModeText(viewMode)}</p>
-          <p><strong>Filters Applied:</strong> ${searchProductName || searchProductPlace || searchDate ? 'Yes' : 'No'}</p>
+          <p><strong>Filters Applied:</strong> ${searchProductName || searchProductPlace || searchDate || (searchMonth && searchMonth !== 'All Months') ? 'Yes' : 'No'}</p>
         </div>
       `,
       showCancelButton: false,
@@ -789,16 +832,29 @@ const SalerRecord = () => {
   // ✅ Records of selected year
   const records = selectedYear ? yearlyData[selectedYear] || [] : [];
 
-  // ✅ Filter records by name, place & date
+  // ✅ Get unique months for the selected year
+  const uniqueMonths = useMemo(() => {
+    return getUniqueMonths(records);
+  }, [records]);
+
+  // ✅ Filter records by name, place, date & month
   const filteredRecords = useMemo(() => {
     const filtered = records.filter((record) => {
       const matchesProductName = record.product_name?.toLowerCase().includes(searchProductName.toLowerCase());
       const matchesProductPlace = record.product_place?.toLowerCase().includes(searchProductPlace.toLowerCase());
       const matchesDate = searchDate ? formatDate(record.date) === searchDate : true;
-      return matchesProductName && matchesProductPlace && matchesDate;
+
+      // Month filter logic
+      let matchesMonth = true;
+      if (searchMonth && searchMonth !== 'All Months') {
+        const recordMonth = getMonthFromDate(record.date);
+        matchesMonth = recordMonth === searchMonth;
+      }
+
+      return matchesProductName && matchesProductPlace && matchesDate && matchesMonth;
     });
     return sortRecords(filtered);
-  }, [records, searchProductName, searchProductPlace, searchDate, sortConfig]);
+  }, [records, searchProductName, searchProductPlace, searchDate, searchMonth, sortConfig]);
 
   // ✅ Calculate summary data based on view mode
   const summaryByProductAndPlace = useMemo(() => {
@@ -1049,6 +1105,21 @@ const SalerRecord = () => {
                 onChange={(e) => setSearchDate(e.target.value)}
               />
             </div>
+            <div className="form-group mt-2 me-3">
+              <label htmlFor="monthSearch">Search by Month:</label>
+              <select
+                id="monthSearch"
+                className="form-control"
+                value={searchMonth}
+                onChange={(e) => setSearchMonth(e.target.value)}
+              >
+                {uniqueMonths.map((month, index) => (
+                  <option key={index} value={month}>
+                    {month}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="form-group mt-2">
               <button
                 className="btn btn-outline-danger mt-4"
@@ -1056,6 +1127,7 @@ const SalerRecord = () => {
                   setSearchProductName('');
                   setSearchProductPlace('');
                   setSearchDate('');
+                  setSearchMonth('All Months');
                 }}
               >
                 Clear All Filters
@@ -1078,7 +1150,7 @@ const SalerRecord = () => {
           </div>
 
           {/* 📊 Filter Status */}
-          {(searchProductName || searchProductPlace || searchDate) && (
+          {(searchProductName || searchProductPlace || searchDate || (searchMonth && searchMonth !== 'All Months')) && (
             <div className="px-3 mt-2">
               <div className="alert alert-light border d-flex justify-content-between align-items-center">
                 <div>
@@ -1112,6 +1184,17 @@ const SalerRecord = () => {
                         className="btn-close btn-close-white ms-1"
                         style={{ fontSize: '0.5rem' }}
                         onClick={() => setSearchDate('')}
+                        aria-label="Remove"
+                      ></button>
+                    </span>
+                  )}
+                  {searchMonth && searchMonth !== 'All Months' && (
+                    <span className="badge bg-info ms-2">
+                      Month: {searchMonth}
+                      <button
+                        className="btn-close btn-close-white ms-1"
+                        style={{ fontSize: '0.5rem' }}
+                        onClick={() => setSearchMonth('All Months')}
                         aria-label="Remove"
                       ></button>
                     </span>
@@ -1177,6 +1260,7 @@ const SalerRecord = () => {
                     >
                       Date{<SortIndicator columnKey="date" />}
                     </th>
+                    <th style={{ backgroundColor: '#f44336', color: 'white' }}>Month</th>
                     <th style={{ backgroundColor: '#f44336', color: 'white' }}>Actions</th>
                   </tr>
                 </thead>
@@ -1190,6 +1274,7 @@ const SalerRecord = () => {
                       <td>Rs: {parseFloat(record.pieces_price).toFixed(2)}</td>
                       <td>{record.stock}</td>
                       <td>{formatDate(record.date)}</td>
+                      <td>{getMonthFromDate(record.date)}</td>
                       <td>
                         <Link to={`/updatesalerproduct/${record.id}`} className="update_btn me-3">
                           Update
@@ -1220,11 +1305,11 @@ const SalerRecord = () => {
                   ))}
                   {filteredRecords.length === 0 && (
                     <tr>
-                      <td colSpan="8" className="text-center py-4">
+                      <td colSpan="9" className="text-center py-4">
                         <div className="alert alert-warning mb-0">
                           No records found
-                          {(searchProductName || searchProductPlace || searchDate) && " for the current filters"}
-                          {!searchProductName && !searchProductPlace && !searchDate && " for the selected year"}
+                          {(searchProductName || searchProductPlace || searchDate || (searchMonth && searchMonth !== 'All Months')) && " for the current filters"}
+                          {!searchProductName && !searchProductPlace && !searchDate && (!searchMonth || searchMonth === 'All Months') && " for the selected year"}
                         </div>
                       </td>
                     </tr>
@@ -1249,7 +1334,7 @@ const SalerRecord = () => {
                           {filteredRecords.reduce((sum, record) => sum + (parseInt(record.stock) || 0), 0)}
                         </strong>
                       </td>
-                      <td colSpan="2"></td>
+                      <td colSpan="3"></td>
                     </tr>
                   </tfoot>
                 )}
@@ -1329,7 +1414,7 @@ const SalerRecord = () => {
                                     <h6>Individual Records:</h6>
                                     <ul>
                                       ${summary.records.map(r =>
-                                  `<li>${formatDate(r.date)}: ${r.stock} pieces (Rs: ${parseFloat(r.product_price).toFixed(2)})</li>`
+                                  `<li>${formatDate(r.date)} (${getMonthFromDate(r.date)}): ${r.stock} pieces (Rs: ${parseFloat(r.product_price).toFixed(2)})</li>`
                                 ).join('')}
                                     </ul>
                                   </div>
@@ -1350,8 +1435,8 @@ const SalerRecord = () => {
                         <td colSpan="8" className="text-center py-4">
                           <div className="alert alert-warning mb-0">
                             No summary data found
-                            {(searchProductName || searchProductPlace || searchDate) && " for the current filters"}
-                            {!searchProductName && !searchProductPlace && !searchDate && " for the selected year"}
+                            {(searchProductName || searchProductPlace || searchDate || (searchMonth && searchMonth !== 'All Months')) && " for the current filters"}
+                            {!searchProductName && !searchProductPlace && !searchDate && (!searchMonth || searchMonth === 'All Months') && " for the selected year"}
                           </div>
                         </td>
                       </tr>
@@ -1469,7 +1554,7 @@ const SalerRecord = () => {
                                     <h6>Records by Place:</h6>
                                     <ul>
                                       ${summary.records.map(r =>
-                                  `<li>${formatDate(r.date)} - ${r.product_place}: ${r.stock} pieces (Rs: ${parseFloat(r.product_price).toFixed(2)})</li>`
+                                  `<li>${formatDate(r.date)} (${getMonthFromDate(r.date)}) - ${r.product_place}: ${r.stock} pieces (Rs: ${parseFloat(r.product_price).toFixed(2)})</li>`
                                 ).join('')}
                                     </ul>
                                   </div>
@@ -1490,8 +1575,8 @@ const SalerRecord = () => {
                         <td colSpan="8" className="text-center py-4">
                           <div className="alert alert-warning mb-0">
                             No summary data found
-                            {(searchProductName || searchProductPlace || searchDate) && " for the current filters"}
-                            {!searchProductName && !searchProductPlace && !searchDate && " for the selected year"}
+                            {(searchProductName || searchProductPlace || searchDate || (searchMonth && searchMonth !== 'All Months')) && " for the current filters"}
+                            {!searchProductName && !searchProductPlace && !searchDate && (!searchMonth || searchMonth === 'All Months') && " for the selected year"}
                           </div>
                         </td>
                       </tr>
