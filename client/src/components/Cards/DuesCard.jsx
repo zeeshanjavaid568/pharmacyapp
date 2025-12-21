@@ -110,17 +110,16 @@ const DuesCard = ({ lastPrice, refetchData }) => {
       const submissionData = {
         khata_name: formData.khata_name,
         name: formData.name,
-        single_piece_price: Number(formData.single_piece_price) || 0,
+        single_piece_price: parseFloat(formData.single_piece_price) || 0,
         m_pieces: Number(formData.m_pieces) || 0,
         total_piece: Number(formData.total_piece) || 0,
         o_pieces: Number(formData.o_pieces) || 0,
-        given_dues: Number(formData.given_dues) || 0,
-        taken_dues: Number(formData.taken_dues) || 0,
-        taken_dues_2: Number(formData.taken_dues_2) || 0,
-        price: Number(formData.price) || 0,
+        given_dues: parseFloat(formData.given_dues) || 0,
+        taken_dues: parseFloat(formData.taken_dues) || 0,
+        taken_dues_2: parseFloat(formData.taken_dues_2) || 0,
+        price: parseFloat(formData.price) || 0,
         date: formData.date,
       };
-
       await createGivenDues(submissionData).unwrap();
 
       swal.fire({

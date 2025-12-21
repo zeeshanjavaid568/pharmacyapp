@@ -232,8 +232,6 @@ const UpdateDuesCard = () => {
         date: formData.date,
       };
 
-      console.log(updateData);
-
       // Call update API
       await updateDues({
         id,
