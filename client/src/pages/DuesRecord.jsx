@@ -869,101 +869,291 @@ const DuesRecord = () => {
     }
   };
 
-  // ✅ PDF Download
+  // ✅ PDF Download - Fixed version
   const handleDownloadPDF = async () => {
     try {
+      // Check if there are records to export
+      if (recordsWithRunningTotals.length === 0) {
+        Swal.fire({
+          title: 'No Records',
+          text: 'There are no records to export to PDF.',
+          icon: 'warning',
+          confirmButtonText: 'Ok'
+        });
+        return;
+      }
+
       const { jsPDF } = await import('jspdf');
       const autoTableModule = await import('jspdf-autotable');
       const autoTable = autoTableModule.default || autoTableModule;
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
 
-      const pdfTitle = selectedKhata ? `Ledger File (${selectedKhata})` : 'Daily Report File (All Khatas)';
+      // Create PDF in landscape mode
+      const doc = new jsPDF({
+        orientation: 'landscape',
+        unit: 'pt',
+        format: 'a4'
+      });
 
+      // Calculate date range from records
+      const getDateRange = () => {
+        if (recordsWithRunningTotals.length === 0) return 'No records';
+
+        const dates = recordsWithRunningTotals
+          .map(record => new Date(record.date))
+          .filter(date => !isNaN(date.getTime()));
+
+        if (dates.length === 0) return 'No valid dates';
+
+        const startDate = new Date(Math.min(...dates));
+        const endDate = new Date(Math.max(...dates));
+
+        const format = (date) => {
+          return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+        };
+
+        return `${format(startDate)} to ${format(endDate)}`;
+      };
+
+      // PDF title based on selected khata
+      const pdfTitle = selectedKhata
+        ? `Ledger File - ${selectedKhata}`
+        : 'Daily Report File - All Khatas';
+
+      const recordCount = recordsWithRunningTotals.length;
+      const dateRangeText = getDateRange();
+
+      // Add header information
       doc.setFontSize(18);
+      doc.setTextColor(40, 40, 40);
       doc.text(pdfTitle, 40, 40);
-      doc.setFontSize(10);
-      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 40, 65);
 
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 40, 65);
+      doc.text(`Record Period: ${dateRangeText}`, 40, 85);
+      doc.text(`Total Records: ${recordCount}`, 40, 105);
+
+      // Define table columns - Match your table structure
       const tableColumn = [
         'Sr.#',
-        ...(selectedKhata ? [] : ['Khata Name']),
-        'Name',
-        'Single Piece Price',
-        'Total Price or Weight',
-        'Medicine Pieces',
-        'Total Medicines',
-        'Feed Pieces',
-        'Total Feeds',
-        'Other Pieces',
-        'Total Others',
-        'Given Dues (-)',
-        'Taken Dues (+)',
-        'Remains Total Price',
+        ...(selectedKhata ? [] : ['Khata Name']), // Conditional column
         'Date',
+        'Name',
+        'Rate or Weight',
+        'Total Rate or Weight',
+        'Medicine Qty',
+        'Total Medicines',
+        'Feed Qty',
+        'Total Feeds',
+        'Other Qty',
+        'Total Others',
+        'Debit (-)',
+        'Credit (+)',
+        'Balance'
+        // Note: 'Actions' column is intentionally omitted from PDF
       ];
 
+      // Prepare table rows
       const tableRows = recordsWithRunningTotals.map((record, index) => {
         const baseRow = [
           index + 1,
-          formatNameForPDF(record) || '-',
-          record.single_piece_price || '0',
-          record.runningTotalSinglePiecePrice || '0',
-          record.m_pieces || '0',
-          record.runningTotalMedicinePieces || '0',
-          record.total_piece || '0',
-          record.runningTotalFeedPieces || '0',
-          record.o_pieces || '0',
-          record.runningTotalOtherPieces || '0',
-          record.given_dues || '0',
-          record.taken_dues || '0',
-          record.runningTotal || '0',
           formatDate(record.date),
+          formatNameForPDF(record) || '-',
+          formatNumberWithCommas(record.single_piece_price) || '0',
+          formatNumberWithCommas(record.runningTotalSinglePiecePrice) || '0',
+          record.m_pieces || '0',
+          formatNumberWithCommas(record.runningTotalMedicinePieces) || '0',
+          record.total_piece || '0',
+          formatNumberWithCommas(record.runningTotalFeedPieces) || '0',
+          record.o_pieces || '0',
+          formatNumberWithCommas(record.runningTotalOtherPieces) || '0',
+          formatNumberWithCommas(record.given_dues) || '0',
+          formatNumberWithCommas(record.taken_dues) || '0',
+          formatNumberWithCommas(record.runningTotal) || '0'
         ];
 
-        return selectedKhata ? baseRow : [index + 1, record.khata_name || '-', ...baseRow.slice(1)];
+        // Add khata name if showing all khatas
+        return selectedKhata
+          ? baseRow
+          : [index + 1, record.khata_name || '-', ...baseRow.slice(1)];
       });
 
+      // Define column styles with consistent color scheme
       const columnStyles = {};
 
-      if (selectedKhata) {
-        columnStyles[0] = { textColor: [90, 14, 36], fillColor: [240, 240, 240] };
-        columnStyles[1] = { textColor: [90, 14, 36], fillColor: [255, 255, 255] };
-        columnStyles[2] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
-        columnStyles[3] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
-        columnStyles[4] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
-        columnStyles[5] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
-        columnStyles[6] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
-        columnStyles[7] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
-        columnStyles[8] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
-        columnStyles[9] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
-        columnStyles[10] = { textColor: [220, 53, 69], fillColor: [254, 227, 236] };
-        columnStyles[11] = { textColor: [25, 135, 84], fillColor: [202, 247, 227] };
-        columnStyles[13] = { textColor: [90, 14, 36], fillColor: [255, 255, 255] };
-        columnStyles[14] = { textColor: [33, 37, 41], fillColor: [248, 249, 250] };
-      } else {
-        columnStyles[0] = { textColor: [90, 14, 36], fillColor: [240, 240, 240] };
-        columnStyles[1] = { textColor: [220, 14, 14], fillColor: [255, 255, 255] };
-        columnStyles[2] = { textColor: [90, 14, 36], fillColor: [255, 255, 255] };
-        columnStyles[3] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
-        columnStyles[4] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
-        columnStyles[5] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
-        columnStyles[6] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
-        columnStyles[7] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
-        columnStyles[8] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
-        columnStyles[9] = { textColor: [90, 14, 36], fillColor: [246, 246, 246] };
-        columnStyles[10] = { textColor: [6, 7, 113], fillColor: [232, 249, 255] };
-        columnStyles[11] = { textColor: [220, 53, 69], fillColor: [254, 227, 236] };
-        columnStyles[12] = { textColor: [25, 135, 84], fillColor: [202, 247, 227] };
-        columnStyles[14] = { textColor: [90, 14, 36], fillColor: [255, 255, 255] };
-        columnStyles[15] = { textColor: [33, 37, 41], fillColor: [248, 249, 250] };
-      }
+      // Base column index adjustments based on whether khata column is included
+      const baseIndex = selectedKhata ? 0 : 1;
 
-      const styles = {
-        fontSize: 8,
-        cellPadding: 3,
-        halign: 'center',
+      // Color scheme definition
+      const colors = {
+        index: { text: [90, 14, 36], background: [240, 240, 240] },
+        khata: { text: [220, 14, 14], background: [255, 255, 255] },
+        date: { text: [60, 60, 60], background: [245, 245, 245] },
+        name: { text: [0, 0, 0], background: [255, 255, 255] },
+        common: { text: [90, 14, 36], background: [250, 250, 250] },
+        total: { text: [6, 7, 113], background: [232, 249, 255] },
+        debit: { text: [220, 53, 69], background: [254, 227, 236] },
+        credit: { text: [25, 135, 84], background: [202, 247, 227] },
+        balance: { text: [33, 37, 41], background: [248, 249, 250] }
       };
 
+      // Apply styles to each column
+      if (selectedKhata) {
+        // With selected khata (no khata column)
+        columnStyles[0] = {
+          textColor: colors.index.text,
+          fillColor: colors.index.background,
+          fontStyle: 'bold'
+        };
+        columnStyles[1] = {
+          textColor: colors.date.text,
+          fillColor: colors.date.background
+        };
+        columnStyles[2] = {
+          textColor: colors.name.text,
+          fillColor: colors.name.background,
+          fontStyle: 'bold'
+        };
+        columnStyles[3] = {
+          textColor: colors.common.text,
+          fillColor: colors.common.background
+        };
+        columnStyles[4] = {
+          textColor: colors.total.text,
+          fillColor: colors.total.background,
+          fontStyle: 'bold'
+        };
+        columnStyles[5] = {
+          textColor: colors.common.text,
+          fillColor: colors.common.background
+        };
+        columnStyles[6] = {
+          textColor: colors.total.text,
+          fillColor: colors.total.background,
+          fontStyle: 'bold'
+        };
+        columnStyles[7] = {
+          textColor: colors.common.text,
+          fillColor: colors.common.background
+        };
+        columnStyles[8] = {
+          textColor: colors.total.text,
+          fillColor: colors.total.background,
+          fontStyle: 'bold'
+        };
+        columnStyles[9] = {
+          textColor: colors.common.text,
+          fillColor: colors.common.background
+        };
+        columnStyles[10] = {
+          textColor: colors.total.text,
+          fillColor: colors.total.background,
+          fontStyle: 'bold'
+        };
+        columnStyles[11] = {
+          textColor: colors.debit.text,
+          fillColor: colors.debit.background,
+          fontStyle: 'bold'
+        };
+        columnStyles[12] = {
+          textColor: colors.credit.text,
+          fillColor: colors.credit.background,
+          fontStyle: 'bold'
+        };
+        columnStyles[13] = {
+          textColor: colors.balance.text,
+          fillColor: colors.balance.background,
+          fontStyle: 'bold'
+        };
+      } else {
+        // With all khatas (includes khata column)
+        columnStyles[0] = {
+          textColor: colors.index.text,
+          fillColor: colors.index.background,
+          fontStyle: 'bold'
+        };
+        columnStyles[1] = {
+          textColor: colors.khata.text,
+          fillColor: colors.khata.background,
+          fontStyle: 'bold'
+        };
+        columnStyles[2] = {
+          textColor: colors.date.text,
+          fillColor: colors.date.background
+        };
+        columnStyles[3] = {
+          textColor: colors.name.text,
+          fillColor: colors.name.background,
+          fontStyle: 'bold'
+        };
+        columnStyles[4] = {
+          textColor: colors.common.text,
+          fillColor: colors.common.background
+        };
+        columnStyles[5] = {
+          textColor: colors.total.text,
+          fillColor: colors.total.background,
+          fontStyle: 'bold'
+        };
+        columnStyles[6] = {
+          textColor: colors.common.text,
+          fillColor: colors.common.background
+        };
+        columnStyles[7] = {
+          textColor: colors.total.text,
+          fillColor: colors.total.background,
+          fontStyle: 'bold'
+        };
+        columnStyles[8] = {
+          textColor: colors.common.text,
+          fillColor: colors.common.background
+        };
+        columnStyles[9] = {
+          textColor: colors.total.text,
+          fillColor: colors.total.background,
+          fontStyle: 'bold'
+        };
+        columnStyles[10] = {
+          textColor: colors.common.text,
+          fillColor: colors.common.background
+        };
+        columnStyles[11] = {
+          textColor: colors.total.text,
+          fillColor: colors.total.background,
+          fontStyle: 'bold'
+        };
+        columnStyles[12] = {
+          textColor: colors.debit.text,
+          fillColor: colors.debit.background,
+          fontStyle: 'bold'
+        };
+        columnStyles[13] = {
+          textColor: colors.credit.text,
+          fillColor: colors.credit.background,
+          fontStyle: 'bold'
+        };
+        columnStyles[14] = {
+          textColor: colors.balance.text,
+          fillColor: colors.balance.background,
+          fontStyle: 'bold'
+        };
+      }
+
+      // Table styles
+      const styles = {
+        fontSize: 8,
+        cellPadding: 4,
+        halign: 'center',
+        valign: 'middle',
+        lineWidth: 0.5,
+        lineColor: [200, 200, 200]
+      };
+
+      // Custom cell parsing for balance column coloring
       const didParseCell = (data) => {
         if (data.section === 'body') {
           const rowIndex = data.row.index;
@@ -972,52 +1162,107 @@ const DuesRecord = () => {
 
           if (!record) return;
 
-          const remainsTotalPriceColumn = selectedKhata ? 12 : 13;
+          // Determine balance column index based on whether khata column exists
+          const balanceColumnIndex = selectedKhata ? 13 : 14;
 
-          if (columnIndex === remainsTotalPriceColumn) {
-            if (record.runningTotal < 0) {
-              data.cell.styles.textColor = [220, 53, 69];
-            } else if (record.runningTotal > 0) {
-              data.cell.styles.textColor = [25, 135, 84];
+          // Apply color to balance column based on value
+          if (columnIndex === balanceColumnIndex) {
+            const balanceValue = record.runningTotal;
+
+            if (balanceValue < 0) {
+              data.cell.styles.textColor = [220, 53, 69]; // Red for negative
+              data.cell.styles.fontStyle = 'bold';
+            } else if (balanceValue > 0) {
+              data.cell.styles.textColor = [25, 135, 84]; // Green for positive
+              data.cell.styles.fontStyle = 'bold';
             } else {
-              data.cell.styles.textColor = [108, 117, 125];
+              data.cell.styles.textColor = [108, 117, 125]; // Gray for zero
             }
-            data.cell.styles.fontStyle = 'bold';
+          }
+
+          // Highlight return records
+          if (record.isReturn) {
+            data.cell.styles.fillColor = [255, 243, 224]; // Light orange background
+            data.cell.styles.textColor = [255, 107, 53]; // Orange text
           }
         }
       };
 
+      // Generate the table
       autoTable(doc, {
         head: [tableColumn],
         body: tableRows,
-        startY: 100,
+        startY: 120, // Adjusted for additional header info
         theme: 'grid',
         styles: styles,
         columnStyles: columnStyles,
         headStyles: {
-          fillColor: [244, 67, 54],
-          textColor: 255,
+          fillColor: [244, 67, 54], // Red header
+          textColor: [255, 255, 255],
           fontStyle: 'bold',
           halign: 'center',
-          fontSize: 8
+          fontSize: 9,
+          lineWidth: 0.5,
+          lineColor: [200, 200, 200]
         },
         margin: { left: 20, right: 20 },
         didParseCell: didParseCell,
+        willDrawCell: (data) => {
+          // Add subtle alternating row shading
+          if (data.section === 'body' && data.row.index % 2 === 0) {
+            if (!data.cell.styles.fillColor ||
+              JSON.stringify(data.cell.styles.fillColor) === JSON.stringify([255, 255, 255])) {
+              data.cell.styles.fillColor = [248, 249, 250]; // Very light gray
+            }
+          }
+        }
       });
 
-      doc.save(`Ledger_File_${selectedKhata || 'All_Khatas'}_${new Date().toISOString().split('T')[0]}.pdf`);
+      // Add footer with summary
+      const finalY = doc.lastAutoTable.finalY || 500;
+      doc.setFontSize(9);
+      doc.setTextColor(80, 80, 80);
+
+      const summaryText = `Summary: ${recordCount} records | ` +
+        `Final Balance: ${formatNumberWithCommas(lastPrice)} | ` +
+        `Total Pieces: ${lastTotalPieces}`;
+
+      doc.text(summaryText, 40, finalY + 30);
+
+      // Generate filename with date range
+      const today = new Date().toISOString().split('T')[0];
+      const fileName = selectedKhata
+        ? `Ledger_${selectedKhata.replace(/\s+/g, '_')}_${today}.pdf`
+        : `All_Khatas_Ledger_${today}.pdf`;
+
+      // Save the PDF
+      doc.save(fileName);
+
+      // Success notification
       Swal.fire({
-        title: 'Success!',
-        text: `PDF downloaded for ${selectedKhata || 'All Khatas'}!`,
+        title: 'PDF Generated Successfully!',
+        html: `
+        <div style="text-align: left;">
+          <p><strong>File:</strong> ${fileName}</p>
+          <p><strong>Records:</strong> ${recordCount}</p>
+          <p><strong>Period:</strong> ${dateRangeText}</p>
+          <p><strong>Final Balance:</strong> ${formatNumberWithCommas(lastPrice)}</p>
+        </div>
+      `,
         icon: 'success',
         confirmButtonText: 'Ok',
         buttonsStyling: false,
-        customClass: { confirmButton: 'sweetalert_btn_success' },
+        customClass: {
+          confirmButton: 'sweetalert_btn_success',
+          popup: 'sweetalert_pdf_popup'
+        },
       });
-    } catch {
+
+    } catch (error) {
+      console.error('PDF generation error:', error);
       Swal.fire({
-        title: 'Error!',
-        text: 'Failed to generate PDF.',
+        title: 'PDF Generation Failed!',
+        text: 'An error occurred while generating the PDF. Please try again.',
         icon: 'error',
         confirmButtonText: 'Ok',
         buttonsStyling: false,
@@ -1288,19 +1533,19 @@ const DuesRecord = () => {
               <tr>
                 <th style={TableHeadingStyle}>#</th>
                 {!selectedKhata && <th style={TableHeadingStyle}>Khata Name</th>}
-                <th style={TableHeadingStyle}>Name</th>
-                <th style={TableHeadingStyle}>Price or Weight</th>
-                <th style={TableHeadingStyle}>Total Price or Weight</th>
-                <th style={TableHeadingStyle}>Medicine Pieces</th>
-                <th style={TableHeadingStyle}>Total Medicines</th>
-                <th style={TableHeadingStyle}>Feed Pieces</th>
-                <th style={TableHeadingStyle}>Total Feeds</th>
-                <th style={TableHeadingStyle}>Other Pieces</th>
-                <th style={TableHeadingStyle}>Total Others</th>
-                <th style={TableHeadingStyle}>Given Dues (-)</th>
-                <th style={TableHeadingStyle}>Taken Dues (+)</th>
-                <th style={TableHeadingStyle}>Remains Total Price</th>
                 <th style={TableHeadingStyle}>Date</th>
+                <th style={TableHeadingStyle}>Name</th>
+                <th style={TableHeadingStyle}>Rate or Weight</th>
+                <th style={TableHeadingStyle}>Total Rate or Weight</th>
+                <th style={TableHeadingStyle}>Medicine Qty</th>
+                <th style={TableHeadingStyle}>Total Medicines</th>
+                <th style={TableHeadingStyle}>Feed Qty</th>
+                <th style={TableHeadingStyle}>Total Feeds</th>
+                <th style={TableHeadingStyle}>Other Qty</th>
+                <th style={TableHeadingStyle}>Total Others</th>
+                <th style={TableHeadingStyle}>Debit (-)</th>
+                <th style={TableHeadingStyle}>Credit (+)</th>
+                <th style={TableHeadingStyle}>Balance</th>
                 <th style={TableHeadingStyle}>Actions</th>
               </tr>
             </thead>
@@ -1317,6 +1562,9 @@ const DuesRecord = () => {
                         {record.khata_name}
                       </td>
                     )}
+                    <td style={TableCellStyle}>
+                      {formatDate(record.date)}
+                    </td>
                     <td style={{ ...TableCellStyle, ...(record.isReturn ? ReturnStyle : {}) }}>
                       {record.formattedName}
                     </td>
@@ -1359,9 +1607,7 @@ const DuesRecord = () => {
                     >
                       {formatNumberWithCommas(record.runningTotal)}
                     </td>
-                    <td style={TableCellStyle}>
-                      {formatDate(record.date)}
-                    </td>
+
                     <td style={TableCellStyle} className='d-flex justify-content-center align-items-center gap-2'>
                       <Link to={`/updatedues/${record.id}`} className="update_btn">
                         Update
