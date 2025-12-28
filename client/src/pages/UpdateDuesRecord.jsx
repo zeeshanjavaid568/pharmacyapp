@@ -4,7 +4,7 @@ import { useGetAllDuesQuery, useSingleGetDuesQuery, useUpdateDuesMutation } from
 import Swal from 'sweetalert2';
 
 const UpdateDuesCard = () => {
-  const { id } = useParams(); // Get record ID from URL parameters
+  const { id } = useParams();
   const navigate = useNavigate();
 
   // Fetch single record data
@@ -15,7 +15,7 @@ const UpdateDuesCard = () => {
     refetch: singeDataRefetch,
     error
   } = useSingleGetDuesQuery(id, {
-    skip: !id, // Skip if no id
+    skip: !id,
     refetchOnMountOrArgChange: true
   });
 
@@ -42,23 +42,23 @@ const UpdateDuesCard = () => {
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Calculate total amount (single_piece_price * (m_pieces + total_piece + o_pieces))
+  // Calculate total amount with float values
   const calculateTotalAmount = () => {
     const singlePrice = parseFloat(formData.single_piece_price) || 0;
-    const medicinePieces = parseInt(formData.m_pieces) || 0;
-    const feedPieces = parseInt(formData.total_piece) || 0;
-    const otherPieces = parseInt(formData.o_pieces) || 0;
+    const medicinePieces = parseFloat(formData.m_pieces) || 0;
+    const feedPieces = parseFloat(formData.total_piece) || 0;
+    const otherPieces = parseFloat(formData.o_pieces) || 0;
 
     const totalPieces = medicinePieces + feedPieces + otherPieces;
     return singlePrice * totalPieces;
   };
 
-  // Calculate individual amounts for each piece type
+  // Calculate individual amounts for each piece type with float values
   const calculateIndividualAmounts = () => {
     const singlePrice = parseFloat(formData.single_piece_price) || 0;
-    const medicinePieces = parseInt(formData.m_pieces) || 0;
-    const feedPieces = parseInt(formData.total_piece) || 0;
-    const otherPieces = parseInt(formData.o_pieces) || 0;
+    const medicinePieces = parseFloat(formData.m_pieces) || 0;
+    const feedPieces = parseFloat(formData.total_piece) || 0;
+    const otherPieces = parseFloat(formData.o_pieces) || 0;
 
     return {
       medicineAmount: singlePrice * medicinePieces,
@@ -70,7 +70,7 @@ const UpdateDuesCard = () => {
 
   const { medicineAmount, feedAmount, otherAmount, totalAmount } = calculateIndividualAmounts();
 
-  // Validate form
+  // Validate form with float support
   const validateForm = () => {
     const errors = {};
 
@@ -82,8 +82,8 @@ const UpdateDuesCard = () => {
       errors.date = 'Date is required';
     }
 
-    // Validate numeric fields
-    const numericFields = [
+    // Validate float fields
+    const floatFields = [
       'single_piece_price',
       'm_pieces',
       'total_piece',
@@ -92,21 +92,25 @@ const UpdateDuesCard = () => {
       'taken_dues'
     ];
 
-    numericFields.forEach(field => {
-      if (formData[field] && isNaN(formData[field])) {
-        errors[field] = `${field.replace(/_/g, ' ')} must be a valid number`;
-      }
+    floatFields.forEach(field => {
+      const value = formData[field];
+      if (value && value.trim() !== '') {
+        // Check if it's a valid number (including float)
+        if (isNaN(value) || isNaN(parseFloat(value))) {
+          errors[field] = `${field.replace(/_/g, ' ')} must be a valid number`;
+        }
 
-      // Additional validation for negative numbers
-      if (formData[field] && parseFloat(formData[field]) < 0) {
-        errors[field] = `${field.replace(/_/g, ' ')} cannot be negative`;
+        // Additional validation for negative numbers
+        if (parseFloat(value) < 0) {
+          errors[field] = `${field.replace(/_/g, ' ')} cannot be negative`;
+        }
       }
     });
 
     // Validate at least one piece type has quantity
-    const totalPieces = (parseInt(formData.m_pieces) || 0) +
-      (parseInt(formData.total_piece) || 0) +
-      (parseInt(formData.o_pieces) || 0);
+    const totalPieces = (parseFloat(formData.m_pieces) || 0) +
+      (parseFloat(formData.total_piece) || 0) +
+      (parseFloat(formData.o_pieces) || 0);
 
     if (totalPieces > 0 && (parseFloat(formData.single_piece_price) || 0) <= 0) {
       errors.single_piece_price = 'Price must be greater than 0 when there are pieces';
@@ -116,31 +120,29 @@ const UpdateDuesCard = () => {
     return Object.keys(errors).length === 0;
   };
 
-  // Populate form when record data is loaded
+  // Populate form when record data is loaded with float values
   useEffect(() => {
     if (recordData?.data) {
-      // Check if recordData.data exists (common pattern in RTK Query)
       const data = recordData.data;
       setFormData({
         name: data.name || '',
-        single_piece_price: data.single_piece_price?.toString() || '',
-        m_pieces: data.m_pieces?.toString() || '',
-        total_piece: data.total_piece?.toString() || '',
-        o_pieces: data.o_pieces?.toString() || '',
-        given_dues: data.given_dues?.toString() || '',
-        taken_dues: data.taken_dues?.toString() || '',
+        single_piece_price: formatFloatForInput(data.single_piece_price),
+        m_pieces: formatFloatForInput(data.m_pieces),
+        total_piece: formatFloatForInput(data.total_piece),
+        o_pieces: formatFloatForInput(data.o_pieces),
+        given_dues: formatFloatForInput(data.given_dues),
+        taken_dues: formatFloatForInput(data.taken_dues),
         date: formatDateForInput(data.date) || '',
       });
     } else if (recordData) {
-      // Fallback if data is not nested
       setFormData({
         name: recordData.name || '',
-        single_piece_price: recordData.single_piece_price?.toString() || '',
-        m_pieces: recordData.m_pieces?.toString() || '',
-        total_piece: recordData.total_piece?.toString() || '',
-        o_pieces: recordData.o_pieces?.toString() || '',
-        given_dues: recordData.given_dues?.toString() || '',
-        taken_dues: recordData.taken_dues?.toString() || '',
+        single_piece_price: formatFloatForInput(recordData.single_piece_price),
+        m_pieces: formatFloatForInput(recordData.m_pieces),
+        total_piece: formatFloatForInput(recordData.total_piece),
+        o_pieces: formatFloatForInput(recordData.o_pieces),
+        given_dues: formatFloatForInput(recordData.given_dues),
+        taken_dues: formatFloatForInput(recordData.taken_dues),
         date: formatDateForInput(recordData.date) || '',
       });
     }
@@ -180,7 +182,6 @@ const UpdateDuesCard = () => {
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return '';
-      // Adjust for timezone offset to ensure correct date display
       const offset = date.getTimezoneOffset() * 60000;
       const localDate = new Date(date.getTime() - offset);
       return localDate.toISOString().split('T')[0];
@@ -190,8 +191,31 @@ const UpdateDuesCard = () => {
     }
   };
 
+  // Format float value for input field
+  const formatFloatForInput = (value) => {
+    if (value === null || value === undefined || value === '') return '';
+    const num = parseFloat(value);
+    if (isNaN(num)) return '';
+    // Remove trailing zeros after decimal for better UX
+    return num.toString();
+  };
+
+  // Handle input change with float support
   const handleChange = (e) => {
     const { name, value } = e.target;
+    let processedValue = value;
+
+    // Allow decimal points and negative signs for float fields
+    const floatFields = ['single_piece_price', 'm_pieces', 'total_piece', 'o_pieces', 'given_dues', 'taken_dues'];
+
+    if (floatFields.includes(name)) {
+      // Allow only numbers, decimal point, and negative sign
+      if (value === '' || /^-?\d*\.?\d*$/.test(value)) {
+        processedValue = value;
+      } else {
+        return; // Don't update if invalid input
+      }
+    }
 
     // Clear error for this field when user starts typing
     if (formErrors[name]) {
@@ -200,7 +224,7 @@ const UpdateDuesCard = () => {
 
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: processedValue
     }));
   };
 
@@ -220,13 +244,13 @@ const UpdateDuesCard = () => {
     setIsSubmitting(true);
 
     try {
-      // Prepare update data
+      // Prepare update data with float values
       const updateData = {
         name: formData.name.trim(),
         single_piece_price: formData.single_piece_price ? parseFloat(formData.single_piece_price) : 0,
-        m_pieces: formData.m_pieces ? parseInt(formData.m_pieces) : 0,
-        total_piece: formData.total_piece ? parseInt(formData.total_piece) : 0,
-        o_pieces: formData.o_pieces ? parseInt(formData.o_pieces) : 0,
+        m_pieces: formData.m_pieces ? parseFloat(formData.m_pieces) : 0,
+        total_piece: formData.total_piece ? parseFloat(formData.total_piece) : 0,
+        o_pieces: formData.o_pieces ? parseFloat(formData.o_pieces) : 0,
         given_dues: formData.given_dues ? parseFloat(formData.given_dues) : 0,
         taken_dues: formData.taken_dues ? parseFloat(formData.taken_dues) : 0,
         date: formData.date,
@@ -257,10 +281,27 @@ const UpdateDuesCard = () => {
     }
   };
 
-  // Format display amount with commas
+  // Format display amount with commas and handle float values
   const formatAmount = (amount) => {
-    return parseFloat(amount || 0).toLocaleString('en-IN', {
+    const num = parseFloat(amount) || 0;
+    return num.toLocaleString('en-IN', {
       minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
+
+  // Format piece count with appropriate decimal places
+  const formatPieces = (pieces) => {
+    const num = parseFloat(pieces) || 0;
+    // Show decimal places only if needed
+    if (num % 1 === 0) {
+      return num.toLocaleString('en-IN', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      });
+    }
+    return num.toLocaleString('en-IN', {
+      minimumFractionDigits: 1,
       maximumFractionDigits: 2
     });
   };
@@ -338,18 +379,20 @@ const UpdateDuesCard = () => {
               </div>
               <div className="col-md-6">
                 <strong>Total Qty:</strong>
-                {(parseInt(currentRecord.m_pieces || 0) +
-                  parseInt(currentRecord.total_piece || 0) +
-                  parseInt(currentRecord.o_pieces || 0))}
+                {formatPieces(
+                  (parseFloat(currentRecord.m_pieces || 0) +
+                    parseFloat(currentRecord.total_piece || 0) +
+                    parseFloat(currentRecord.o_pieces || 0))
+                )}
               </div>
             </div>
             <div className="row mt-2">
               <div className="col-md-6">
                 <strong>Total Amount:</strong> {formatAmount(
                   (parseFloat(currentRecord.single_piece_price || 0) *
-                    (parseInt(currentRecord.m_pieces || 0) +
-                      parseInt(currentRecord.total_piece || 0) +
-                      parseInt(currentRecord.o_pieces || 0)))
+                    (parseFloat(currentRecord.m_pieces || 0) +
+                      parseFloat(currentRecord.total_piece || 0) +
+                      parseFloat(currentRecord.o_pieces || 0)))
                 )}
               </div>
               <div className="col-md-6">
@@ -361,13 +404,13 @@ const UpdateDuesCard = () => {
             </div>
             <div className="row mt-2">
               <div className="col-md-6">
-                <strong>Medicine Qty:</strong> {currentRecord.m_pieces || '0'}
+                <strong>Medicine Qty:</strong> {formatPieces(currentRecord.m_pieces || '0')}
               </div>
               <div className="col-md-6">
-                <strong>Feed Qty:</strong> {currentRecord.total_piece || '0'}
+                <strong>Feed Qty:</strong> {formatPieces(currentRecord.total_piece || '0')}
               </div>
               <div className="col-md-6 mt-2">
-                <strong>Other Qty:</strong> {currentRecord.o_pieces || '0'}
+                <strong>Other Qty:</strong> {formatPieces(currentRecord.o_pieces || '0')}
               </div>
             </div>
             <div className="row mt-2">
@@ -422,14 +465,12 @@ const UpdateDuesCard = () => {
           <div className="col-12 col-md-5 mb-3">
             <label className="form-label fw-bold">Rate or Weight <span style={{ color: '#dc3545' }}>*</span></label>
             <input
-              type="number"
+              type="text"  // Changed from number to text for better float handling
               name="single_piece_price"
               className={`form-control p-2 ${formErrors.single_piece_price ? 'is-invalid' : ''}`}
-              placeholder="Enter single piece price"
+              placeholder="Enter rate or weight (e.g., 10.5)"
               value={formData.single_piece_price}
               onChange={handleChange}
-              step="0.01"
-              min="0"
               disabled={isUpdating || isSubmitting}
             />
             {formErrors.single_piece_price && (
@@ -446,13 +487,12 @@ const UpdateDuesCard = () => {
           <div className="col-12 col-md-5 mb-3">
             <label className="form-label fw-bold">Medicine Qty <span style={{ color: '#dc3545' }}>*</span></label>
             <input
-              type="number"
+              type="text"  // Changed from number to text for better float handling
               name="m_pieces"
               className={`form-control p-2 ${formErrors.m_pieces ? 'is-invalid' : ''}`}
-              placeholder="Enter medicine pieces"
+              placeholder="Enter medicine quantity (e.g., 2.5)"
               value={formData.m_pieces}
               onChange={handleChange}
-              min="0"
               disabled={isUpdating || isSubmitting}
             />
             {formErrors.m_pieces && (
@@ -469,13 +509,12 @@ const UpdateDuesCard = () => {
           <div className="col-12 col-md-5 mb-3">
             <label className="form-label fw-bold">Feed Qty <span style={{ color: '#dc3545' }}>*</span></label>
             <input
-              type="number"
+              type="text"  // Changed from number to text for better float handling
               name="total_piece"
               className={`form-control p-2 ${formErrors.total_piece ? 'is-invalid' : ''}`}
-              placeholder="Enter feed pieces"
+              placeholder="Enter feed quantity (e.g., 3.75)"
               value={formData.total_piece}
               onChange={handleChange}
-              min="0"
               disabled={isUpdating || isSubmitting}
             />
             {formErrors.total_piece && (
@@ -492,13 +531,12 @@ const UpdateDuesCard = () => {
           <div className="col-12 col-md-5 mb-3">
             <label className="form-label fw-bold">Other Qty <span style={{ color: '#dc3545' }}>*</span></label>
             <input
-              type="number"
+              type="text"  // Changed from number to text for better float handling
               name="o_pieces"
               className={`form-control p-2 ${formErrors.o_pieces ? 'is-invalid' : ''}`}
-              placeholder="Enter other pieces"
+              placeholder="Enter other quantity (e.g., 1.25)"
               value={formData.o_pieces}
               onChange={handleChange}
-              min="0"
               disabled={isUpdating || isSubmitting}
             />
             {formErrors.o_pieces && (
@@ -541,14 +579,12 @@ const UpdateDuesCard = () => {
           <div className="col-12 col-md-5 mb-3">
             <label className="form-label fw-bold"><span style={{ color: '#dc3545' }}>Debit (-) *</span></label>
             <input
-              type="number"
+              type="text"  // Changed from number to text for better float handling
               name="given_dues"
               className={`form-control p-2 ${formErrors.given_dues ? 'is-invalid' : ''}`}
-              placeholder="Enter given dues"
+              placeholder="Enter debit amount (e.g., 100.50)"
               value={formData.given_dues}
               onChange={handleChange}
-              step="0.01"
-              min="0"
               disabled={isUpdating || isSubmitting}
             />
             {formErrors.given_dues && (
@@ -560,14 +596,12 @@ const UpdateDuesCard = () => {
           <div className="col-12 col-md-5 mb-3">
             <label className="form-label fw-bold"><span style={{ color: '#157347' }}>Credit (+) </span><span style={{ color: '#dc3545' }}>*</span></label>
             <input
-              type="number"
+              type="text"  // Changed from number to text for better float handling
               name="taken_dues"
               className={`form-control p-2 ${formErrors.taken_dues ? 'is-invalid' : ''}`}
-              placeholder="Enter taken dues"
+              placeholder="Enter credit amount (e.g., 150.75)"
               value={formData.taken_dues}
               onChange={handleChange}
-              step="0.01"
-              min="0"
               disabled={isUpdating || isSubmitting}
             />
             {formErrors.taken_dues && (
@@ -603,7 +637,11 @@ const UpdateDuesCard = () => {
                   <div className="col-md-3">
                     <strong>Total Pieces:</strong>
                     <div className="text-primary fs-5">
-                      {(parseInt(formData.m_pieces || 0) + parseInt(formData.total_piece || 0) + parseInt(formData.o_pieces || 0))}
+                      {formatPieces(
+                        (parseFloat(formData.m_pieces || 0) +
+                          parseFloat(formData.total_piece || 0) +
+                          parseFloat(formData.o_pieces || 0))
+                      )}
                     </div>
                     <small className="text-muted">(M + F + O)</small>
                   </div>
