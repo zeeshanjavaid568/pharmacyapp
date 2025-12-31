@@ -83,6 +83,11 @@ const DuesRecord = () => {
   const [speechPitch, setSpeechPitch] = useState(1.0);
   const [speechVolume, setSpeechVolume] = useState(1.0);
 
+  // ✅ Delete All states
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const [deleteProgress, setDeleteProgress] = useState(0);
+  const [totalToDelete, setTotalToDelete] = useState(0);
+
   // ✅ Get unique khata names
   const khataNames = useMemo(() => {
     return [...new Set(data.map((item) => item.khata_name).filter(Boolean))];
@@ -872,6 +877,201 @@ const DuesRecord = () => {
     }
   };
 
+  // ✅ DELETE ALL RECORDS FUNCTION
+  const handleDeleteAll = async () => {
+    // Check if there are records to delete
+    if (recordsWithRunningTotals.length === 0) {
+      Swal.fire({
+        title: 'No Records',
+        text: 'There are no records to delete.',
+        icon: 'info',
+        confirmButtonText: 'Ok'
+      });
+      return;
+    }
+
+    // Show confirmation dialog
+    const result = await Swal.fire({
+      title: 'Delete All Records?',
+      html: `
+        <div style="text-align: left;">
+          <p><strong>You are about to delete:</strong></p>
+          <p>• <strong>${recordsWithRunningTotals.length}</strong> records from the table</p>
+          <p>• This action <strong>cannot be undone</strong></p>
+          <p>• All data will be permanently removed</p>
+          <p>• Current filters applied: ${selectedKhata || 'All Khatas'}</p>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#4caf50',
+      confirmButtonText: 'Yes, Delete All!',
+      cancelButtonText: 'Cancel',
+      customClass: {
+        confirmButton: 'swal2-danger'
+      }
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    // Get confirmation for critical action
+    const confirmResult = await Swal.fire({
+      title: 'Final Confirmation',
+      text: `Type "DELETE" to confirm deletion of ${recordsWithRunningTotals.length} records`,
+      input: 'text',
+      inputAttributes: {
+        autocapitalize: 'off'
+      },
+      showCancelButton: true,
+      confirmButtonText: 'Confirm Delete',
+      confirmButtonColor: '#dc3545',
+      cancelButtonText: 'Cancel',
+      showLoaderOnConfirm: true,
+      preConfirm: (input) => {
+        if (input !== 'DELETE') {
+          Swal.showValidationMessage('You must type DELETE in uppercase to confirm');
+        }
+        return input === 'DELETE';
+      },
+      allowOutsideClick: () => !Swal.isLoading()
+    });
+
+    if (!confirmResult.isConfirmed) {
+      return;
+    }
+
+    setIsDeletingAll(true);
+    setTotalToDelete(recordsWithRunningTotals.length);
+    setDeleteProgress(0);
+
+    // Show progress dialog
+    Swal.fire({
+      title: 'Deleting Records...',
+      html: `
+        <div style="text-align: center;">
+          <p>Deleting records from the table...</p>
+          <div class="progress" style="height: 25px; margin: 20px 0;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-danger" 
+                 role="progressbar" 
+                 style="width: 0%; height: 100%;">
+              <span class="progress-text">0%</span>
+            </div>
+          </div>
+          <p><strong>Progress:</strong> <span class="progress-count">0</span> / ${recordsWithRunningTotals.length}</p>
+          <p class="text-danger"><small>Please do not close this window</small></p>
+        </div>
+      `,
+      allowOutsideClick: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    let successCount = 0;
+    let errorCount = 0;
+    const errors = [];
+
+    try {
+      // Delete records one by one with progress tracking
+      for (let i = 0; i < recordsWithRunningTotals.length; i++) {
+        const record = recordsWithRunningTotals[i];
+
+        try {
+          await deleteGivenDues(record.id).unwrap();
+          successCount++;
+        } catch (error) {
+          errorCount++;
+          errors.push({
+            id: record.id,
+            name: record.formattedName,
+            error: error.message || 'Unknown error'
+          });
+          console.error(`Failed to delete record ${record.id}:`, error);
+        }
+
+        // Update progress
+        const progress = Math.round(((i + 1) / recordsWithRunningTotals.length) * 100);
+        setDeleteProgress(progress);
+
+        // Update progress in SweetAlert
+        const progressBar = document.querySelector('.progress-bar');
+        const progressText = document.querySelector('.progress-text');
+        const progressCount = document.querySelector('.progress-count');
+
+        if (progressBar) {
+          progressBar.style.width = `${progress}%`;
+          if (progressText) progressText.textContent = `${progress}%`;
+          if (progressCount) progressCount.textContent = `${i + 1}`;
+        }
+
+        // Small delay to prevent overwhelming the server
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      // Refetch data after deletion
+      await refetch();
+
+      // Close progress dialog
+      Swal.close();
+
+      // Show result summary
+      let resultHtml = '';
+
+      if (successCount > 0) {
+        resultHtml += `
+          <div style="text-align: left; margin-bottom: 15px;">
+            <p style="color: #198754; font-weight: bold;">✅ Successfully deleted: ${successCount} records</p>
+          </div>
+        `;
+      }
+
+      if (errorCount > 0) {
+        resultHtml += `
+          <div style="text-align: left; margin-bottom: 15px;">
+            <p style="color: #dc3545; font-weight: bold;">❌ Failed to delete: ${errorCount} records</p>
+            <details style="margin-top: 10px;">
+              <summary style="cursor: pointer; color: #6c757d;">View error details</summary>
+              <div style="max-height: 150px; overflow-y: auto; margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                ${errors.map(err => `<p style="margin: 5px 0; font-size: 12px;"><strong>${err.name}</strong>: ${err.error}</p>`).join('')}
+              </div>
+            </details>
+          </div>
+        `;
+      }
+
+      Swal.fire({
+        title: successCount > 0 ? 'Deletion Complete!' : 'Deletion Partially Complete',
+        html: resultHtml,
+        icon: errorCount === 0 ? 'success' : (successCount > 0 ? 'warning' : 'error'),
+        confirmButtonText: 'Ok',
+        buttonsStyling: false,
+        customClass: {
+          confirmButton: errorCount === 0 ? 'sweetalert_btn_success' : 'sweetalert_btn_warning',
+          popup: 'sweetalert_delete_popup'
+        },
+      });
+
+    } catch (error) {
+      console.error('Bulk delete error:', error);
+      Swal.fire({
+        title: 'Deletion Failed!',
+        text: 'An unexpected error occurred during bulk deletion.',
+        icon: 'error',
+        confirmButtonText: 'Ok',
+        buttonsStyling: false,
+        customClass: { confirmButton: 'sweetalert_btn_error' },
+      });
+    } finally {
+      setIsDeletingAll(false);
+      setDeleteProgress(0);
+      setTotalToDelete(0);
+    }
+  };
+
   // ✅ PDF Download - Fixed version
   const handleDownloadPDF = async () => {
     try {
@@ -1505,6 +1705,7 @@ const DuesRecord = () => {
             {formatNumberWithCommas(lastPrice)}
           </div>
         </div>
+
         <div className="form-group mt-2">
           <button
             className="btn delete_btn mt-4 px-4"
@@ -1514,6 +1715,27 @@ const DuesRecord = () => {
             📄 Download PDF ({recordsWithRunningTotals.length})
           </button>
         </div>
+
+        {/* 🗑️ Delete All Button */}
+        <div className="form-group mt-2">
+          <button
+            className="btn btn-danger px-4"
+            onClick={handleDeleteAll}
+            disabled={recordsWithRunningTotals.length === 0 || isDeletingAll}
+            title={`Delete all ${recordsWithRunningTotals.length} records from the table`}
+          >
+            {isDeletingAll ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Deleting... ({deleteProgress}%)
+              </>
+            ) : (
+              `🗑️ Delete All (${recordsWithRunningTotals.length})`
+            )}
+          </button>
+        </div>
+
+
       </div>
 
       {/* 📋 Table Container with Scroll */}
