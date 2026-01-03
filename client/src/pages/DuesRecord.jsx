@@ -1717,9 +1717,9 @@ const DuesRecord = () => {
         </div>
 
         {/* 🗑️ Delete All Button */}
-        <div className="form-group mt-2">
+        <div className="form-group">
           <button
-            className="btn btn-danger px-4"
+            className="btn delete_btn px-4"
             onClick={handleDeleteAll}
             disabled={recordsWithRunningTotals.length === 0 || isDeletingAll}
             title={`Delete all ${recordsWithRunningTotals.length} records from the table`}
