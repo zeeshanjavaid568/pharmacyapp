@@ -1607,7 +1607,7 @@ const DuesRecord = () => {
       <style>{pulseAnimation}</style>
 
       <h1 className="d-flex justify-content-center my-4 gradient_text">
-        Add Dues In Record
+        ADD DUES IN RECORD
       </h1>
 
       {/* 🧾 Add Dues Form */}
@@ -1703,14 +1703,14 @@ const DuesRecord = () => {
         )}
 
         {/* Khata Count Badge */}
-        <div className="badge p-2 d-flex align-items-center" style={{backgroundColor: '#62109F'}}>
+        <div className="badge p-2 d-flex align-items-center" style={{ backgroundColor: '#62109F' }}>
           <span className="me-1">Total Khatas:</span>
           <strong>{khataNames.length}</strong>
         </div>
       </div>
 
-      <h1 className="d-flex justify-content-center my-4 gradient_text">
-        {selectedKhata ? `(${selectedKhata})` : 'All Khatas'} Dues Record
+      <h1 className="d-flex justify-content-center mb-4 mt-5 gradient_text">
+        {selectedKhata ? `${selectedKhata}` : 'All Khatas'}
       </h1>
 
       {/* 🔊 Voice Controls */}
@@ -1762,7 +1762,7 @@ const DuesRecord = () => {
             </div>
             <div className="col-md-4">
               <button
-                className="btn me-2" style={{backgroundColor: '#62109F', color: 'white'}}
+                className="btn me-2" style={{ backgroundColor: '#62109F', color: 'white' }}
                 onClick={speakSummary}
                 disabled={recordsWithRunningTotals.length === 0 || speaking}
               >
@@ -1791,41 +1791,41 @@ const DuesRecord = () => {
       <div className="search-container mb-3 d-flex gap-3 flex-wrap align-items-end">
         <div className="form-group mt-2">
           <label className="form-label fw-bold">Search by Name:</label>
-          <input 
-            type="text" 
-            className="form-control" 
-            placeholder="Enter name..." 
-            value={searchName} 
-            onChange={(e) => setSearchName(e.target.value)} 
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Enter name..."
+            value={searchName}
+            onChange={(e) => setSearchName(e.target.value)}
           />
         </div>
         <div className="form-group mt-2">
           <label className="form-label fw-bold">Search by Date:</label>
-          <input 
-            type="date" 
-            className="form-control" 
-            value={searchDate} 
-            onChange={(e) => setSearchDate(e.target.value)} 
+          <input
+            type="date"
+            className="form-control"
+            value={searchDate}
+            onChange={(e) => setSearchDate(e.target.value)}
           />
         </div>
         <div className="form-group mt-2">
           <label className="form-label fw-bold">Search by Month (YYYY/MM):</label>
-          <input 
-            type="text" 
-            className="form-control" 
-            placeholder="e.g. 2025/05" 
-            value={searchMonth} 
-            onChange={(e) => setSearchMonth(e.target.value)} 
+          <input
+            type="text"
+            className="form-control"
+            placeholder="e.g. 2025/05"
+            value={searchMonth}
+            onChange={(e) => setSearchMonth(e.target.value)}
           />
         </div>
         <div className="form-group mt-2">
           <label className="form-label fw-bold">Search by Year (YYYY):</label>
-          <input 
-            type="text" 
-            className="form-control" 
-            placeholder="e.g. 2024" 
-            value={searchYear} 
-            onChange={(e) => setSearchYear(e.target.value)} 
+          <input
+            type="text"
+            className="form-control"
+            placeholder="e.g. 2024"
+            value={searchYear}
+            onChange={(e) => setSearchYear(e.target.value)}
           />
         </div>
 
@@ -1886,7 +1886,7 @@ const DuesRecord = () => {
         className="table-container p-3 mb-5"
         ref={tableContainerRef}
         style={{
-          maxHeight: '600px',
+          maxHeight: '500px',
           overflowY: 'auto',
           border: '1px solid #dee2e6',
           borderRadius: '0.375rem',
