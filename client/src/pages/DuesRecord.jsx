@@ -3,7 +3,7 @@ import Swal from 'sweetalert2';
 import DuesCard from '../components/Cards/DuesCard';
 import { useGetAllDuesQuery, useDeleteGivenDuesMutation } from '../redux/features/DuesApi/giveDuesApi';
 import { Link } from 'react-router-dom';
-import { useSpeechSynthesis } from 'react-speech-kit'; // Import react-speech-kit
+import { useSpeechSynthesis } from 'react-speech-kit';
 
 const DuesRecord = () => {
   const { data = [], isLoading, isError, refetch } = useGetAllDuesQuery();
@@ -33,7 +33,7 @@ const DuesRecord = () => {
     'Bank of Punjab', 'BOP',
     'Bank of Khyber', 'BOK',
     'Habib Bank Limited', 'HBL',
-    'United Bank Limited', 'UBL',
+    'United Bank Limited', 'Ubl',
     'Muslim Commercial Bank', 'MCB',
     'Allied Bank Limited', 'ABL',
     'Standard Chartered Bank', 'SCB',
@@ -63,15 +63,18 @@ const DuesRecord = () => {
   // ✅ Refs for scrolling
   const tableContainerRef = useRef(null);
   const tableRef = useRef(null);
+  const khataSearchRef = useRef(null);
 
   // ✅ Filters
   const [searchDate, setSearchDate] = useState('');
   const [searchName, setSearchName] = useState('');
   const [searchMonth, setSearchMonth] = useState('');
   const [searchYear, setSearchYear] = useState('');
+  const [khataSearch, setKhataSearch] = useState('');
 
   // ✅ Khata Management
   const [selectedKhata, setSelectedKhata] = useState('');
+  const [showKhataDropdown, setShowKhataDropdown] = useState(false);
 
   // ✅ Scroll to top/bottom states
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -90,8 +93,42 @@ const DuesRecord = () => {
 
   // ✅ Get unique khata names
   const khataNames = useMemo(() => {
-    return [...new Set(data.map((item) => item.khata_name).filter(Boolean))];
+    return [...new Set(data.map((item) => item.khata_name).filter(Boolean))].sort();
   }, [data]);
+
+  // ✅ Filtered khata names based on search
+  const filteredKhataNames = useMemo(() => {
+    if (!khataSearch.trim()) return khataNames;
+    return khataNames.filter(khata =>
+      khata.toLowerCase().includes(khataSearch.toLowerCase())
+    );
+  }, [khataNames, khataSearch]);
+
+  // ✅ Handle khata selection
+  const handleKhataSelect = (khata) => {
+    setSelectedKhata(khata);
+    setKhataSearch('');
+    setShowKhataDropdown(false);
+  };
+
+  // ✅ Clear khata selection
+  const handleClearKhata = () => {
+    setSelectedKhata('');
+    setKhataSearch('');
+    setShowKhataDropdown(false);
+  };
+
+  // ✅ Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (khataSearchRef.current && !khataSearchRef.current.contains(event.target)) {
+        setShowKhataDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // ✅ Date formatter
   const formatDate = (dateString) => {
@@ -1157,7 +1194,6 @@ const DuesRecord = () => {
         'Debit (-)',
         'Credit (+)',
         'Balance'
-        // Note: 'Actions' column is intentionally omitted from PDF
       ];
 
       // Prepare table rows
@@ -1206,7 +1242,6 @@ const DuesRecord = () => {
 
       // Apply styles to each column
       if (selectedKhata) {
-        // With selected khata (no khata column)
         columnStyles[0] = {
           textColor: colors.index.text,
           fillColor: colors.index.background,
@@ -1273,7 +1308,6 @@ const DuesRecord = () => {
           fontStyle: 'bold'
         };
       } else {
-        // With all khatas (includes khata column)
         columnStyles[0] = {
           textColor: colors.index.text,
           fillColor: colors.index.background,
@@ -1365,28 +1399,25 @@ const DuesRecord = () => {
 
           if (!record) return;
 
-          // Determine balance column index based on whether khata column exists
           const balanceColumnIndex = selectedKhata ? 13 : 14;
 
-          // Apply color to balance column based on value
           if (columnIndex === balanceColumnIndex) {
             const balanceValue = record.runningTotal;
 
             if (balanceValue < 0) {
-              data.cell.styles.textColor = [220, 53, 69]; // Red for negative
+              data.cell.styles.textColor = [220, 53, 69];
               data.cell.styles.fontStyle = 'bold';
             } else if (balanceValue > 0) {
-              data.cell.styles.textColor = [25, 135, 84]; // Green for positive
+              data.cell.styles.textColor = [25, 135, 84];
               data.cell.styles.fontStyle = 'bold';
             } else {
-              data.cell.styles.textColor = [108, 117, 125]; // Gray for zero
+              data.cell.styles.textColor = [108, 117, 125];
             }
           }
 
-          // Highlight return records
           if (record.isReturn) {
-            data.cell.styles.fillColor = [255, 243, 224]; // Light orange background
-            data.cell.styles.textColor = [255, 107, 53]; // Orange text
+            data.cell.styles.fillColor = [255, 243, 224];
+            data.cell.styles.textColor = [255, 107, 53];
           }
         }
       };
@@ -1395,12 +1426,12 @@ const DuesRecord = () => {
       autoTable(doc, {
         head: [tableColumn],
         body: tableRows,
-        startY: 120, // Adjusted for additional header info
+        startY: 120,
         theme: 'grid',
         styles: styles,
         columnStyles: columnStyles,
         headStyles: {
-          fillColor: [244, 67, 54], // Red header
+          fillColor: [244, 67, 54],
           textColor: [255, 255, 255],
           fontStyle: 'bold',
           halign: 'center',
@@ -1411,11 +1442,10 @@ const DuesRecord = () => {
         margin: { left: 20, right: 20 },
         didParseCell: didParseCell,
         willDrawCell: (data) => {
-          // Add subtle alternating row shading
           if (data.section === 'body' && data.row.index % 2 === 0) {
             if (!data.cell.styles.fillColor ||
               JSON.stringify(data.cell.styles.fillColor) === JSON.stringify([255, 255, 255])) {
-              data.cell.styles.fillColor = [248, 249, 250]; // Very light gray
+              data.cell.styles.fillColor = [248, 249, 250];
             }
           }
         }
@@ -1474,7 +1504,7 @@ const DuesRecord = () => {
     }
   };
 
-  // ✅ Style objects (same as before)
+  // ✅ Style objects
   const TableHeadingStyle = {
     backgroundColor: '#f44336',
     color: 'white',
@@ -1557,6 +1587,21 @@ const DuesRecord = () => {
     color: 'white',
   };
 
+  // ✅ Khata dropdown styles
+  const khataDropdownStyle = {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    maxHeight: '300px',
+    overflowY: 'auto',
+    backgroundColor: 'white',
+    border: '1px solid #dee2e6',
+    borderRadius: '0.375rem',
+    zIndex: 1000,
+    boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+  };
+
   return (
     <>
       <style>{pulseAnimation}</style>
@@ -1572,23 +1617,96 @@ const DuesRecord = () => {
         selectedKhata={selectedKhata}
       />
 
-      {/* 💼 Khata Buttons */}
-      <div className="d-flex flex-wrap justify-content-center gap-2 my-3">
+      {/* 💼 Khata Search and Selection */}
+      <div className="d-flex flex-wrap justify-content-center gap-3 my-4">
+        {/* All Khatas Button */}
         <button
           className={`btn ${selectedKhata === '' ? 'btn-success' : 'btn-outline-success'}`}
-          onClick={() => setSelectedKhata('')}
+          onClick={handleClearKhata}
         >
           All Khatas
         </button>
-        {khataNames.map((khata) => (
-          <button
-            key={khata}
-            className={`btn ${selectedKhata === khata ? 'btn-danger' : 'btn-outline-danger'}`}
-            onClick={() => setSelectedKhata(khata)}
-          >
-            {khata}
-          </button>
-        ))}
+
+        {/* Khata Search Dropdown */}
+        <div className="position-relative" ref={khataSearchRef}>
+          <div className="input-group" style={{ width: '300px' }}>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Search Khatas..."
+              value={khataSearch}
+              onChange={(e) => {
+                setKhataSearch(e.target.value);
+                setShowKhataDropdown(true);
+              }}
+              onFocus={() => setShowKhataDropdown(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && filteredKhataNames.length > 0) {
+                  handleKhataSelect(filteredKhataNames[0]);
+                }
+              }}
+            />
+            <button
+              className="btn btn-outline-secondary"
+              type="button"
+              onClick={() => setShowKhataDropdown(!showKhataDropdown)}
+            >
+              {showKhataDropdown ? '▲' : '▼'}
+            </button>
+          </div>
+
+          {/* Khata Dropdown */}
+          {showKhataDropdown && (
+            <div style={khataDropdownStyle}>
+              {filteredKhataNames.length > 0 ? (
+                filteredKhataNames.map((khata) => (
+                  <div
+                    key={khata}
+                    className={`dropdown-item ${selectedKhata === khata ? 'active bg-primary text-white' : ''}`}
+                    onClick={() => handleKhataSelect(khata)}
+                    style={{
+                      cursor: 'pointer',
+                      padding: '10px 15px',
+                      borderBottom: '1px solid #f0f0f0',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedKhata === khata ? '#007bff' : 'white'}
+                  >
+                    {khata}
+                  </div>
+                ))
+              ) : (
+                <div className="dropdown-item text-muted" style={{ padding: '10px 15px' }}>
+                  No khata found
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Selected Khata Display */}
+        {selectedKhata && (
+          <div className="d-flex align-items-center">
+            <div className="badge bg-danger p-2 d-flex align-items-center">
+              <span className="me-2">Selected:</span>
+              <strong>{selectedKhata}</strong>
+              <button
+                className="btn btn-sm btn-light ms-2 p-1"
+                onClick={handleClearKhata}
+                style={{ width: '24px', height: '24px', lineHeight: '1' }}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Khata Count Badge */}
+        <div className="badge p-2 d-flex align-items-center" style={{backgroundColor: '#62109F'}}>
+          <span className="me-1">Total Khatas:</span>
+          <strong>{khataNames.length}</strong>
+        </div>
       </div>
 
       <h1 className="d-flex justify-content-center my-4 gradient_text">
@@ -1644,7 +1762,7 @@ const DuesRecord = () => {
             </div>
             <div className="col-md-4">
               <button
-                className="btn btn-primary me-2"
+                className="btn me-2" style={{backgroundColor: '#62109F', color: 'white'}}
                 onClick={speakSummary}
                 disabled={recordsWithRunningTotals.length === 0 || speaking}
               >
@@ -1673,28 +1791,55 @@ const DuesRecord = () => {
       <div className="search-container mb-3 d-flex gap-3 flex-wrap align-items-end">
         <div className="form-group mt-2">
           <label className="form-label fw-bold">Search by Name:</label>
-          <input type="text" className="form-control" placeholder="Enter name..." value={searchName} onChange={(e) => setSearchName(e.target.value)} />
+          <input 
+            type="text" 
+            className="form-control" 
+            placeholder="Enter name..." 
+            value={searchName} 
+            onChange={(e) => setSearchName(e.target.value)} 
+          />
         </div>
         <div className="form-group mt-2">
           <label className="form-label fw-bold">Search by Date:</label>
-          <input type="date" className="form-control" value={searchDate} onChange={(e) => setSearchDate(e.target.value)} />
+          <input 
+            type="date" 
+            className="form-control" 
+            value={searchDate} 
+            onChange={(e) => setSearchDate(e.target.value)} 
+          />
         </div>
         <div className="form-group mt-2">
           <label className="form-label fw-bold">Search by Month (YYYY/MM):</label>
-          <input type="text" className="form-control" placeholder="e.g. 2025/05" value={searchMonth} onChange={(e) => setSearchMonth(e.target.value)} />
+          <input 
+            type="text" 
+            className="form-control" 
+            placeholder="e.g. 2025/05" 
+            value={searchMonth} 
+            onChange={(e) => setSearchMonth(e.target.value)} 
+          />
         </div>
         <div className="form-group mt-2">
           <label className="form-label fw-bold">Search by Year (YYYY):</label>
-          <input type="text" className="form-control" placeholder="e.g. 2024" value={searchYear} onChange={(e) => setSearchYear(e.target.value)} />
+          <input 
+            type="text" 
+            className="form-control" 
+            placeholder="e.g. 2024" 
+            value={searchYear} 
+            onChange={(e) => setSearchYear(e.target.value)} 
+          />
         </div>
 
         <div className="form-group mt-2">
           <label className="form-label fw-bold">Total All Pieces</label>
-          <div className="form-control text-center fw-bold bg-light" style={{ color: 'rgb(6, 7, 113)' }}>{lastTotalPieces}</div>
+          <div className="form-control text-center fw-bold bg-light" style={{ color: 'rgb(6, 7, 113)' }}>
+            {lastTotalPieces}
+          </div>
         </div>
         <div className="form-group mt-2">
           <label className="form-label fw-bold">Total Price or Weight</label>
-          <div className="form-control text-center fw-bold bg-light" style={{ color: 'rgb(6, 7, 113)' }}>{formatNumberWithCommas(lastSinglePiecePriceTotal)}</div>
+          <div className="form-control text-center fw-bold bg-light" style={{ color: 'rgb(6, 7, 113)' }}>
+            {formatNumberWithCommas(lastSinglePiecePriceTotal)}
+          </div>
         </div>
         <div className="form-group mt-2">
           <label className="form-label fw-bold">Remains Total Balance</label>
@@ -1734,8 +1879,6 @@ const DuesRecord = () => {
             )}
           </button>
         </div>
-
-
       </div>
 
       {/* 📋 Table Container with Scroll */}
