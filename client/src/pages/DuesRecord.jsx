@@ -1617,97 +1617,7 @@ const DuesRecord = () => {
         selectedKhata={selectedKhata}
       />
 
-      {/* 💼 Khata Search and Selection */}
-      <div className="d-flex flex-wrap justify-content-center gap-3 my-4">
-        {/* All Khatas Button */}
-        <button
-          className={`btn ${selectedKhata === '' ? 'btn-success' : 'btn-outline-success'}`}
-          onClick={handleClearKhata}
-        >
-          All Khatas
-        </button>
 
-        {/* Khata Search Dropdown */}
-        <div className="position-relative" ref={khataSearchRef}>
-          <div className="input-group" style={{ width: '300px' }}>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Search Khatas..."
-              value={khataSearch}
-              onChange={(e) => {
-                setKhataSearch(e.target.value);
-                setShowKhataDropdown(true);
-              }}
-              onFocus={() => setShowKhataDropdown(true)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && filteredKhataNames.length > 0) {
-                  handleKhataSelect(filteredKhataNames[0]);
-                }
-              }}
-            />
-            <button
-              className="btn btn-outline-secondary"
-              type="button"
-              onClick={() => setShowKhataDropdown(!showKhataDropdown)}
-            >
-              {showKhataDropdown ? '▲' : '▼'}
-            </button>
-          </div>
-
-          {/* Khata Dropdown */}
-          {showKhataDropdown && (
-            <div style={khataDropdownStyle}>
-              {filteredKhataNames.length > 0 ? (
-                filteredKhataNames.map((khata) => (
-                  <div
-                    key={khata}
-                    className={`dropdown-item ${selectedKhata === khata ? 'active bg-primary text-white' : ''}`}
-                    onClick={() => handleKhataSelect(khata)}
-                    style={{
-                      cursor: 'pointer',
-                      padding: '10px 15px',
-                      borderBottom: '1px solid #f0f0f0',
-                      transition: 'background-color 0.2s'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedKhata === khata ? '#007bff' : 'white'}
-                  >
-                    {khata}
-                  </div>
-                ))
-              ) : (
-                <div className="dropdown-item text-muted" style={{ padding: '10px 15px' }}>
-                  No khata found
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Selected Khata Display */}
-        {selectedKhata && (
-          <div className="d-flex align-items-center">
-            <div className="badge bg-danger p-2 d-flex align-items-center">
-              <span className="me-2">Selected:</span>
-              <strong>{selectedKhata}</strong>
-              <button
-                className="btn btn-sm btn-light ms-2 p-1"
-                onClick={handleClearKhata}
-                style={{ width: '24px', height: '24px', lineHeight: '1' }}
-              >
-                ×
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Khata Count Badge */}
-        <div className="badge p-2 d-flex align-items-center" style={{ backgroundColor: '#62109F' }}>
-          <span className="me-1">Total Khatas:</span>
-          <strong>{khataNames.length}</strong>
-        </div>
-      </div>
 
       <h1 className="d-flex justify-content-center mb-4 mt-5 gradient_text">
         {selectedKhata ? `${selectedKhata}` : 'All Khatas'}
@@ -1878,6 +1788,97 @@ const DuesRecord = () => {
               `🗑️ Delete All (${recordsWithRunningTotals.length})`
             )}
           </button>
+        </div>
+        {/* 💼 Khata Search and Selection */}
+        <div className="d-flex flex-wrap justify-content-center gap-3 ">
+          {/* All Khatas Button */}
+          <button
+            className={`btn ${selectedKhata === '' ? 'btn-success' : 'btn-outline-success'}`}
+            onClick={handleClearKhata}
+          >
+            All Khatas
+          </button>
+
+          {/* Khata Search Dropdown */}
+          <div className="position-relative" ref={khataSearchRef}>
+            <div className="input-group" style={{ width: '300px' }}>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Search Khatas..."
+                value={khataSearch}
+                onChange={(e) => {
+                  setKhataSearch(e.target.value);
+                  setShowKhataDropdown(true);
+                }}
+                onFocus={() => setShowKhataDropdown(true)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && filteredKhataNames.length > 0) {
+                    handleKhataSelect(filteredKhataNames[0]);
+                  }
+                }}
+              />
+              <button
+                className="btn btn-outline-secondary"
+                type="button"
+                onClick={() => setShowKhataDropdown(!showKhataDropdown)}
+              >
+                {showKhataDropdown ? '▲' : '▼'}
+              </button>
+            </div>
+
+            {/* Khata Dropdown */}
+            {showKhataDropdown && (
+              <div style={khataDropdownStyle}>
+                {filteredKhataNames.length > 0 ? (
+                  filteredKhataNames.map((khata) => (
+                    <div
+                      key={khata}
+                      className={`dropdown-item ${selectedKhata === khata ? 'active bg-primary text-white' : ''}`}
+                      onClick={() => handleKhataSelect(khata)}
+                      style={{
+                        cursor: 'pointer',
+                        padding: '10px 15px',
+                        borderBottom: '1px solid #f0f0f0',
+                        transition: 'background-color 0.2s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedKhata === khata ? '#007bff' : 'white'}
+                    >
+                      {khata}
+                    </div>
+                  ))
+                ) : (
+                  <div className="dropdown-item text-muted" style={{ padding: '10px 15px' }}>
+                    No khata found
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Selected Khata Display */}
+          {selectedKhata && (
+            <div className="d-flex align-items-center">
+              <div className="badge bg-danger p-2 d-flex align-items-center">
+                <span className="me-2">Selected:</span>
+                <strong>{selectedKhata}</strong>
+                <button
+                  className="btn btn-sm btn-light ms-2 p-1"
+                  onClick={handleClearKhata}
+                  style={{ width: '24px', height: '24px', lineHeight: '1' }}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Khata Count Badge */}
+          <div className="badge p-2 d-flex align-items-center" style={{ backgroundColor: '#62109F' }}>
+            <span className="me-1">Total Khatas:</span>
+            <strong>{khataNames.length}</strong>
+          </div>
         </div>
       </div>
 
