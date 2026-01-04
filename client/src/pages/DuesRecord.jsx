@@ -307,6 +307,33 @@ const DuesRecord = () => {
     });
   }, [filteredRecords]);
 
+  // ✅ NEW: Format number with commas and optional 2 decimal places
+  const formatNumberWithCommas = (num, showDecimals = false) => {
+    if (num === undefined || num === null) return '0';
+    
+    const number = Math.abs(num);
+    
+    // Check if the number has decimal values
+    const hasDecimals = number % 1 !== 0;
+    
+    if (showDecimals && hasDecimals) {
+      // Format with exactly 2 decimal places
+      const formatted = number.toFixed(2);
+      // Add commas to integer part
+      const parts = formatted.split('.');
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+      return parts.join('.');
+    } else {
+      // Format without decimals
+      return Math.round(number).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+  };
+
+  // ✅ NEW: Special formatter for the 5 specific columns
+  const formatWithOptionalDecimals = (num) => {
+    return formatNumberWithCommas(num, true);
+  };
+
   // ✅ Calculate running totals
   const recordsWithRunningTotals = useMemo(() => {
     if (!sortedRecords.length) return [];
@@ -472,12 +499,6 @@ const DuesRecord = () => {
     return words;
   };
 
-  // ✅ Format number with commas
-  const formatNumberWithCommas = (num) => {
-    if (num === undefined || num === null) return '0';
-    return Math.abs(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  };
-
   // ✅ Generate speech text for a single record
   const generateSpeechTextForSingle = (record) => {
     const name = record.formattedName || 'No Name';
@@ -516,22 +537,22 @@ const DuesRecord = () => {
     if (singlePiecePrice > 0) {
       speechText += `Rate or Weight: ${formatNumberWithCommas(singlePiecePrice)}. `;
     }
-    speechText += `Total Rate or Weight: ${formatNumberWithCommas(totalSinglePiecePrice)}. `;
+    speechText += `Total Rate or Weight: ${formatWithOptionalDecimals(totalSinglePiecePrice)}. `;
 
     if (medicinePieces > 0) {
       speechText += `Medicine Qty: ${medicinePieces}. `;
     }
-    speechText += `Total Medicines: ${formatNumberWithCommas(totalMedicinePieces)}. `;
+    speechText += `Total Medicines: ${formatWithOptionalDecimals(totalMedicinePieces)}. `;
 
     if (feedPieces > 0) {
       speechText += `Feed Qty: ${feedPieces}. `;
     }
-    speechText += `Total Feeds: ${formatNumberWithCommas(totalFeedPieces)}. `;
+    speechText += `Total Feeds: ${formatWithOptionalDecimals(totalFeedPieces)}. `;
 
     if (otherPieces > 0) {
       speechText += `Other Qty: ${otherPieces}. `;
     }
-    speechText += `Total Others: ${formatNumberWithCommas(totalOtherPieces)}. `;
+    speechText += `Total Others: ${formatWithOptionalDecimals(totalOtherPieces)}. `;
 
     if (givenDues > 0) {
       speechText += `Debit: ${formatNumberWithCommas(givenDues)} rupees, that is ${givenDuesWords}. `;
@@ -550,9 +571,9 @@ const DuesRecord = () => {
     }
 
     if (remainsTotal > 0) {
-      speechText += `Balance: ${formatNumberWithCommas(remainsTotal)} rupees, that is ${remainsTotalWords}. `;
+      speechText += `Balance: ${formatWithOptionalDecimals(remainsTotal)} rupees, that is ${remainsTotalWords}. `;
     } else if (remainsTotal < 0) {
-      speechText += `Balance: negative ${formatNumberWithCommas(remainsTotal)} rupees, that is ${remainsTotalWords}. `;
+      speechText += `Balance: negative ${formatWithOptionalDecimals(remainsTotal)} rupees, that is ${remainsTotalWords}. `;
     } else {
       speechText += `Balance: zero rupees. `;
     }
@@ -596,22 +617,22 @@ const DuesRecord = () => {
     if (singlePiecePrice > 0) {
       speechText += `Price or Weight: ${formatNumberWithCommas(singlePiecePrice)}. `;
     }
-    speechText += `Total Price or Weight: ${formatNumberWithCommas(totalSinglePiecePrice)}. `;
+    speechText += `Total Price or Weight: ${formatWithOptionalDecimals(totalSinglePiecePrice)}. `;
 
     if (medicinePieces > 0) {
       speechText += `Medicine Qty: ${medicinePieces}. `;
     }
-    speechText += `Total Medicines: ${formatNumberWithCommas(totalMedicinePieces)}. `;
+    speechText += `Total Medicines: ${formatWithOptionalDecimals(totalMedicinePieces)}. `;
 
     if (feedPieces > 0) {
       speechText += `Feed Qty: ${feedPieces}. `;
     }
-    speechText += `Total Feeds: ${formatNumberWithCommas(totalFeedPieces)}. `;
+    speechText += `Total Feeds: ${formatWithOptionalDecimals(totalFeedPieces)}. `;
 
     if (otherPieces > 0) {
       speechText += `Other Qty: ${otherPieces}. `;
     }
-    speechText += `Total Others: ${formatNumberWithCommas(totalOtherPieces)}. `;
+    speechText += `Total Others: ${formatWithOptionalDecimals(totalOtherPieces)}. `;
 
     if (givenDues > 0) {
       speechText += `Debit: ${formatNumberWithCommas(givenDues)} rupees, that is ${givenDuesWords}. `;
@@ -630,9 +651,9 @@ const DuesRecord = () => {
     }
 
     if (remainsTotal > 0) {
-      speechText += `Balance: ${formatNumberWithCommas(remainsTotal)} rupees, that is ${remainsTotalWords}. `;
+      speechText += `Balance: ${formatWithOptionalDecimals(remainsTotal)} rupees, that is ${remainsTotalWords}. `;
     } else if (remainsTotal < 0) {
-      speechText += `Balance: negative ${formatNumberWithCommas(remainsTotal)} rupees, that is ${remainsTotalWords}. `;
+      speechText += `Balance: negative ${formatWithOptionalDecimals(remainsTotal)} rupees, that is ${remainsTotalWords}. `;
     } else {
       speechText += `Balance: zero rupees. `;
     }
@@ -740,7 +761,7 @@ const DuesRecord = () => {
         setSpeakingRecordId(null);
 
         // Speak summary at the end
-        const summaryText = `End of records. Total ${recordsWithRunningTotals.length} records. Final remaining balance is ${formatNumberWithCommas(lastPrice)} rupees, that is ${numberToWords(lastPrice)}.`;
+        const summaryText = `End of records. Total ${recordsWithRunningTotals.length} records. Final remaining balance is ${formatWithOptionalDecimals(lastPrice)} rupees, that is ${numberToWords(lastPrice)}.`;
 
         const availableVoices = voices || [];
         const englishVoice = availableVoices.find(voice =>
@@ -817,8 +838,8 @@ const DuesRecord = () => {
     let summaryText = `Summary for ${selectedKhata || 'All Khatas'}. `;
     summaryText += `Total records: ${recordsWithRunningTotals.length}. `;
     summaryText += `Total all pieces: ${lastTotalPieces}. `;
-    summaryText += `Total price or weight: ${formatNumberWithCommas(lastSinglePiecePriceTotal)}. `;
-    summaryText += `Final remaining balance: ${formatNumberWithCommas(lastPrice)} rupees, that is ${numberToWords(lastPrice)}.`;
+    summaryText += `Total price or weight: ${formatWithOptionalDecimals(lastSinglePiecePriceTotal)}. `;
+    summaryText += `Final remaining balance: ${formatWithOptionalDecimals(lastPrice)} rupees, that is ${numberToWords(lastPrice)}.`;
 
     const availableVoices = voices || [];
     const englishVoice = availableVoices.find(voice =>
@@ -1203,16 +1224,16 @@ const DuesRecord = () => {
           formatDate(record.date),
           formatNameForPDF(record) || '-',
           formatNumberWithCommas(record.single_piece_price) || '0',
-          formatNumberWithCommas(record.runningTotalSinglePiecePrice) || '0',
+          formatWithOptionalDecimals(record.runningTotalSinglePiecePrice) || '0', // Changed
           record.m_pieces || '0',
-          formatNumberWithCommas(record.runningTotalMedicinePieces) || '0',
+          formatWithOptionalDecimals(record.runningTotalMedicinePieces) || '0', // Changed
           record.total_piece || '0',
-          formatNumberWithCommas(record.runningTotalFeedPieces) || '0',
+          formatWithOptionalDecimals(record.runningTotalFeedPieces) || '0', // Changed
           record.o_pieces || '0',
-          formatNumberWithCommas(record.runningTotalOtherPieces) || '0',
+          formatWithOptionalDecimals(record.runningTotalOtherPieces) || '0', // Changed
           formatNumberWithCommas(record.given_dues) || '0',
           formatNumberWithCommas(record.taken_dues) || '0',
-          formatNumberWithCommas(record.runningTotal) || '0'
+          formatWithOptionalDecimals(record.runningTotal) || '0' // Changed
         ];
 
         // Add khata name if showing all khatas
@@ -1457,7 +1478,7 @@ const DuesRecord = () => {
       doc.setTextColor(80, 80, 80);
 
       const summaryText = `Summary: ${recordCount} records | ` +
-        `Final Balance: ${formatNumberWithCommas(lastPrice)} | ` +
+        `Final Balance: ${formatWithOptionalDecimals(lastPrice)} | ` +
         `Total Pieces: ${lastTotalPieces}`;
 
       doc.text(summaryText, 40, finalY + 30);
@@ -1479,7 +1500,7 @@ const DuesRecord = () => {
           <p><strong>File:</strong> ${fileName}</p>
           <p><strong>Records:</strong> ${recordCount}</p>
           <p><strong>Period:</strong> ${dateRangeText}</p>
-          <p><strong>Final Balance:</strong> ${formatNumberWithCommas(lastPrice)}</p>
+          <p><strong>Final Balance:</strong> ${formatWithOptionalDecimals(lastPrice)}</p>
         </div>
       `,
         icon: 'success',
@@ -1620,7 +1641,7 @@ const DuesRecord = () => {
 
 
       <h1 className="d-flex justify-content-center mb-4 mt-5 gradient_text">
-        {selectedKhata ? `${selectedKhata}` : 'All Khatas'}
+        {selectedKhata ? `(${selectedKhata})` : 'All Khatas'}
       </h1>
 
       {/* 🔊 Voice Controls */}
@@ -1748,7 +1769,7 @@ const DuesRecord = () => {
         <div className="form-group mt-2">
           <label className="form-label fw-bold">Total Price or Weight</label>
           <div className="form-control text-center fw-bold bg-light" style={{ color: 'rgb(6, 7, 113)' }}>
-            {formatNumberWithCommas(lastSinglePiecePriceTotal)}
+            {formatWithOptionalDecimals(lastSinglePiecePriceTotal)}
           </div>
         </div>
         <div className="form-group mt-2">
@@ -1757,7 +1778,7 @@ const DuesRecord = () => {
             className="form-control text-center fw-bold bg-light"
             style={getPriceColorStyle(lastPrice)}
           >
-            {formatNumberWithCommas(lastPrice)}
+            {formatWithOptionalDecimals(lastPrice)}
           </div>
         </div>
 
@@ -1940,26 +1961,27 @@ const DuesRecord = () => {
                     <td style={{ ...TableCellStyle, ...CommonStyle }}>
                       {formatNumberWithCommas(record.single_piece_price)}
                     </td>
+                    {/* 🔄 CHANGED: Use formatWithOptionalDecimals for these 5 columns */}
                     <td style={{ ...TableCellStyle, ...SumOfTotalStyle }} className="fw-bold">
-                      {formatNumberWithCommas(record.runningTotalSinglePiecePrice)}
+                      {formatWithOptionalDecimals(record.runningTotalSinglePiecePrice)}
                     </td>
                     <td style={{ ...TableCellStyle, ...CommonStyle }}>
                       {record.m_pieces}
                     </td>
                     <td style={{ ...TableCellStyle, ...SumOfTotalStyle }} className="fw-bold">
-                      {record.runningTotalMedicinePieces}
+                      {formatWithOptionalDecimals(record.runningTotalMedicinePieces)}
                     </td>
                     <td style={{ ...TableCellStyle, ...CommonStyle }}>
                       {record.total_piece}
                     </td>
                     <td style={{ ...TableCellStyle, ...SumOfTotalStyle }} className="fw-bold">
-                      {record.runningTotalFeedPieces}
+                      {formatWithOptionalDecimals(record.runningTotalFeedPieces)}
                     </td>
                     <td style={{ ...TableCellStyle, ...CommonStyle }}>
                       {record.o_pieces}
                     </td>
                     <td style={{ ...TableCellStyle, ...SumOfTotalStyle }} className="fw-bold">
-                      {record.runningTotalOtherPieces}
+                      {formatWithOptionalDecimals(record.runningTotalOtherPieces)}
                     </td>
                     <td style={{ ...TableCellStyle, ...GivenDuesStyle }}>
                       {record.given_dues ? formatNumberWithCommas(record.given_dues) : '0'}
@@ -1967,6 +1989,7 @@ const DuesRecord = () => {
                     <td style={{ ...TableCellStyle, ...TakenDuesStyle }}>
                       {record.taken_dues ? formatNumberWithCommas(record.taken_dues) : '0'}
                     </td>
+                    {/* 🔄 CHANGED: Use formatWithOptionalDecimals for Balance column */}
                     <td
                       style={{
                         ...TableCellStyle,
@@ -1974,7 +1997,7 @@ const DuesRecord = () => {
                       }}
                       className="fw-bold"
                     >
-                      {formatNumberWithCommas(record.runningTotal)}
+                      {formatWithOptionalDecimals(record.runningTotal)}
                     </td>
 
                     <td style={TableCellStyle} className='d-flex justify-content-center align-items-center gap-2'>
