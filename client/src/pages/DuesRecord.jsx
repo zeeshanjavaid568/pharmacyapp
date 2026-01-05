@@ -310,12 +310,12 @@ const DuesRecord = () => {
   // ✅ NEW: Format number with commas and optional 2 decimal places
   const formatNumberWithCommas = (num, showDecimals = false) => {
     if (num === undefined || num === null) return '0';
-    
+
     const number = Math.abs(num);
-    
+
     // Check if the number has decimal values
     const hasDecimals = number % 1 !== 0;
-    
+
     if (showDecimals && hasDecimals) {
       // Format with exactly 2 decimal places
       const formatted = number.toFixed(2);
@@ -905,8 +905,8 @@ const DuesRecord = () => {
         text: "You won't be able to revert this!",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
+        confirmButtonColor: '#f44336',
+        cancelButtonColor: '#4caf50',
         confirmButtonText: 'Yes, delete it!',
         cancelButtonText: 'Cancel'
       });
@@ -987,6 +987,7 @@ const DuesRecord = () => {
       confirmButtonText: 'Confirm Delete',
       confirmButtonColor: '#dc3545',
       cancelButtonText: 'Cancel',
+      cancelButtonColor: '#4caf50',
       showLoaderOnConfirm: true,
       preConfirm: (input) => {
         if (input !== 'DELETE') {
@@ -1840,7 +1841,7 @@ const DuesRecord = () => {
                 }}
               />
               <button
-                className="btn btn-outline-secondary"
+                className="btn btn-outline-primary"
                 type="button"
                 onClick={() => setShowKhataDropdown(!showKhataDropdown)}
               >

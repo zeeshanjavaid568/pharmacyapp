@@ -906,7 +906,7 @@ const SalerRecord = () => {
         <>
           <div className="d-flex flex-column justify-content-between align-items-center my-4">
             <h1 className='gradient_text mb-0'>
-              Saler All Years Record
+              SALES ALL YEAR RECORD
             </h1>
             <button
               className="btn delete_btn mt-3"
@@ -942,7 +942,7 @@ const SalerRecord = () => {
         <>
           <div className="d-flex flex-column justify-content-center align-items-center my-4">
             <h1 className='year_record_table gradient_text mb-0'>
-              Saler Record Details ({selectedYear})
+              SALER RECORD DETAILS ({selectedYear})
             </h1>
             <div>
               <button

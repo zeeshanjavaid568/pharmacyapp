@@ -392,7 +392,7 @@ const BuyerRecord = () => {
       {!selectedYear ? (
         <>
           <h1 className='d-flex justify-content-center my-4 gradient_text'>
-            Purchase All Years Record
+            PURCHASE ALL YEAR RECORD
           </h1>
           <div className='responsive_card'>
             {sortedYears.map((year) => (
@@ -412,7 +412,7 @@ const BuyerRecord = () => {
       ) : (
         <>
           <h1 className='year_record_table d-flex justify-content-center my-4 gradient_text'>
-            Purchase Record Details ({selectedYear})
+            PURCHASE RECORD DETAILS ({selectedYear})
           </h1>
 
           {/* 🔙 Back Button */}

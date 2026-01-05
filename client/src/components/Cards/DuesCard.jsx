@@ -124,7 +124,7 @@ const DuesCard = ({ lastPrice, refetchData }) => {
 
       swal.fire({
         title: 'Success',
-        text: 'Given dues added successfully!',
+        text: 'Dues added successfully!',
         icon: 'success',
         confirmButtonText: 'Ok',
         buttonsStyling: false,

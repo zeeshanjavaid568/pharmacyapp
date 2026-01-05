@@ -351,7 +351,7 @@ const UpdateDuesCard = () => {
     <div className='d-flex justify-content-center'>
       <div className="card form_div mb-5 p-3 rounded-2 w-50">
         <h1 className='d-flex justify-content-center my-4 gradient_text'>
-          Update Dues Record
+          UPDATE DUES RECORD
         </h1>
 
         {/* Current Record Info */}
