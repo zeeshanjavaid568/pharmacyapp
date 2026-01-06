@@ -173,7 +173,7 @@ const UpdateBuyerRecord = () => {
                         />
                     </div>
                     <div className="input_div d-flex flex-column ms-2">
-                        <label>Total Pieces Price</label>
+                        <label>Total Qty Price</label>
                         <input
                             type="number"
                             name="pieces_price"
@@ -186,7 +186,7 @@ const UpdateBuyerRecord = () => {
                 </div>
 
                 <div className="input_div d-flex flex-column input_width">
-                    <label>Pieces</label>
+                    <label>Total Qty</label>
                     <input
                         type="number"
                         name="pieces"

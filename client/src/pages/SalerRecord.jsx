@@ -338,7 +338,7 @@ const SalerRecord = () => {
 
       switch (viewMode) {
         case 'detailed':
-          headers = [['#', 'Product Name', 'Product Place', 'Product Price', 'Pieces Price', 'Pieces', 'Date', 'Month']];
+          headers = [['#', 'Product Name', 'Product Place', 'Product Price', 'Total Qty Price', 'Total Qty', 'Date', 'Month']];
           columnStyles = {
             0: { cellWidth: 10 },
             3: { cellWidth: 25 },
@@ -363,7 +363,7 @@ const SalerRecord = () => {
           break;
 
         case 'summaryByProductAndPlace':
-          headers = [['#', 'Product Name', 'Product Place', 'Total Product Value', 'Total Pieces Price', 'Total Pieces', 'Records Count']];
+          headers = [['#', 'Product Name', 'Product Place', 'Total Product Value', 'Total Qty Price', 'Total Qty', 'Records Count']];
           columnStyles = {
             0: { cellWidth: 10 },
             3: { cellWidth: 30 },
@@ -386,7 +386,7 @@ const SalerRecord = () => {
           break;
 
         case 'summaryByProduct':
-          headers = [['#', 'Product Name', 'Different Places', 'Total Product Value', 'Total Pieces Price', 'Total Pieces', 'Records Count']];
+          headers = [['#', 'Product Name', 'Different Places', 'Total Product Value', 'Total Qty Price', 'Total Qty', 'Records Count']];
           columnStyles = {
             0: { cellWidth: 10 },
             2: { cellWidth: 40 },
@@ -450,8 +450,8 @@ const SalerRecord = () => {
         const summaryData = [
           [`Total Records: ${filteredRecords.length}`],
           [`Total Product Value: Rs: ${filteredRecords.reduce((sum, record) => sum + (parseFloat(record.product_price) || 0), 0).toFixed(2)}`],
-          [`Total Pieces Price: Rs: ${filteredRecords.reduce((sum, record) => sum + (parseFloat(record.pieces_price) || 0), 0).toFixed(2)}`],
-          [`Total Pieces: ${filteredRecords.reduce((sum, record) => sum + (parseInt(record.stock) || 0), 0)}`]
+          [`Total Qty Price: Rs: ${filteredRecords.reduce((sum, record) => sum + (parseFloat(record.pieces_price) || 0), 0).toFixed(2)}`],
+          [`Total Qty: ${filteredRecords.reduce((sum, record) => sum + (parseInt(record.stock) || 0), 0)}`]
         ];
 
         autoTable(doc, {
@@ -557,9 +557,9 @@ const SalerRecord = () => {
         currentY += 6;
         doc.text(`  • Total Product Value: Rs: ${yearProductTotal.toFixed(2)}`, 20, currentY);
         currentY += 6;
-        doc.text(`  • Total Pieces Price: Rs: ${yearPiecesTotal.toFixed(2)}`, 20, currentY);
+        doc.text(`  • Total Qty Price: Rs: ${yearPiecesTotal.toFixed(2)}`, 20, currentY);
         currentY += 6;
-        doc.text(`  • Total Pieces: ${yearStockTotal}`, 20, currentY);
+        doc.text(`  • Total Qty: ${yearStockTotal}`, 20, currentY);
         currentY += 10;
 
         // Create table data for this year (limited to 10 records per year in overview)
@@ -622,7 +622,7 @@ const SalerRecord = () => {
         ['Unique Products', uniqueProducts],
         ['Unique Places', uniquePlaces],
         ['Total Product Value', `Rs: ${totalProductValue.toFixed(2)}`],
-        ['Total Pieces Price', `Rs: ${totalPiecesPrice.toFixed(2)}`],
+        ['Total Qty Price', `Rs: ${totalPiecesPrice.toFixed(2)}`],
         ['Total Pieces Sold', totalPieces],
         ['Average per Record', `Rs: ${(totalProductValue / totalRecords).toFixed(2)}`]
       ];
@@ -980,7 +980,7 @@ const SalerRecord = () => {
                 <div className="col-md-3">
                   <div className="card text-white bg-warning mb-3">
                     <div className="card-body">
-                      <h5 className="card-title">Total Pieces Price</h5>
+                      <h5 className="card-title">Total Qty Price</h5>
                       <p className="card-text fs-4">
                         Rs: {filteredRecords.reduce((sum, record) => sum + (parseFloat(record.pieces_price) || 0), 0).toFixed(2)}
                       </p>
@@ -990,7 +990,7 @@ const SalerRecord = () => {
                 <div className="col-md-3">
                   <div className="card text-white bg-info mb-3">
                     <div className="card-body">
-                      <h5 className="card-title">Total Pieces</h5>
+                      <h5 className="card-title">Total Qty</h5>
                       <p className="card-text fs-4">
                         {filteredRecords.reduce((sum, record) => sum + (parseInt(record.stock) || 0), 0)}
                       </p>
@@ -1252,8 +1252,8 @@ const SalerRecord = () => {
                     >
                       Product Price{<SortIndicator columnKey="product_price" />}
                     </th>
-                    <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Pieces Price</th>
-                    <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Pieces</th>
+                    <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Qty Price</th>
+                    <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Qty</th>
                     <th
                       style={{ backgroundColor: '#f44336', color: 'white', cursor: 'pointer' }}
                       onClick={() => handleSort('date')}
@@ -1370,12 +1370,12 @@ const SalerRecord = () => {
                       >
                         Total Product Value{<SortIndicator columnKey="total_product_price" />}
                       </th>
-                      <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Pieces Price</th>
+                      <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Qty Price</th>
                       <th
                         style={{ backgroundColor: '#f44336', color: 'white', cursor: 'pointer' }}
                         onClick={() => handleSort('total_pieces')}
                       >
-                        Total Pieces{<SortIndicator columnKey="total_pieces" />}
+                        Total Qty{<SortIndicator columnKey="total_pieces" />}
                       </th>
                       <th style={{ backgroundColor: '#f44336', color: 'white' }}>Records Count</th>
                       <th style={{ backgroundColor: '#f44336', color: 'white' }}>Actions</th>
@@ -1408,7 +1408,7 @@ const SalerRecord = () => {
                                   <div style="text-align: left;">
                                     <p><strong>Total Pieces:</strong> ${summary.total_pieces}</p>
                                     <p><strong>Total Product Value:</strong> Rs: ${summary.total_product_price.toFixed(2)}</p>
-                                    <p><strong>Total Pieces Price:</strong> Rs: ${summary.total_pieces_price.toFixed(2)}</p>
+                                    <p><strong>Total Qty Price:</strong> Rs: ${summary.total_pieces_price.toFixed(2)}</p>
                                     <p><strong>Number of Records:</strong> ${summary.records_count}</p>
                                     <hr>
                                     <h6>Individual Records:</h6>
@@ -1503,12 +1503,12 @@ const SalerRecord = () => {
                       >
                         Total Product Value{<SortIndicator columnKey="total_product_price" />}
                       </th>
-                      <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Pieces Price</th>
+                      <th style={{ backgroundColor: '#f44336', color: 'white' }}>Total Qty Price</th>
                       <th
                         style={{ backgroundColor: '#f44336', color: 'white', cursor: 'pointer' }}
                         onClick={() => handleSort('total_pieces')}
                       >
-                        Total Pieces{<SortIndicator columnKey="total_pieces" />}
+                        Total Qty{<SortIndicator columnKey="total_pieces" />}
                       </th>
                       <th style={{ backgroundColor: '#f44336', color: 'white' }}>Records Count</th>
                       <th style={{ backgroundColor: '#f44336', color: 'white' }}>Actions</th>
@@ -1547,7 +1547,7 @@ const SalerRecord = () => {
                                   <div style="text-align: left;">
                                     <p><strong>Total Pieces:</strong> ${summary.total_pieces}</p>
                                     <p><strong>Total Product Value:</strong> Rs: ${summary.total_product_price.toFixed(2)}</p>
-                                    <p><strong>Total Pieces Price:</strong> Rs: ${summary.total_pieces_price.toFixed(2)}</p>
+                                    <p><strong>Total Qty Price:</strong> Rs: ${summary.total_pieces_price.toFixed(2)}</p>
                                     <p><strong>Number of Records:</strong> ${summary.records_count}</p>
                                     <p><strong>Different Places (${summary.unique_places_count}):</strong> ${summary.unique_places_list.join(', ')}</p>
                                     <hr>

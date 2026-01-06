@@ -269,7 +269,7 @@ const SalerProductCard = ({ onProductAdded }) => {
                     {errors.product_price && <span style={{ color: 'red' }}>{errors.product_price}</span>}
                 </div>
                 <div className="input_div d-flex flex-column ms-2">
-                    <label>Total Pieces Price</label>
+                    <label>Total Qty Price</label>
                     <input
                         type="number"
                         value={formData.pieces_price}
@@ -283,7 +283,7 @@ const SalerProductCard = ({ onProductAdded }) => {
             </div>
 
             <div className="input_div d-flex flex-column input_width">
-                <label>Pieces</label>
+                <label>Total Qty</label>
                 <input
                     type="number"
                     value={formData.stock}

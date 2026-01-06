@@ -477,8 +477,8 @@ const BuyerRecord = () => {
                     <th style={tableHeadingStyle}>Product Name</th>
                     <th style={tableHeadingStyle}>Product Price</th>
                     <th style={tableHeadingStyle}>Product Saling Price</th>
-                    <th style={tableHeadingStyle}>Total Pieces Price</th>
-                    <th style={tableHeadingStyle}>Total Pieces</th>
+                    <th style={tableHeadingStyle}>Total Qty Price</th>
+                    <th style={tableHeadingStyle}>Total Qty</th>
                     <th style={tableHeadingStyle}>Remains Stock</th>
                     <th style={tableHeadingStyle}>Expire Date</th>
                     <th style={tableHeadingStyle}>Date</th>

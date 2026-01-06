@@ -91,6 +91,10 @@ const DuesRecord = () => {
   const [deleteProgress, setDeleteProgress] = useState(0);
   const [totalToDelete, setTotalToDelete] = useState(0);
 
+  // ✅ Zero value check states
+  const [hasCheckedInitialZeroValues, setHasCheckedInitialZeroValues] = useState(false);
+  const [showZeroValueCheckButton, setShowZeroValueCheckButton] = useState(true);
+
   // ✅ Get unique khata names
   const khataNames = useMemo(() => {
     return [...new Set(data.map((item) => item.khata_name).filter(Boolean))].sort();
@@ -853,6 +857,165 @@ const DuesRecord = () => {
       volume: speechVolume,
       voice: englishVoice
     });
+  };
+
+  // ✅ Check for zero values in Debit and Credit columns
+  const checkZeroValues = () => {
+    // Group zero value records by khata
+    const zeroValueRecords = {};
+
+    recordsWithRunningTotals.forEach((record, index) => {
+      const givenDues = Number(record.given_dues) || 0;
+      const takenDues = Number(record.taken_dues) || 0;
+
+      // Check if both Debit and Credit are 0
+      if (givenDues === 0 && takenDues === 0) {
+        const khataName = record.khata_name || 'All Khatas';
+
+        if (!zeroValueRecords[khataName]) {
+          zeroValueRecords[khataName] = [];
+        }
+
+        zeroValueRecords[khataName].push({
+          recordNumber: index + 1,
+          name: record.formattedName,
+          date: formatDate(record.date)
+        });
+      }
+    });
+
+    return zeroValueRecords;
+  };
+
+  // ✅ Show zero value alert
+  const showZeroValueAlert = (zeroValueRecords, isAutoCheck = false) => {
+    const totalZeroRecords = Object.values(zeroValueRecords).reduce((acc, arr) => acc + arr.length, 0);
+
+    if (totalZeroRecords === 0) {
+      Swal.fire({
+        title: isAutoCheck ? 'No Zero Values Found' : 'Check Complete',
+        text: 'No records found with both Debit and Credit values as 0.',
+        icon: 'success',
+        confirmButtonText: 'Ok',
+        buttonsStyling: false,
+        customClass: { confirmButton: 'sweetalert_btn_success' },
+      });
+      return;
+    }
+
+    // Create HTML content for the alert
+    let htmlContent = `
+      <div style="text-align: left; max-height: 400px; overflow-y: auto;">
+        <p style="color: #dc3545; font-weight: bold; margin-bottom: 15px;">
+          Found ${totalZeroRecords} record${totalZeroRecords > 1 ? 's' : ''} with both Debit and Credit as 0
+        </p>
+    `;
+
+    // Group by khata
+    Object.entries(zeroValueRecords).forEach(([khataName, records]) => {
+      htmlContent += `
+        <div style="margin-bottom: 20px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+          <h6 style="color: #62109F; margin-bottom: 10px;">
+            ${khataName === 'All Khatas' ? '📁 All Khatas' : `📒 ${khataName}`}
+          </h6>
+          <div style="padding-left: 15px;">
+      `;
+
+      records.forEach(record => {
+        htmlContent += `
+          <div style="margin-bottom: 8px; padding: 8px; background: white; border-left: 4px solid #ffc107; border-radius: 3px;">
+            <span style="font-weight: bold; color: #6c757d;">Record #${record.recordNumber}</span>
+            <div style="font-size: 0.9em; color: #495057; margin-top: 3px;">
+              <span style="display: block;">📝 ${record.name}</span>
+              <span style="display: block;">📅 ${record.date}</span>
+            </div>
+          </div>
+        `;
+      });
+
+      htmlContent += `
+          </div>
+        </div>
+      `;
+    });
+
+    htmlContent += `
+        <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 5px; border: 1px solid #ffc107;">
+          <p style="margin: 0; color: #856404; font-size: 0.9em;">
+            <strong>Note:</strong> These records have both Debit and Credit values as 0. 
+            You may want to review or update them.
+          </p>
+        </div>
+      </div>
+    `;
+
+    Swal.fire({
+      title: isAutoCheck ? '⚠️ Zero Value Alert' : '🔍 Zero Value Check',
+      html: htmlContent,
+      icon: 'warning',
+      width: '700px',
+      confirmButtonText: 'Ok, I Understand',
+      showCancelButton: !isAutoCheck,
+      cancelButtonText: 'Close',
+      buttonsStyling: false,
+      customClass: {
+        confirmButton: 'btn btn-danger me-2',
+        cancelButton: 'btn btn-success',
+        popup: 'sweetalert_zero_value_popup'
+      },
+      didOpen: () => {
+        // Add custom styles for scrollbar
+        const popup = document.querySelector('.sweetalert_zero_value_popup');
+        if (popup) {
+          const style = document.createElement('style');
+          style.textContent = `
+            .sweetalert_zero_value_popup .swal2-html-container {
+              max-height: 400px;
+              overflow-y: auto;
+            }
+            .sweetalert_zero_value_popup .swal2-html-container::-webkit-scrollbar {
+              width: 8px;
+            }
+            .sweetalert_zero_value_popup .swal2-html-container::-webkit-scrollbar-track {
+              background: #f1f1f1;
+              border-radius: 4px;
+            }
+            .sweetalert_zero_value_popup .swal2-html-container::-webkit-scrollbar-thumb {
+              background: #888;
+              border-radius: 4px;
+            }
+            .sweetalert_zero_value_popup .swal2-html-container::-webkit-scrollbar-thumb:hover {
+              background: #555;
+            }
+          `;
+          popup.appendChild(style);
+        }
+      }
+    });
+  };
+
+  // ✅ Run automatic zero value check on component mount
+  useEffect(() => {
+    if (!hasCheckedInitialZeroValues && recordsWithRunningTotals.length > 0) {
+      const zeroValueRecords = checkZeroValues();
+      const totalZeroRecords = Object.values(zeroValueRecords).reduce((acc, arr) => acc + arr.length, 0);
+
+      if (totalZeroRecords > 0) {
+        // Delay the alert slightly to ensure page is loaded
+        setTimeout(() => {
+          showZeroValueAlert(zeroValueRecords, true);
+          setHasCheckedInitialZeroValues(true);
+        }, 1500);
+      } else {
+        setHasCheckedInitialZeroValues(true);
+      }
+    }
+  }, [recordsWithRunningTotals, hasCheckedInitialZeroValues]);
+
+  // ✅ Handle manual zero value check
+  const handleCheckZeroValues = () => {
+    const zeroValueRecords = checkZeroValues();
+    showZeroValueAlert(zeroValueRecords, false);
   };
 
   // ✅ Scroll to Top Function
@@ -1793,6 +1956,18 @@ const DuesRecord = () => {
           </button>
         </div>
 
+        {/* 🔍 Zero Value Check Button */}
+        <div className="form-group">
+          <button
+            className="btn btn-warning px-4"
+            onClick={handleCheckZeroValues}
+            disabled={recordsWithRunningTotals.length === 0}
+            title="Check for records with both Debit and Credit as 0"
+          >
+            🔍 Check Zero Values
+          </button>
+        </div>
+
         {/* 🗑️ Delete All Button */}
         <div className="form-group">
           <button
@@ -1942,92 +2117,106 @@ const DuesRecord = () => {
             </thead>
             <tbody>
               {recordsWithRunningTotals.length > 0 ? (
-                recordsWithRunningTotals.map((record, index) => (
-                  <tr
-                    key={record.id || index}
-                    style={speakingRecordId === record.id ? SpeakingStyle : {}}
-                  >
-                    <td style={{ ...TableCellStyle, ...IndexStyle }}>{index + 1}</td>
-                    {!selectedKhata && (
-                      <td style={{ ...TableCellStyle, ...KhataStyle }}>
-                        {record.khata_name}
-                      </td>
-                    )}
-                    <td style={TableCellStyle}>
-                      {formatDate(record.date)}
-                    </td>
-                    <td style={{ ...TableCellStyle, ...(record.isReturn ? ReturnStyle : {}) }}>
-                      {record.formattedName}
-                    </td>
-                    <td style={{ ...TableCellStyle, ...CommonStyle }}>
-                      {formatNumberWithCommas(record.single_piece_price)}
-                    </td>
-                    {/* 🔄 CHANGED: Use formatWithOptionalDecimals for these 5 columns */}
-                    <td style={{ ...TableCellStyle, ...SumOfTotalStyle }} className="fw-bold">
-                      {formatWithOptionalDecimals(record.runningTotalSinglePiecePrice)}
-                    </td>
-                    <td style={{ ...TableCellStyle, ...CommonStyle }}>
-                      {record.m_pieces}
-                    </td>
-                    <td style={{ ...TableCellStyle, ...SumOfTotalStyle }} className="fw-bold">
-                      {formatWithOptionalDecimals(record.runningTotalMedicinePieces)}
-                    </td>
-                    <td style={{ ...TableCellStyle, ...CommonStyle }}>
-                      {record.total_piece}
-                    </td>
-                    <td style={{ ...TableCellStyle, ...SumOfTotalStyle }} className="fw-bold">
-                      {formatWithOptionalDecimals(record.runningTotalFeedPieces)}
-                    </td>
-                    <td style={{ ...TableCellStyle, ...CommonStyle }}>
-                      {record.o_pieces}
-                    </td>
-                    <td style={{ ...TableCellStyle, ...SumOfTotalStyle }} className="fw-bold">
-                      {formatWithOptionalDecimals(record.runningTotalOtherPieces)}
-                    </td>
-                    <td style={{ ...TableCellStyle, ...GivenDuesStyle }}>
-                      {record.given_dues ? formatNumberWithCommas(record.given_dues) : '0'}
-                    </td>
-                    <td style={{ ...TableCellStyle, ...TakenDuesStyle }}>
-                      {record.taken_dues ? formatNumberWithCommas(record.taken_dues) : '0'}
-                    </td>
-                    {/* 🔄 CHANGED: Use formatWithOptionalDecimals for Balance column */}
-                    <td
-                      style={{
-                        ...TableCellStyle,
-                        ...getPriceColorStyle(record.runningTotal)
-                      }}
-                      className="fw-bold"
-                    >
-                      {formatWithOptionalDecimals(record.runningTotal)}
-                    </td>
+                recordsWithRunningTotals.map((record, index) => {
+                  const givenDues = Number(record.given_dues) || 0;
+                  const takenDues = Number(record.taken_dues) || 0;
+                  const isZeroValue = givenDues === 0 && takenDues === 0;
 
-                    <td style={TableCellStyle} className='d-flex justify-content-center align-items-center gap-2'>
-                      <Link to={`/updatedues/${record.id}`} className="update_btn">
-                        Update
-                      </Link>
-                      <button
-                        className="delete_btn"
-                        onClick={() => handleDelete(record.id)}
-                      >
-                        Delete
-                      </button>
-                      {supported && (
-                        <button
-                          className={`btn ${speakingRecordId === record.id ? 'btn-warning' : 'btn-info'}`}
-                          onClick={() => toggleSpeech(record)}
-                          style={{
-                            padding: '2px 8px',
-                            fontSize: '0.8rem',
-                            minWidth: '60px',
-                          }}
-                          title={speakingRecordId === record.id ? 'Stop speaking this record' : 'Speak this record with amounts in words'}
-                        >
-                          {speakingRecordId === record.id ? '⏹️ Stop' : '🔊 Speak'}
-                        </button>
+                  return (
+                    <tr
+                      key={record.id || index}
+                      style={{
+                        ...(speakingRecordId === record.id ? SpeakingStyle : {}),
+                        ...(isZeroValue ? { backgroundColor: '#fff3cd', borderLeft: '4px solid #ffc107' } : {})
+                      }}
+                    >
+                      <td style={{ ...TableCellStyle, ...IndexStyle }}>{index + 1}</td>
+                      {!selectedKhata && (
+                        <td style={{ ...TableCellStyle, ...KhataStyle }}>
+                          {record.khata_name}
+                        </td>
                       )}
-                    </td>
-                  </tr>
-                ))
+                      <td style={TableCellStyle}>
+                        {formatDate(record.date)}
+                      </td>
+                      <td style={{ ...TableCellStyle, ...(record.isReturn ? ReturnStyle : {}) }}>
+                        {record.formattedName}
+                        {isZeroValue && (
+                          <span className="badge bg-warning text-dark ms-2" title="Both Debit and Credit are 0">
+                            ⚠️ Zero
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ ...TableCellStyle, ...CommonStyle }}>
+                        {formatNumberWithCommas(record.single_piece_price)}
+                      </td>
+                      {/* 🔄 CHANGED: Use formatWithOptionalDecimals for these 5 columns */}
+                      <td style={{ ...TableCellStyle, ...SumOfTotalStyle }} className="fw-bold">
+                        {formatWithOptionalDecimals(record.runningTotalSinglePiecePrice)}
+                      </td>
+                      <td style={{ ...TableCellStyle, ...CommonStyle }}>
+                        {record.m_pieces}
+                      </td>
+                      <td style={{ ...TableCellStyle, ...SumOfTotalStyle }} className="fw-bold">
+                        {formatWithOptionalDecimals(record.runningTotalMedicinePieces)}
+                      </td>
+                      <td style={{ ...TableCellStyle, ...CommonStyle }}>
+                        {record.total_piece}
+                      </td>
+                      <td style={{ ...TableCellStyle, ...SumOfTotalStyle }} className="fw-bold">
+                        {formatWithOptionalDecimals(record.runningTotalFeedPieces)}
+                      </td>
+                      <td style={{ ...TableCellStyle, ...CommonStyle }}>
+                        {record.o_pieces}
+                      </td>
+                      <td style={{ ...TableCellStyle, ...SumOfTotalStyle }} className="fw-bold">
+                        {formatWithOptionalDecimals(record.runningTotalOtherPieces)}
+                      </td>
+                      <td style={{ ...TableCellStyle, ...GivenDuesStyle }}>
+                        {record.given_dues ? formatNumberWithCommas(record.given_dues) : '0'}
+                      </td>
+                      <td style={{ ...TableCellStyle, ...TakenDuesStyle }}>
+                        {record.taken_dues ? formatNumberWithCommas(record.taken_dues) : '0'}
+                      </td>
+                      {/* 🔄 CHANGED: Use formatWithOptionalDecimals for Balance column */}
+                      <td
+                        style={{
+                          ...TableCellStyle,
+                          ...getPriceColorStyle(record.runningTotal)
+                        }}
+                        className="fw-bold"
+                      >
+                        {formatWithOptionalDecimals(record.runningTotal)}
+                      </td>
+
+                      <td style={TableCellStyle} className='d-flex justify-content-center align-items-center gap-2'>
+                        <Link to={`/updatedues/${record.id}`} className="update_btn">
+                          Update
+                        </Link>
+                        <button
+                          className="delete_btn"
+                          onClick={() => handleDelete(record.id)}
+                        >
+                          Delete
+                        </button>
+                        {supported && (
+                          <button
+                            className={`btn ${speakingRecordId === record.id ? 'btn-warning' : 'btn-info'}`}
+                            onClick={() => toggleSpeech(record)}
+                            style={{
+                              padding: '2px 8px',
+                              fontSize: '0.8rem',
+                              minWidth: '60px',
+                            }}
+                            title={speakingRecordId === record.id ? 'Stop speaking this record' : 'Speak this record with amounts in words'}
+                          >
+                            {speakingRecordId === record.id ? '⏹️ Stop' : '🔊 Speak'}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td

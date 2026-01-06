@@ -288,7 +288,7 @@ const UpdateSalerProduct = () => {
     <div className='d-flex justify-content-center'>
       <div className="card form_div mb-5 p-3 rounded-2 w-50">
         <h1 className='d-flex justify-content-center my-4 gradient_text'>
-          Update Saler Product
+          UPDATE SALER PRODUCT
         </h1>
 
         {/* Current Record Info */}
@@ -308,7 +308,7 @@ const UpdateSalerProduct = () => {
                 <strong>Product Place:</strong> {recordData.product_place || 'N/A'}
               </div>
               <div className="col-md-6">
-                <strong>Stock (Pieces):</strong> {recordData.stock || '0'}
+                <strong>Stock (Qty):</strong> {recordData.stock || '0'}
               </div>
             </div>
             <div className="row mt-2">
@@ -316,7 +316,7 @@ const UpdateSalerProduct = () => {
                 <strong>Product Price:</strong> {parseFloat(recordData.product_price || 0).toFixed(2)}
               </div>
               <div className="col-md-6">
-                <strong>Pieces Price:</strong> {parseFloat(recordData.pieces_price || 0).toFixed(2)}
+                <strong>Qty Price:</strong> {parseFloat(recordData.pieces_price || 0).toFixed(2)}
               </div>
             </div>
             <div className="row mt-2">
@@ -396,7 +396,7 @@ const UpdateSalerProduct = () => {
 
           {/* Stock Input */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Pieces <span style={{ color: '#dc3545' }}>*</span></label>
+            <label className="form-label fw-bold">Qty <span style={{ color: '#dc3545' }}>*</span></label>
             <input
               type="number"
               name="stock"
@@ -415,7 +415,7 @@ const UpdateSalerProduct = () => {
 
           {/* Total Pieces Price Input */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Total Pieces Price <span style={{ color: '#dc3545' }}>*</span></label>
+            <label className="form-label fw-bold">Total Qty Price <span style={{ color: '#dc3545' }}>*</span></label>
             <input
               type="number"
               name="pieces_price"

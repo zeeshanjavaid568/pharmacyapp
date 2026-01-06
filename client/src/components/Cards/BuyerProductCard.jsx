@@ -133,14 +133,14 @@ const BuyerProductCard = ({ onProductAdded }) => {
                 </div>
 
                 <div className="input_div d-flex flex-column ms-2">
-                    <label>Total Pieces Price</label>
+                    <label>Total Qty Price</label>
                     <input type="number" name="pieces_price" value={formData.pieces_price} style={{ width: '157px' }} disabled />
                 </div>
             </div>
 
             {/* Pieces */}
             <div className="input_div d-flex flex-column input_width">
-                <label>Pieces</label>
+                <label>Total Qty</label>
                 <input type="number" name="stock" value={formData.stock} onChange={handleInputs} />
             </div>
 
