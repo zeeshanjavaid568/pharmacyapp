@@ -3,7 +3,7 @@ const DuesController = require('../controllers/DuesController');
 
 const router = express.Router();
 
-  // GIVEN DUES ROUTES START SECTION
+// GIVEN DUES ROUTES START SECTION
 
 /**
  * @route   GET /dues/givedues
@@ -45,12 +45,12 @@ router.post('/givedues', async (req, res) => {
   try {
     const newGiveDue = await DuesController.createGiveDues(req.body);
     res.status(201).json({
-      message: ' Due created successfully',
+      message: 'Due created successfully',
       giveDue: newGiveDue,
     });
   } catch (error) {
-    console.error('Error creating  Due:', error);
-    res.status(500).json({ message: 'Failed to create  Due', error: error.message });
+    console.error('Error creating Due:', error);
+    res.status(500).json({ message: 'Failed to create Due', error: error.message });
   }
 });
 
@@ -79,17 +79,47 @@ router.delete('/givedues/:id', async (req, res) => {
   try {
     const deleted = await DuesController.deleteGiveDues(req.params.id);
     if (!deleted) {
-      return res.status(404).json({ message: ' Due not found' });
+      return res.status(404).json({ message: 'Due not found' });
     }
-    res.status(200).json({ message: ' Due deleted successfully' });
+    res.status(200).json({ message: 'Due deleted successfully' });
   } catch (error) {
-    console.error('Error deleting  Due:', error);
-    res.status(500).json({ message: 'Failed to delete  Due', error: error.message });
+    console.error('Error deleting Due:', error);
+    res.status(500).json({ message: 'Failed to delete Due', error: error.message });
   }
 });
 
-  // GIVEN DUES ROUTES END SECTION
+// GIVEN DUES ROUTES END SECTION
 
- 
+// ✅ KHATA RENAME ROUTE - ADDED
+router.put('/rename-khata', async (req, res) => {
+  const { oldKhataName, newKhataName } = req.body;
+
+  try {
+    // Validate input
+    if (!oldKhataName || !newKhataName) {
+      return res.status(400).json({ message: 'Both old and new khata names are required' });
+    }
+
+    if (oldKhataName.trim() === newKhataName.trim()) {
+      return res.status(400).json({ message: 'New khata name must be different from old name' });
+    }
+
+    if (oldKhataName.trim() === '' || newKhataName.trim() === '') {
+      return res.status(400).json({ message: 'Khata name cannot be empty' });
+    }
+
+    // Use the controller method which handles transactions properly
+    const result = await DuesController.renameKhata(oldKhataName, newKhataName);
+
+    res.status(200).json(result);
+
+  } catch (error) {
+    console.error('Error renaming khata:', error);
+    res.status(500).json({ 
+      message: 'Error renaming khata',
+      error: error.message 
+    });
+  }
+});
 
 module.exports = router;

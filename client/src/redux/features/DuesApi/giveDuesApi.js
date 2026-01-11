@@ -44,6 +44,15 @@ export const DuesApi = createApi({
         body: userData,
       }),
     }),
+    // ✅ ADDED: Rename Khata mutation
+    renameKhata: builder.mutation({
+      query: (renameData) => ({
+        url: '/dues/rename-khata',
+        method: 'PUT',
+        body: renameData,
+      }),
+      invalidatesTags: ['Dues'],
+    }),
   }),
 });
 
@@ -52,5 +61,6 @@ export const {
   useGetAllDuesQuery,
   useDeleteGivenDuesMutation,
   useSingleGetDuesQuery,
-  useUpdateDuesMutation
+  useUpdateDuesMutation,
+  useRenameKhataMutation
 } = DuesApi;

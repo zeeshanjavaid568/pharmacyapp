@@ -1,13 +1,18 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import DuesCard from '../components/Cards/DuesCard';
-import { useGetAllDuesQuery, useDeleteGivenDuesMutation } from '../redux/features/DuesApi/giveDuesApi';
+import {
+  useGetAllDuesQuery,
+  useDeleteGivenDuesMutation,
+  useRenameKhataMutation // Add this import
+} from '../redux/features/DuesApi/giveDuesApi';
 import { Link } from 'react-router-dom';
 import { useSpeechSynthesis } from 'react-speech-kit';
 
 const DuesRecord = () => {
   const { data = [], isLoading, isError, refetch } = useGetAllDuesQuery();
   const [deleteGivenDues] = useDeleteGivenDuesMutation();
+  const [renameKhata] = useRenameKhataMutation(); // Add this hook
 
   // ✅ Use react-speech-kit hook
   const { speak, speaking, cancel, voices, supported } = useSpeechSynthesis({
@@ -76,6 +81,11 @@ const DuesRecord = () => {
   const [selectedKhata, setSelectedKhata] = useState('');
   const [showKhataDropdown, setShowKhataDropdown] = useState(false);
 
+  // ✅ Rename Khata Modal State
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [newKhataName, setNewKhataName] = useState('');
+  const [isRenaming, setIsRenaming] = useState(false);
+
   // ✅ Scroll to top/bottom states
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
@@ -120,6 +130,94 @@ const DuesRecord = () => {
     setSelectedKhata('');
     setKhataSearch('');
     setShowKhataDropdown(false);
+  };
+
+  // ✅ Handle rename khata
+  const handleRenameKhata = async () => {
+    if (!selectedKhata.trim()) {
+      Swal.fire({
+        title: 'No Khata Selected',
+        text: 'Please select a khata to rename',
+        icon: 'warning',
+        confirmButtonText: 'Ok'
+      });
+      return;
+    }
+
+    const { value: newName } = await Swal.fire({
+      title: `Rename Khata: ${selectedKhata}`,
+      input: 'text',
+      inputLabel: 'Enter new khata name',
+      inputValue: selectedKhata,
+      showCancelButton: true,
+      confirmButtonColor: '#45a049',
+      cancelButtonColor: '#d33',
+      inputValidator: (value) => {
+        if (!value.trim()) {
+          return 'Khata name cannot be empty!';
+        }
+        if (value === selectedKhata) {
+          return 'New name must be different from current name!';
+        }
+        if (khataNames.includes(value)) {
+          return 'Khata name already exists!';
+        }
+      }
+    });
+
+    if (newName && newName !== selectedKhata) {
+      try {
+        setIsRenaming(true);
+
+        const result = await Swal.fire({
+          title: 'Confirm Rename',
+          html: `
+            <div style="text-align: left;">
+              <p>Are you sure you want to rename:</p>
+              <p><strong>"${selectedKhata}"</strong> → <strong>"${newName}"</strong></p>
+              <p>This action will update all records with this khata name.</p>
+            </div>
+          `,
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: 'Yes, Rename',
+          cancelButtonText: 'Cancel',
+          confirmButtonColor: '#45a049',
+          cancelButtonColor: '#d33'
+        });
+
+        if (result.isConfirmed) {
+          await renameKhata({
+            oldKhataName: selectedKhata,
+            newKhataName: newName
+          }).unwrap();
+
+          Swal.fire({
+            title: 'Success!',
+            text: `Khata renamed from "${selectedKhata}" to "${newName}"`,
+            icon: 'success',
+            confirmButtonText: 'Ok',
+            buttonsStyling: false,
+            customClass: { confirmButton: 'sweetalert_btn_success' },
+          });
+
+          setSelectedKhata(newName);
+          await refetch();
+        }
+      } catch (error) {
+        console.error('Error renaming khata:', error);
+        Swal.fire({
+          title: 'Error!',
+          text: error?.data?.error || 'Failed to rename khata. Please try again.',
+          icon: 'error',
+          confirmButtonText: 'Ok',
+          buttonsStyling: false,
+          customClass: { confirmButton: 'sweetalert_btn_error' },
+        });
+      } finally {
+        setIsRenaming(false);
+      }
+    }
   };
 
   // ✅ Handle click outside to close dropdown
@@ -1983,6 +2081,25 @@ const DuesRecord = () => {
               </>
             ) : (
               `🗑️ Delete All (${recordsWithRunningTotals.length})`
+            )}
+          </button>
+        </div>
+
+        {/* ✏️ Rename Khata Button */}
+        <div className="form-group">
+          <button
+            className="btn btn-primary px-4"
+            onClick={handleRenameKhata}
+            disabled={!selectedKhata || isRenaming}
+            title={`Rename selected khata: ${selectedKhata || 'None selected'}`}
+          >
+            {isRenaming ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Renaming...
+              </>
+            ) : (
+              '✏️ Rename Khata'
             )}
           </button>
         </div>
