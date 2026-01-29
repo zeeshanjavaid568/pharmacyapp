@@ -194,7 +194,7 @@ const DuesCard = ({ lastPrice, refetchData }) => {
 
         {/* ✅ Single Piece Price */}
         <div className="col-auto">
-          <label className="me-2">Rate or Weight <span style={{ color: '#dc3545' }}>*</span></label>
+          <label className="me-2">Rate/Weight <span style={{ color: '#dc3545' }}>*</span></label>
           <input
             type="number"
             name="single_piece_price"

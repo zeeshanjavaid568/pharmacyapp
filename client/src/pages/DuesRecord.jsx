@@ -2218,8 +2218,8 @@ const DuesRecord = () => {
                 {!selectedKhata && <th style={TableHeadingStyle}>Khata Name</th>}
                 <th style={TableHeadingStyle}>Date</th>
                 <th style={TableHeadingStyle}>Name</th>
-                <th style={TableHeadingStyle}>Rate or Weight</th>
-                <th style={TableHeadingStyle}>Total Rate or Weight</th>
+                <th style={TableHeadingStyle}>Rate/Weight</th>
+                <th style={TableHeadingStyle}>Total Weight</th>
                 <th style={TableHeadingStyle}>Medicine Qty</th>
                 <th style={TableHeadingStyle}>Total Medicines</th>
                 <th style={TableHeadingStyle}>Feed Qty</th>

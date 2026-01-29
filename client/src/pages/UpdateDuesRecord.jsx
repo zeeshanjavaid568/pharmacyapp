@@ -463,7 +463,7 @@ const UpdateDuesCard = () => {
 
           {/* Single Piece Price Input */}
           <div className="col-12 col-md-5 mb-3">
-            <label className="form-label fw-bold">Rate or Weight <span style={{ color: '#dc3545' }}>*</span></label>
+            <label className="form-label fw-bold">Rate/Weight <span style={{ color: '#dc3545' }}>*</span></label>
             <input
               type="text"  // Changed from number to text for better float handling
               name="single_piece_price"
