@@ -252,7 +252,7 @@ input:focus {
 
 /* Optional: sticky table header */
 .table-container thead th {
-  position: sticky;
+  position: sticky!important;
   top: 0;
   background-color: #f44336;
   /* matches your TableHeadingStyle */

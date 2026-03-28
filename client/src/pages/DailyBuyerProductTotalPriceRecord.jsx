@@ -82,7 +82,7 @@ const BuyerDailyTotalPriceRecord = () => {
         </div>
 
         {/* 🔍 Search by Date */}
-        <div className="search-container px-3 d-flex justify-content-start align-items-center">
+        <div className="search-container pe-3 mb-3 d-flex justify-content-start align-items-center">
           <div className="form-group mt-2">
             <label htmlFor="dateSearch">Search by Date:</label>
             <input
@@ -96,14 +96,14 @@ const BuyerDailyTotalPriceRecord = () => {
         </div>
 
         {/* 🧾 Table */}
-        <div className="table-responsive p-3">
+        <div className="table-container p-3">
           <table className="table table-bordered table-hover form_div" style={{ borderRadius: '10px', overflow: 'hidden' }}>
-            <thead style={{ position: 'sticky', top: '0', zIndex: '1000' }}>
+            <thead>
               <tr>
-                <th style={{ backgroundColor: '#f44336', color: 'white' }}>#</th>
-                <th style={{ backgroundColor: '#f44336', color: 'white' }}>Daily Total Price</th>
-                <th style={{ backgroundColor: '#f44336', color: 'white' }}>Date</th>
-                <th style={{ backgroundColor: '#f44336', color: 'white' }}>Actions</th>
+                <th>#</th>
+                <th>Daily Total Price</th>
+                <th>Date</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
