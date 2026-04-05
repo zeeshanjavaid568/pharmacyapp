@@ -5,7 +5,6 @@ import { useDeleteSalerProductTotalPriceMutation, useSalerProductsTotalPriceQuer
 const SalerDailyTotalPriceRecord = () => {
   const { data, isLoading, isError, refetch } = useSalerProductsTotalPriceQuery();
   const [deleteBuyerProduct] = useDeleteSalerProductTotalPriceMutation();
-  console.log(data)
 
   const [selectedYear, setSelectedYear] = useState(null);
   const [searchDate, setSearchDate] = useState('');
